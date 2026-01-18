@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "target": "ESNext",
+    "checkJs": false,
+    "allowJs": true,
+    "types": ["vite/client"]
+  },
+  "exclude": ["node_modules"]
+}

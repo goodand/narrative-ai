@@ -1,0 +1,18 @@
+{
+  "name": "narrative-ai",
+  "version": "1.0.0",
+  "description": "narrative AI - 이미지 메타데이터 기반 스토리텔링 플랫폼",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "exif-js": "^2.3.0",
+    "vite": "^7.3.1"
+  }
+}
