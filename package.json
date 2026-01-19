@@ -1,6 +1,7 @@
 {
   "name": "narrative-ai",
   "version": "1.0.0",
+  "type": "module",
   "description": "narrative AI - 이미지 메타데이터 기반 스토리텔링 플랫폼",
   "main": "main.js",
   "scripts": {
