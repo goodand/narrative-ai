@@ -108,10 +108,8 @@ function handleFile(file) {
         
         state.meta.w = resized.w; 
         state.meta.h = resized.h;
-        document.getElementById('meta-name').innerText = `📄 ${state.meta.name}`;
-        document.getElementById('meta-size').innerText = `⚖️ ${state.meta.size}`;
-        document.getElementById('meta-dim').innerText = `📐 ${resized.w}x${resized.h}`;
 
+        // 기존 메타데이터(이름, 용량, 크기)는 HTML에서 hidden 처리됨 (A/B 테스트용)
         els.container.classList.remove('hidden'); 
         els.placeholder.classList.add('hidden');
     }).catch(err => {
