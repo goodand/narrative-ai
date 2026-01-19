@@ -1,3 +1,4 @@
+import './style.css';
 import EXIF from 'exif-js';
 
 // 1. API Key 설정 (Vite 환경 변수 사용)
