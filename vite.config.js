@@ -7,6 +7,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    sourcemap: true,
     commonjsOptions: {
       // 2. CommonJS 라이브러리(exif-js 등) 호환성 해결
       transformMixedEsModules: true,
