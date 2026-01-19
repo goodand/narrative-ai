@@ -77,47 +77,93 @@ els.input.onchange = (e) => { if (e.target.files[0]) handleFile(e.target.files[0
 
 // 4. 파일 처리 및 메타데이터 추출 로직
 function handleFile(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        state.base64 = e.target.result.split(',')[1];
-        els.preview.src = e.target.result;
-        state.meta = { name: file.name, size: (file.size / 1024).toFixed(1) + "KB" };
+    // 1. EXIF 데이터 추출 (원본 파일 사용)
+    state.meta = { name: file.name, size: (file.size / 1024).toFixed(1) + "KB" };
+    
+    EXIF.getData(file, function() {
+        const date = EXIF.getTag(this, "DateTimeOriginal");
+        if (date) {
+            const fDate = date.replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
+            const metaDateEl = document.getElementById('meta-date');
+            metaDateEl.innerText = `📅 ${fDate}`;
+            metaDateEl.classList.remove('hidden');
+            state.meta.date = date;
+        }
+        const lat = EXIF.getTag(this, "GPSLatitude");
+        const lon = EXIF.getTag(this, "GPSLongitude");
+        if (lat && lon) {
+            const lt = convertGPS(lat, EXIF.getTag(this, "GPSLatitudeRef") || "N");
+            const ln = convertGPS(lon, EXIF.getTag(this, "GPSLongitudeRef") || "E");
+            const metaGpsEl = document.getElementById('meta-gps');
+            metaGpsEl.innerText = `📍 ${lt.toFixed(4)}, ${ln.toFixed(4)}`;
+            metaGpsEl.classList.remove('hidden');
+            state.meta.gps = { lt, ln };
+        }
+    });
+
+    // 2. 이미지 리사이징 및 미리보기 설정
+    resizeImage(file).then(resized => {
+        state.base64 = resized.base64;
+        els.preview.src = resized.dataUrl;
         
+        state.meta.w = resized.w; 
+        state.meta.h = resized.h;
+        document.getElementById('meta-name').innerText = `📄 ${state.meta.name}`;
+        document.getElementById('meta-size').innerText = `⚖️ ${state.meta.size}`;
+        document.getElementById('meta-dim').innerText = `📐 ${resized.w}x${resized.h}`;
+
+        els.container.classList.remove('hidden'); 
+        els.placeholder.classList.add('hidden');
+    }).catch(err => {
+        console.error("Image resize error:", err);
+        showError("이미지 처리 중 오류가 발생했습니다.");
+    });
+}
+
+// 이미지 리사이징 함수 (Max-side + Area-preserving)
+function resizeImage(file, maxSide = 1024, maxArea = 1024 * 1024) {
+    return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
-            state.meta.w = img.width; 
-            state.meta.h = img.height;
-            document.getElementById('meta-name').innerText = `📄 ${state.meta.name}`;
-            document.getElementById('meta-size').innerText = `⚖️ ${state.meta.size}`;
-            document.getElementById('meta-dim').innerText = `📐 ${img.width}x${img.height}`;
+            let w = img.width;
+            let h = img.height;
             
-            // EXIF 데이터 추출
-            EXIF.getData(file, function() {
-                const date = EXIF.getTag(this, "DateTimeOriginal");
-                if (date) {
-                    const fDate = date.replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
-                    const metaDateEl = document.getElementById('meta-date');
-                    metaDateEl.innerText = `📅 ${fDate}`;
-                    metaDateEl.classList.remove('hidden');
-                    state.meta.date = date;
-                }
-                const lat = EXIF.getTag(this, "GPSLatitude");
-                const lon = EXIF.getTag(this, "GPSLongitude");
-                if (lat && lon) {
-                    const lt = convertGPS(lat, EXIF.getTag(this, "GPSLatitudeRef") || "N");
-                    const ln = convertGPS(lon, EXIF.getTag(this, "GPSLongitudeRef") || "E");
-                    const metaGpsEl = document.getElementById('meta-gps');
-                    metaGpsEl.innerText = `📍 ${lt.toFixed(4)}, ${ln.toFixed(4)}`;
-                    metaGpsEl.classList.remove('hidden');
-                    state.meta.gps = { lt, ln };
-                }
+            // 1. Max-side limit (scale = K / max(W, H))
+            let scaleSide = 1;
+            if (Math.max(w, h) > maxSide) {
+                scaleSide = maxSide / Math.max(w, h);
+            }
+            
+            // 2. Area limit (scale = sqrt(P_max / (W * H)))
+            let scaleArea = 1;
+            if (w * h > maxArea) {
+                scaleArea = Math.sqrt(maxArea / (w * h));
+            }
+            
+            // 두 조건 중 더 엄격한(작은) 스케일 적용
+            const scale = Math.min(scaleSide, scaleArea);
+            
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            
+            // JPEG 퀄리티 0.85로 변환
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85); 
+            resolve({ 
+                base64: dataUrl.split(',')[1], 
+                dataUrl: dataUrl,
+                w: w, 
+                h: h 
             });
-            els.container.classList.remove('hidden'); 
-            els.placeholder.classList.add('hidden');
         };
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+    });
 }
 
 // GPS 좌표 변환 보조 함수
@@ -150,10 +196,10 @@ els.genBtn.onclick = async () => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                contents: [{ 
+                contents: [{
                     parts: [
                         { text: prompt }, 
-                        { inlineData: { mimeType: "image/png", data: state.base64 } }
+                        { inlineData: { mimeType: "image/jpeg", data: state.base64 } }
                     ] 
                 }],
                 systemInstruction: { parts: [{ text: state.sysPrompt }] },
@@ -181,7 +227,7 @@ els.genBtn.onclick = async () => {
         showError("AI 생성 중 오류 발생: " + err.message); 
     } finally { 
         setLoading(false); 
-    }
+    } 
 };
 
 // 6. 결과 렌더링 및 인터랙션 로직
@@ -191,7 +237,7 @@ function renderCaption() {
     const sortedKeywords = [...state.currentData.keywords].sort((a,b) => b.word.length - a.word.length);
     
     sortedKeywords.forEach((item, i) => {
-        const regex = new RegExp(`(${item.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        const regex = new RegExp(`(${item.word.replace(/[.*+?^${}()|[\\]/g, '\\$&')})`, 'gi');
         text = text.replace(regex, `<span class="keyword-highlight" data-word="${item.word}">$1</span>`);
     });
     
