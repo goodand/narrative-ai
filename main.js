@@ -271,7 +271,7 @@ function renderCaption() {
     const sortedKeywords = [...state.currentData.keywords].sort((a,b) => b.word.length - a.word.length);
     
     sortedKeywords.forEach((item, i) => {
-        const regex = new RegExp(`(${item.word.replace(/[.*+?^${}()|[\]/g, '\$&')})`, 'gi');
+        const regex = new RegExp(`(${item.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
         text = text.replace(regex, `<span class="keyword-highlight" data-word="${item.word}">$1</span>`);
     });
     
