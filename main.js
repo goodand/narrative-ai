@@ -109,7 +109,16 @@ function handleFile(file) {
         state.meta.w = resized.w; 
         state.meta.h = resized.h;
 
-        // 기존 메타데이터(이름, 용량, 크기)는 HTML에서 hidden 처리됨 (A/B 테스트용)
+        // [백업용 코드] 기존 메타데이터 UI (파일 이름, 용량, 크기)
+        // 필요 시 index.html에서 해당 요소의 'hidden' 클래스만 제거하면 즉시 복구 가능
+        const metaName = document.getElementById('meta-name');
+        const metaSize = document.getElementById('meta-size');
+        const metaDim = document.getElementById('meta-dim');
+
+        if (metaName) metaName.innerText = `📄 ${state.meta.name}`;
+        if (metaSize) metaSize.innerText = `⚖️ ${state.meta.size}`;
+        if (metaDim) metaDim.innerText = `📐 ${resized.w}x${resized.h}`;
+
         els.container.classList.remove('hidden'); 
         els.placeholder.classList.add('hidden');
     }).catch(err => {
