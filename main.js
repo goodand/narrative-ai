@@ -1,5 +1,5 @@
 import './style.css';
-import EXIF from 'exif-js';
+import ExifReader from 'exifreader';
 
 // 1. API Key 설정 (Vite 환경 변수 사용)
 const apiKey = import.meta.env?.VITE_GEMINI_API_KEY;
@@ -76,55 +76,88 @@ els.dropZone.onclick = () => els.input.click();
 els.input.onchange = (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); };
 
 // 4. 파일 처리 및 메타데이터 추출 로직
-function handleFile(file) {
-    // 1. EXIF 데이터 추출 (원본 파일 사용)
-    state.meta = { name: file.name, size: (file.size / 1024).toFixed(1) + "KB" };
+async function handleFile(file) {
+    // 초기화
+    state.meta = {};
     
-    EXIF.getData(file, function() {
-        const date = EXIF.getTag(this, "DateTimeOriginal");
-        if (date) {
-            const fDate = date.replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
-            const metaDateEl = document.getElementById('meta-date');
-            metaDateEl.innerText = `📅 ${fDate}`;
-            metaDateEl.classList.remove('hidden');
-            state.meta.date = date;
-        }
-        const lat = EXIF.getTag(this, "GPSLatitude");
-        const lon = EXIF.getTag(this, "GPSLongitude");
-        if (lat && lon) {
-            const lt = convertGPS(lat, EXIF.getTag(this, "GPSLatitudeRef") || "N");
-            const ln = convertGPS(lon, EXIF.getTag(this, "GPSLongitudeRef") || "E");
-            const metaGpsEl = document.getElementById('meta-gps');
-            metaGpsEl.innerText = `📍 ${lt.toFixed(4)}, ${ln.toFixed(4)}`;
-            metaGpsEl.classList.remove('hidden');
-            state.meta.gps = { lt, ln };
-        }
+    // UI 요소 리셋 (구 정보 숨김 확인)
+    ['meta-name', 'meta-size', 'meta-dim'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
     });
+
+    try {
+        // 1. ExifReader로 메타데이터 추출
+        const tags = await ExifReader.load(file);
+        
+        // 날짜 정보 추출 (DateTimeOriginal)
+        if (tags['DateTimeOriginal']) {
+            // 포맷: "YYYY:MM:DD HH:MM:SS" -> "YYYY-MM-DD HH:MM"
+            const rawDate = tags['DateTimeOriginal'].description;
+            const formattedDate = rawDate.substring(0, 16).replace(/:/g, '-').replace(' ', 'T').replace('T', ' ');
+            // 간단하게 YYYY:MM:DD 부분을 YYYY-MM-DD로 바꾸고 시간까지 표시
+            const displayDate = rawDate.substring(0, 16).replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
+            
+            const metaDateEl = document.getElementById('meta-date');
+            metaDateEl.innerText = `📅 ${displayDate}`;
+            metaDateEl.classList.remove('hidden');
+            state.meta.date = displayDate;
+        }
+
+        // GPS 정보 추출
+        if (tags['GPSLatitude'] && tags['GPSLongitude']) {
+            // ExifReader는 description에 이미 보기 좋은 포맷을 제공하기도 하지만, 
+            // 소수점 좌표로 변환하여 깔끔하게 표시
+            // tags['GPSLatitude'].description -> "37, 33, 58.9" (배열 형태 값 기반) 
+            
+            const latVal = tags['GPSLatitude'].value; // [degrees, minutes, seconds]
+            const lonVal = tags['GPSLongitude'].value;
+            const latRef = tags['GPSLatitudeRef'] ? tags['GPSLatitudeRef'].value[0] : 'N';
+            const lonRef = tags['GPSLongitudeRef'] ? tags['GPSLongitudeRef'].value[0] : 'E';
+
+            const latDec = convertDMSToDecimal(latVal, latRef);
+            const lonDec = convertDMSToDecimal(lonVal, lonRef);
+
+            const metaGpsEl = document.getElementById('meta-gps');
+            metaGpsEl.innerText = `📍 ${latDec.toFixed(4)}, ${lonDec.toFixed(4)}`;
+            metaGpsEl.classList.remove('hidden');
+            state.meta.gps = { lat: latDec, lon: lonDec };
+        }
+
+    } catch (error) {
+        console.error("Metadata extraction error:", error);
+        // 메타데이터 에러가 있어도 이미지는 계속 처리
+    }
 
     // 2. 이미지 리사이징 및 미리보기 설정
     resizeImage(file).then(resized => {
         state.base64 = resized.base64;
         els.preview.src = resized.dataUrl;
         
-        state.meta.w = resized.w; 
-        state.meta.h = resized.h;
-
-        // [백업용 코드] 기존 메타데이터 UI (파일 이름, 용량, 크기)
-        // 필요 시 index.html에서 해당 요소의 'hidden' 클래스만 제거하면 즉시 복구 가능
-        const metaName = document.getElementById('meta-name');
-        const metaSize = document.getElementById('meta-size');
-        const metaDim = document.getElementById('meta-dim');
-
-        if (metaName) metaName.innerText = `📄 ${state.meta.name}`;
-        if (metaSize) metaSize.innerText = `⚖️ ${state.meta.size}`;
-        if (metaDim) metaDim.innerText = `📐 ${resized.w}x${resized.h}`;
-
         els.container.classList.remove('hidden'); 
         els.placeholder.classList.add('hidden');
     }).catch(err => {
         console.error("Image resize error:", err);
         showError("이미지 처리 중 오류가 발생했습니다.");
     });
+}
+
+// DMS(Degree, Minute, Second) -> Decimal 변환 함수
+function convertDMSToDecimal(dms, ref) {
+    if (!dms || dms.length < 3) return 0;
+    
+    // ExifReader might return numbers or arrays [numerator, denominator]
+    // handle potential array structure if ExifReader returns rational numbers as arrays
+    const d = Array.isArray(dms[0]) ? dms[0][0]/dms[0][1] : dms[0];
+    const m = Array.isArray(dms[1]) ? dms[1][0]/dms[1][1] : dms[1];
+    const s = Array.isArray(dms[2]) ? dms[2][0]/dms[2][1] : dms[2];
+
+    let decimal = d + (m / 60) + (s / 3600);
+    
+    if (ref === 'S' || ref === 'W') {
+        decimal = decimal * -1;
+    }
+    return decimal;
 }
 
 // 이미지 리사이징 함수 (Max-side + Area-preserving)
@@ -171,12 +204,6 @@ function resizeImage(file, maxSide = 1024, maxArea = 1024 * 1024) {
         img.onerror = reject;
         img.src = URL.createObjectURL(file);
     });
-}
-
-// GPS 좌표 변환 보조 함수
-function convertGPS(c, r) {
-    let d = c[0] + (c[1] / 60) + (c[2] / 3600);
-    return (r === "S" || r === "W") ? d * -1 : d;
 }
 
 // 5. Gemini AI API 호출
@@ -244,7 +271,7 @@ function renderCaption() {
     const sortedKeywords = [...state.currentData.keywords].sort((a,b) => b.word.length - a.word.length);
     
     sortedKeywords.forEach((item, i) => {
-        const regex = new RegExp(`(${item.word.replace(/[.*+?^${}()|[\\]/g, '\\$&')})`, 'gi');
+        const regex = new RegExp(`(${item.word.replace(/[.*+?^${}()|[\]/g, '\$&')})`, 'gi');
         text = text.replace(regex, `<span class="keyword-highlight" data-word="${item.word}">$1</span>`);
     });
     
