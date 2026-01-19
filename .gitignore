@@ -15,6 +15,7 @@ pnpm-debug.log*
 .gemini/
 feedback.md
 develop-plan.md
+develope-plan.md
 interview.md
 
 test-assets
