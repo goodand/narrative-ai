@@ -141,6 +141,12 @@
                 </div>
             </div>
 
+            <!-- 태그 입력 (추가) -->
+            <div class="mb-6">
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Tags (Optional)</label>
+                <input type="text" id="tags-input" class="w-full bg-slate-100 border-none rounded-2xl p-4 text-slate-900 font-bold focus:ring-2 focus:ring-[#E7FF68] outline-none placeholder-slate-400" placeholder="#태그 #키워드 #입력">
+            </div>
+
             <!-- 생성 버튼 -->
             <button id="generate-btn" class="w-full btn-main py-5 px-6 rounded-2xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-xl shadow-indigo-100">
                 <span id="btn-text">내 기억을 선명하게 하기</span>
@@ -209,6 +215,28 @@
                     <textarea id="system-prompt-input" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 text-slate-700 font-medium leading-relaxed focus:border-[#E7FF68] outline-none min-h-[180px] text-sm shadow-inner" placeholder="예: '너는 감성적인 사진작가야. 아주 서정적인 문체를 사용해줘.'"></textarea>
                 </div>
                 <button id="save-settings" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-slate-800 transition-all uppercase tracking-widest text-xs">프롬프트 설정 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 수정 확인 모달 (추가) -->
+    <div id="edit-confirm-modal" class="fixed inset-0 z-[120] flex items-center justify-center hidden px-4 bg-black/50 backdrop-blur-sm">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden transform transition-all p-8 text-center">
+            <div class="mb-6">
+                <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-black text-slate-900 mb-2">수정 모드로 전환하시겠습니까?</h3>
+                <p class="text-slate-500 text-sm leading-relaxed">
+                    수정 모드에서는 <span class="text-amber-600 font-bold">단어 하이라이트 및 추천 기능이 사라집니다.</span><br>
+                    계속 진행하시겠습니까?
+                </p>
+            </div>
+            <div class="flex gap-3">
+                <button id="cancel-edit-btn" class="flex-1 py-3 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">아니오</button>
+                <button id="confirm-edit-btn" class="flex-1 py-3 rounded-xl font-bold bg-slate-900 text-white hover:bg-slate-800 transition-colors">네, 수정할래요</button>
             </div>
         </div>
     </div>

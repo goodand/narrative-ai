@@ -18,15 +18,20 @@ const els = {
     captionInt: document.getElementById('caption-interactive'),
     captionEdit: document.getElementById('caption-edit'),
     editBtn: document.getElementById('edit-btn'),
+    saveBtn: document.getElementById('save-btn'), // Added Save Button
     error: document.getElementById('error-msg'),
     lang: document.getElementById('language-select'),
     style: document.getElementById('style-select'),
     copy: document.getElementById('copy-btn'),
+    tagsInput: document.getElementById('tags-input'), // Added Tag Input
     mod: {
         sug: document.getElementById('suggestion-modal'),
         set: document.getElementById('settings-modal'),
         sugList: document.getElementById('suggestion-list'),
-        sysIn: document.getElementById('system-prompt-input')
+        sysIn: document.getElementById('system-prompt-input'),
+        editConfirm: document.getElementById('edit-confirm-modal'), // Added Edit Confirm Modal
+        confirmEditBtn: document.getElementById('confirm-edit-btn'),
+        cancelEditBtn: document.getElementById('cancel-edit-btn')
     }
 };
 
@@ -71,6 +76,55 @@ if (saveSettings) {
     };
 }
 
+// Edit Mode Logic
+if (els.editBtn) {
+    els.editBtn.onclick = () => {
+        // Show confirmation modal
+        els.mod.editConfirm.classList.remove('hidden');
+    };
+}
+
+// Confirm Edit (Yes)
+if (els.mod.confirmEditBtn) {
+    els.mod.confirmEditBtn.onclick = () => {
+        els.mod.editConfirm.classList.add('hidden');
+        
+        // Switch to Edit Mode
+        els.captionInt.classList.add('hidden');
+        els.captionEdit.classList.remove('hidden');
+        els.captionEdit.value = state.currentData.original_caption; // Load current text
+        els.editBtn.classList.add('hidden');
+        els.saveBtn.classList.remove('hidden');
+    };
+}
+
+// Cancel Edit (No)
+if (els.mod.cancelEditBtn) {
+    els.mod.cancelEditBtn.onclick = () => {
+        els.mod.editConfirm.classList.add('hidden');
+    };
+}
+
+// Save Edit
+if (els.saveBtn) {
+    els.saveBtn.onclick = () => {
+        // Save changes
+        const newText = els.captionEdit.value;
+        state.currentData.original_caption = newText;
+        
+        // Switch back to View Mode (Plain text, no highlights)
+        els.captionInt.innerHTML = `"${newText.replace(/\n/g, '<br>')}"`;
+        els.captionInt.classList.remove('hidden');
+        els.captionEdit.classList.add('hidden');
+        
+        els.saveBtn.classList.add('hidden');
+        els.editBtn.classList.remove('hidden');
+        
+        // Disable suggestions/highlights logic for this session (implied by plain text render)
+    };
+}
+
+
 // 이미지 업로드 핸들러
 els.dropZone.onclick = () => els.input.click();
 els.input.onchange = (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); };
@@ -92,10 +146,7 @@ async function handleFile(file) {
         
         // 날짜 정보 추출 (DateTimeOriginal)
         if (tags['DateTimeOriginal']) {
-            // 포맷: "YYYY:MM:DD HH:MM:SS" -> "YYYY-MM-DD HH:MM"
             const rawDate = tags['DateTimeOriginal'].description;
-            const formattedDate = rawDate.substring(0, 16).replace(/:/g, '-').replace(' ', 'T').replace('T', ' ');
-            // 간단하게 YYYY:MM:DD 부분을 YYYY-MM-DD로 바꾸고 시간까지 표시
             const displayDate = rawDate.substring(0, 16).replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
             
             const metaDateEl = document.getElementById('meta-date');
@@ -106,11 +157,7 @@ async function handleFile(file) {
 
         // GPS 정보 추출
         if (tags['GPSLatitude'] && tags['GPSLongitude']) {
-            // ExifReader는 description에 이미 보기 좋은 포맷을 제공하기도 하지만, 
-            // 소수점 좌표로 변환하여 깔끔하게 표시
-            // tags['GPSLatitude'].description -> "37, 33, 58.9" (배열 형태 값 기반) 
-            
-            const latVal = tags['GPSLatitude'].value; // [degrees, minutes, seconds]
+            const latVal = tags['GPSLatitude'].value;
             const lonVal = tags['GPSLongitude'].value;
             const latRef = tags['GPSLatitudeRef'] ? tags['GPSLatitudeRef'].value[0] : 'N';
             const lonRef = tags['GPSLongitudeRef'] ? tags['GPSLongitudeRef'].value[0] : 'E';
@@ -126,7 +173,6 @@ async function handleFile(file) {
 
     } catch (error) {
         console.error("Metadata extraction error:", error);
-        // 메타데이터 에러가 있어도 이미지는 계속 처리
     }
 
     // 2. 이미지 리사이징 및 미리보기 설정
@@ -146,8 +192,6 @@ async function handleFile(file) {
 function convertDMSToDecimal(dms, ref) {
     if (!dms || dms.length < 3) return 0;
     
-    // ExifReader might return numbers or arrays [numerator, denominator]
-    // handle potential array structure if ExifReader returns rational numbers as arrays
     const d = Array.isArray(dms[0]) ? dms[0][0]/dms[0][1] : dms[0];
     const m = Array.isArray(dms[1]) ? dms[1][0]/dms[1][1] : dms[1];
     const s = Array.isArray(dms[2]) ? dms[2][0]/dms[2][1] : dms[2];
@@ -168,19 +212,18 @@ function resizeImage(file, maxSide = 1024, maxArea = 1024 * 1024) {
             let w = img.width;
             let h = img.height;
             
-            // 1. Max-side limit (scale = K / max(W, H))
+            // 1. Max-side limit
             let scaleSide = 1;
             if (Math.max(w, h) > maxSide) {
                 scaleSide = maxSide / Math.max(w, h);
             }
             
-            // 2. Area limit (scale = sqrt(P_max / (W * H)))
+            // 2. Area limit
             let scaleArea = 1;
             if (w * h > maxArea) {
                 scaleArea = Math.sqrt(maxArea / (w * h));
             }
             
-            // 두 조건 중 더 엄격한(작은) 스케일 적용
             const scale = Math.min(scaleSide, scaleArea);
             
             w = Math.round(w * scale);
@@ -192,7 +235,6 @@ function resizeImage(file, maxSide = 1024, maxArea = 1024 * 1024) {
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, w, h);
             
-            // JPEG 퀄리티 0.85로 변환
             const dataUrl = canvas.toDataURL('image/jpeg', 0.85); 
             resolve({ 
                 base64: dataUrl.split(',')[1], 
@@ -212,6 +254,8 @@ els.genBtn.onclick = async () => {
     if (!state.base64) { showError("사진을 업로드해주세요."); return; }
     setLoading(true);
 
+    const userTags = els.tagsInput.value.trim(); // Get user tags
+
     // 프롬프트 구성 분리 및 가독성 개선
     const prompt = `
         Role: Professional Storyteller.
@@ -220,6 +264,7 @@ els.genBtn.onclick = async () => {
           - Platform: ${state.sns}
           - Mood: ${els.style.value}
           - Language: ${els.lang.value}
+          - User Tags: ${userTags}
           - Metadata: ${JSON.stringify(state.meta)}
         Output Requirement: Identify 3-4 key emotional words for synonyms.
         Format: JSON only. {"original_caption": "caption text here", "keywords": [{"word": "target_word", "suggestions": ["synonym1", "synonym2"]}]}
@@ -244,7 +289,7 @@ els.genBtn.onclick = async () => {
         const data = await response.json();
         const resultText = data.candidates[0].content.parts[0].text;
         
-        // JSON 파싱 전처리 (Markdown 코드 블록 제거)
+        // JSON 파싱 전처리
         const cleanedText = resultText.replace(/```json|```/g, '').trim();
         
         try {
@@ -267,11 +312,11 @@ els.genBtn.onclick = async () => {
 // 6. 결과 렌더링 및 인터랙션 로직
 function renderCaption() {
     let text = state.currentData.original_caption;
-    // 긴 단어부터 치환하여 중복 치환 방지
     const sortedKeywords = [...state.currentData.keywords].sort((a,b) => b.word.length - a.word.length);
     
     sortedKeywords.forEach((item, i) => {
-        const regex = new RegExp(`(${item.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        // Fix: Correctly escape special regex characters including backslashes
+        const regex = new RegExp(`(${item.word.replace(/[.*+?^${}()|[\\]/g, '\\$&')})`, 'gi');
         text = text.replace(regex, `<span class="keyword-highlight" data-word="${item.word}">$1</span>`);
     });
     
