@@ -42,7 +42,7 @@ Deployment: Render (Static Site)
 
 레포지토리를 클론합니다.
 
-git clone [https://github.com/your-username/narrative-ai.git](https://github.com/your-username/narrative-ai.git)
+git clone [https://github.com/goodantak/narrative-ai.git](https://github.com/goodantak/narrative-ai.git)
 
 
 의존성 패키지를 설치합니다.

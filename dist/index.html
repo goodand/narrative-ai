@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vakita - Smart Image Storytelling</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f9fafb; color: #111827; }
+        :root { --brand-color: #E7FF68; }
+        /* 로딩 스피너 */
+        .loader {
+            border: 3px solid rgba(0,0,0,0.1); border-top: 3px solid #111827;
+            border-radius: 50%; width: 20px; height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* 메타데이터 배지 스타일 */
+        .metadata-pill {
+            background: #ffffff; color: #4b5563; padding: 4px 12px; border-radius: 20px;
+            font-size: 0.75rem; font-weight: 600; border: 1px solid #e5e7eb;
+            display: flex; align-items: center; gap: 4px;
+        }
+        /* 키워드 하이라이트 효과 */
+        .keyword-highlight {
+            background-color: var(--brand-color); color: #111827; cursor: pointer;
+            padding: 2px 6px; border-radius: 6px; font-weight: 700; transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(231, 255, 104, 0.4); display: inline-block; margin: 2px 0;
+        }
+        .keyword-highlight:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(231, 255, 104, 0.6); }
+        .btn-main {
+            background-color: var(--brand-color); color: #111827; font-weight: 800;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -8px rgba(231, 255, 104, 0.7); }
+        /* SNS 플랫폼 선택 그리드 */
+        .sns-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .sns-item {
+            cursor: pointer; padding: 10px; border-radius: 12px; text-align: center;
+            font-size: 0.75rem; font-weight: 700; border: 2px solid transparent;
+            background: #f3f4f6; transition: all 0.2s;
+        }
+        .sns-item.active { background: var(--brand-color); border-color: #111827; color: #111827; }
+        /* 모달 배경 처리 */
+        #suggestion-modal, #settings-modal { background: rgba(0,0,0,0.3); backdrop-filter: blur(8px); }
+    </style>
+  <script type="module" crossorigin src="/assets/index-DYeYLxtB.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CMDd8qJF.css">
+</head>
+<body class="min-h-screen flex flex-col items-center py-12 px-4">
+    <div class="max-w-2xl w-full bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 relative">
+        
+        <!-- 설정 버튼: 시스템 프롬프트(Persona) 수정 -->
+        <button id="open-settings" class="absolute top-8 right-8 z-10 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        </button>
+
+        <!-- 상단 헤더 -->
+        <div class="bg-slate-900 p-10 text-center relative">
+            <div class="flex items-center justify-center gap-4 mb-2">
+                <img src="data:image/svg+xml,%3c?xml%20version='1.0'%20standalone='no'?%3e%3c!DOCTYPE%20svg%20PUBLIC%20'-//W3C//DTD%20SVG%2020010904//EN'%20'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'%3e%3csvg%20version='1.0'%20xmlns='http://www.w3.org/2000/svg'%20width='844.000000pt'%20height='748.000000pt'%20viewBox='0%200%20844.000000%20748.000000'%20preserveAspectRatio='xMidYMid%20meet'%3e%3cg%20transform='translate(0.000000,748.000000)%20scale(0.100000,-0.100000)'%20fill='%23E7FF68'%20stroke='none'%3e%3cpath%20d='M5310%206394%20c-19%20-2%20-84%20-9%20-145%20-15%20-395%20-39%20-830%20-150%20-1255%20-319%20-95%20-38%20-193%20-32%20-385%2025%20-362%20108%20-455%20125%20-682%20125%20-166%200%20-263%20-13%20-387%20-52%20-155%20-49%20-242%20-152%20-191%20-225%209%20-12%2054%20-43%20101%20-69%20211%20-115%20332%20-257%20349%20-411%2010%20-84%20-6%20-111%20-131%20-228%20-319%20-297%20-594%20-669%20-780%20-1055%20-96%20-198%20-183%20-450%20-230%20-665%20-57%20-262%20-74%20-438%20-74%20-772%200%20-353%203%20-341%20-128%20-490%20-112%20-128%20-162%20-200%20-213%20-307%20-77%20-165%20-99%20-259%20-99%20-431%200%20-86%205%20-151%2016%20-190%2015%20-61%2038%20-105%2053%20-105%205%200%2027%2028%2049%2062%2047%2072%20118%20144%20177%20180%2022%2013%2085%2044%20140%2068%20165%2071%20231%20122%20286%20219%2012%2023%2027%2041%2032%2041%205%200%2027%20-15%2050%20-34%2077%20-62%20140%20-83%20272%20-91%20193%20-13%20267%20-32%20363%20-93%2030%20-18%2060%20-31%2067%20-28%2037%2014%2030%20150%20-12%20261%20-69%20183%20-186%20316%20-419%20478%20-45%2032%20-98%2064%20-117%2072%20l-36%2015%20-34%20-43%20c-19%20-23%20-53%20-77%20-76%20-120%20-23%20-42%20-47%20-77%20-52%20-77%20-14%200%20-10%20120%206%20173%2098%20324%20434%20528%201040%20632%20126%2021%20287%2043%20455%2060%20369%2038%20676%2081%20686%2097%203%205%207%2078%208%20161%203%20135%206%20161%2030%20232%2047%20139%20116%20240%20212%20313%2074%2056%20222%20117%20241%2098%203%20-3%20-35%20-48%20-85%20-101%20-190%20-199%20-227%20-305%20-236%20-675%20-5%20-222%20-15%20-310%20-50%20-425%20-9%20-27%20-16%20-52%20-16%20-54%200%20-7%2076%2011%20135%2031%20149%2052%20269%20131%20393%20263%2095%20100%20146%20175%20213%20312%2073%20150%20112%20282%20148%20503%2018%20107%2037%20199%2042%20205%2017%2017%2043%20-9%2067%20-66%2021%20-50%2022%20-66%2019%20-199%20-4%20-125%20-8%20-159%20-35%20-250%20-17%20-57%20-28%20-108%20-26%20-111%209%20-16%20277%2097%20506%20212%20302%20153%20481%20272%20828%20548%20278%20223%20323%20251%20630%20393%2063%2030%20139%2066%20168%2081%2061%2032%20152%20116%20152%20140%200%209%20-1%2017%20-2%2017%20-2%200%20-25%20-7%20-53%20-16%20-194%20-61%20-394%20-41%20-493%2050%20-59%2053%20-59%2053%20171%2052%20181%20-1%20221%202%20271%2018%20146%2046%20211%20113%20223%20231%207%2065%20-20%20131%20-69%20168%20-19%2015%20-76%2040%20-128%2057%20-115%2037%20-161%2067%20-200%20131%20-16%2027%20-30%2052%20-30%2054%200%203%20-25%2058%20-55%20122%20-77%20163%20-153%20271%20-275%20394%20-215%20216%20-479%20347%20-816%20405%20-85%2014%20-502%2028%20-584%2018z%20m673%20-544%20c85%20-12%20196%20-51%20267%20-93%2077%20-45%20199%20-170%20237%20-242%2017%20-33%2044%20-96%2059%20-140%2023%20-70%2027%20-95%2027%20-205%20-1%20-109%20-4%20-135%20-27%20-205%20-99%20-294%20-355%20-479%20-661%20-478%20-123%201%20-203%2021%20-310%2076%20-91%2048%20-201%20146%20-251%20225%20-104%20162%20-139%20366%20-94%20545%2036%20144%2094%20242%20203%20343%20150%20141%20347%20203%20550%20174z'/%3e%3cpath%20d='M5780%205601%20c-90%20-24%20-145%20-55%20-204%20-115%20-61%20-61%20-101%20-141%20-123%20-242%20-15%20-68%20-15%20-80%200%20-148%2044%20-206%20183%20-339%20382%20-368%2097%20-13%20161%20-2%20261%2046%20149%2072%20244%20226%20244%20396%200%20118%20-41%20220%20-123%20307%20-116%20123%20-273%20167%20-437%20124z%20m348%20-166%20c57%20-48%2050%20-120%20-16%20-158%20-29%20-17%20-39%20-18%20-72%20-8%20-48%2014%20-70%2044%20-70%2094%200%2084%2094%20126%20158%2072z'/%3e%3cpath%20d='M5560%203329%20c-74%20-38%20-197%20-92%20-273%20-120%20-76%20-29%20-142%20-58%20-147%20-64%20-6%20-7%20-6%20-24%200%20-46%2015%20-51%2012%20-254%20-5%20-342%20-8%20-43%20-15%20-83%20-15%20-88%200%20-19%2038%20-8%20103%2030%20130%2076%20218%20157%20309%20286%2074%20104%20173%20335%20166%20387%20-3%2025%20-3%2025%20-138%20-43z'/%3e%3c/g%3e%3c/svg%3e" class="w-12 h-12" alt="vakita logo">
+                <h1 class="text-4xl font-black tracking-tighter text-white italic">vakita <span class="text-[#E7FF68]">AI</span></h1>
+            </div>
+            <p class="text-slate-400 text-sm font-medium tracking-tight uppercase tracking-widest">Metadata-Driven Storytelling</p>
+        </div>
+
+        <div class="p-8">
+            <!-- 이미지 업로드 존 -->
+            <div id="drop-zone" class="border-2 border-dashed border-slate-200 rounded-[2rem] p-10 text-center hover:border-[#E7FF68] transition-all cursor-pointer mb-8 bg-slate-50/50 group">
+                <input type="file" id="image-input" accept="image/*" class="hidden">
+                <div id="upload-placeholder">
+                    <div class="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 group-hover:bg-[#E7FF68] transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400 group-hover:text-slate-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </div>
+                    <p class="text-slate-900 font-extrabold">사진을 업로드하여 서사를 시작하세요</p>
+                </div>
+                <!-- 미리보기 및 메타데이터 컨테이너 -->
+                <div id="preview-container" class="hidden">
+                    <img id="image-preview" class="max-h-72 mx-auto rounded-2xl shadow-lg mb-6 border-4 border-white">
+                    <div class="flex flex-wrap justify-center gap-2" id="meta-container">
+                        <div class="metadata-pill" id="meta-name"></div>
+                        <div class="metadata-pill" id="meta-size"></div>
+                        <div class="metadata-pill" id="meta-dim"></div>
+                        <!-- 날짜 및 위치 데이터 필드 -->
+                        <div class="metadata-pill hidden bg-amber-50 border-amber-100 text-amber-700" id="meta-date"></div>
+                        <div class="metadata-pill hidden bg-indigo-50 border-indigo-100 text-indigo-600" id="meta-gps"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 타겟 플랫폼 및 스타일 옵션 -->
+            <div class="space-y-6 mb-8">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Target Platform</label>
+                    <div class="sns-grid" id="sns-toggle-group">
+                        <div class="sns-item active" data-value="Instagram">Instagram</div>
+                        <div class="sns-item" data-value="Threads">Threads</div>
+                        <div class="sns-item" data-value="Twitter (X)">Twitter (X)</div>
+                        <div class="sns-item" data-value="Facebook">Facebook</div>
+                        <div class="sns-item" data-value="Naver Blog">Blog</div>
+                        <div class="sns-item" data-value="TikTok">TikTok</div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Language</label>
+                        <select id="language-select" class="w-full bg-slate-100 border-none rounded-2xl p-4 text-slate-900 font-bold focus:ring-2 focus:ring-[#E7FF68] outline-none cursor-pointer">
+                            <option value="Korean">한국어</option>
+                            <option value="English">English</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Mood Style</label>
+                        <select id="style-select" class="w-full bg-slate-100 border-none rounded-2xl p-4 text-slate-900 font-bold focus:ring-2 focus:ring-[#E7FF68] outline-none cursor-pointer">
+                            <option value="emotional">감성적인 기록</option>
+                            <option value="descriptive">상세한 묘사</option>
+                            <option value="funny">유머러스한 코멘트</option>
+                            <option value="minimalist">미니멀리스트</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 생성 버튼 -->
+            <button id="generate-btn" class="w-full btn-main py-5 px-6 rounded-2xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-xl shadow-indigo-100">
+                <span id="btn-text">내 기억을 선명하게 하기</span>
+                <div id="btn-loader" class="loader hidden"></div>
+            </button>
+
+            <!-- 분석 결과 영역 -->
+            <div id="result-area" class="mt-12 hidden relative">
+                <div class="flex justify-between items-end mb-4 px-2">
+                    <div>
+                        <h3 class="text-2xl font-black text-slate-900 tracking-tighter italic">NARRATIVE</h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Select highlighted words for suggestions</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="edit-btn" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl transition-colors font-black uppercase">Edit</button>
+                        <button id="save-btn" class="hidden text-[10px] bg-slate-900 text-white px-4 py-2 rounded-xl font-black uppercase">Save</button>
+                    </div>
+                </div>
+                
+                <div class="bg-slate-50 rounded-[2rem] p-10 border border-slate-100 relative shadow-inner">
+                    <div id="caption-interactive" class="text-slate-800 text-xl font-medium leading-relaxed italic"></div>
+                    <textarea id="caption-edit" class="hidden w-full bg-white border-2 border-slate-200 rounded-2xl p-6 text-slate-800 text-xl font-medium leading-relaxed focus:border-[#E7FF68] outline-none min-h-[160px]"></textarea>
+                    
+                    <div class="mt-10 flex items-center justify-between border-t border-slate-200 pt-6">
+                        <button id="copy-btn" class="bg-white text-slate-900 text-xs font-black px-6 py-4 rounded-xl shadow-sm hover:shadow-lg transition-all border border-slate-100">문구 복사하기</button>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-[#E7FF68] animate-pulse"></span>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter italic">Gemini Engine</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="error-msg" class="mt-6 text-red-500 text-sm hidden text-center font-bold bg-red-50 p-5 rounded-2xl"></div>
+        </div>
+    </div>
+
+    <!-- 유의어 추천 모달 -->
+    <div id="suggestion-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden px-4">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden transform transition-all duration-200" id="modal-content">
+            <div class="bg-slate-900 p-6 text-white flex justify-between items-center">
+                <span class="text-xs font-black uppercase tracking-widest text-[#E7FF68]">Word Suggestions</span>
+                <button id="close-modal" class="text-white opacity-50 hover:opacity-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div class="p-6"><div id="suggestion-list" class="space-y-3"></div></div>
+        </div>
+    </div>
+
+    <!-- 시스템 설정 모달 (프롬프트 입력) -->
+    <div id="settings-modal" class="fixed inset-0 z-[110] flex items-center justify-center hidden px-4">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden transform transition-all duration-200" id="settings-content">
+            <div class="bg-slate-900 p-8 text-white flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-[#E7FF68] rounded-xl"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-900" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg></div>
+                    <span class="text-xl font-black italic tracking-tight">System Settings</span>
+                </div>
+                <button id="close-settings" class="text-white opacity-50 hover:opacity-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div class="p-8 space-y-6">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">AI System Prompt</label>
+                    <textarea id="system-prompt-input" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 text-slate-700 font-medium leading-relaxed focus:border-[#E7FF68] outline-none min-h-[180px] text-sm shadow-inner" placeholder="예: '너는 감성적인 사진작가야. 아주 서정적인 문체를 사용해줘.'"></textarea>
+                </div>
+                <button id="save-settings" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-slate-800 transition-all uppercase tracking-widest text-xs">프롬프트 설정 저장</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
