@@ -36,12 +36,13 @@ const els = {
 };
 
 // 3. 앱 상태 관리
-let state = { 
-    base64: null, 
-    meta: {}, 
-    currentData: null, 
-    sns: "Instagram", 
-    sysPrompt: "You are narrative AI. Help users tell stories using image metadata. Use emojis and platform-appropriate tone." 
+let state = {
+    base64: null,
+    meta: {},
+    currentData: null,
+    sns: "Instagram",
+    temp: "Lukewarm", // Added Emotion Temperature state
+    sysPrompt: "You are RECOCO, a professional storyteller. Help users tell stories using image metadata. Use emojis and platform-appropriate tone."
 };
 
 // --- 초기 설정 및 이벤트 바인딩 ---
@@ -57,8 +58,21 @@ if (apiKey) {
 document.querySelectorAll('.sns-item').forEach(item => {
     item.onclick = () => {
         document.querySelectorAll('.sns-item').forEach(i => i.classList.remove('active'));
-        item.classList.add('active'); 
+        item.classList.add('active');
         state.sns = item.dataset.value;
+    };
+});
+
+// 감정의 온도 토글 이벤트
+document.querySelectorAll('#temp-toggle-group button').forEach(btn => {
+    btn.onclick = () => {
+        document.querySelectorAll('#temp-toggle-group button').forEach(b => {
+            b.classList.remove('bg-white', 'shadow-sm');
+            b.classList.add('hover:bg-white/50');
+        });
+        btn.classList.add('bg-white', 'shadow-sm');
+        btn.classList.remove('hover:bg-white/50');
+        state.temp = btn.dataset.value;
     };
 });
 
@@ -71,7 +85,7 @@ if (openSettings) openSettings.onclick = () => els.mod.set.classList.remove('hid
 if (closeSettings) closeSettings.onclick = () => els.mod.set.classList.add('hidden');
 if (saveSettings) {
     saveSettings.onclick = () => {
-        if(els.mod.sysIn.value.trim()) state.sysPrompt = els.mod.sysIn.value.trim();
+        if (els.mod.sysIn.value.trim()) state.sysPrompt = els.mod.sysIn.value.trim();
         els.mod.set.classList.add('hidden');
     };
 }
@@ -88,7 +102,7 @@ if (els.editBtn) {
 if (els.mod.confirmEditBtn) {
     els.mod.confirmEditBtn.onclick = () => {
         els.mod.editConfirm.classList.add('hidden');
-        
+
         // Switch to Edit Mode
         els.captionInt.classList.add('hidden');
         els.captionEdit.classList.remove('hidden');
@@ -111,16 +125,14 @@ if (els.saveBtn) {
         // Save changes
         const newText = els.captionEdit.value;
         state.currentData.original_caption = newText;
-        
+
         // Switch back to View Mode (Plain text, no highlights)
         els.captionInt.innerHTML = `"${newText.replace(/\n/g, '<br>')}"`;
         els.captionInt.classList.remove('hidden');
         els.captionEdit.classList.add('hidden');
-        
+
         els.saveBtn.classList.add('hidden');
         els.editBtn.classList.remove('hidden');
-        
-        // Disable suggestions/highlights logic for this session (implied by plain text render)
     };
 }
 
@@ -133,7 +145,7 @@ els.input.onchange = (e) => { if (e.target.files[0]) handleFile(e.target.files[0
 async function handleFile(file) {
     // 초기화
     state.meta = {};
-    
+
     // UI 요소 리셋 (구 정보 숨김 확인)
     ['meta-name', 'meta-size', 'meta-dim'].forEach(id => {
         const el = document.getElementById(id);
@@ -143,12 +155,12 @@ async function handleFile(file) {
     try {
         // 1. ExifReader로 메타데이터 추출
         const tags = await ExifReader.load(file);
-        
+
         // 날짜 정보 추출 (DateTimeOriginal)
         if (tags['DateTimeOriginal']) {
             const rawDate = tags['DateTimeOriginal'].description;
             const displayDate = rawDate.substring(0, 16).replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
-            
+
             const metaDateEl = document.getElementById('meta-date');
             metaDateEl.innerText = `📅 ${displayDate}`;
             metaDateEl.classList.remove('hidden');
@@ -179,8 +191,8 @@ async function handleFile(file) {
     resizeImage(file).then(resized => {
         state.base64 = resized.base64;
         els.preview.src = resized.dataUrl;
-        
-        els.container.classList.remove('hidden'); 
+
+        els.container.classList.remove('hidden');
         els.placeholder.classList.add('hidden');
     }).catch(err => {
         console.error("Image resize error:", err);
@@ -191,13 +203,13 @@ async function handleFile(file) {
 // DMS(Degree, Minute, Second) -> Decimal 변환 함수
 function convertDMSToDecimal(dms, ref) {
     if (!dms || dms.length < 3) return 0;
-    
-    const d = Array.isArray(dms[0]) ? dms[0][0]/dms[0][1] : dms[0];
-    const m = Array.isArray(dms[1]) ? dms[1][0]/dms[1][1] : dms[1];
-    const s = Array.isArray(dms[2]) ? dms[2][0]/dms[2][1] : dms[2];
+
+    const d = Array.isArray(dms[0]) ? dms[0][0] / dms[0][1] : dms[0];
+    const m = Array.isArray(dms[1]) ? dms[1][0] / dms[1][1] : dms[1];
+    const s = Array.isArray(dms[2]) ? dms[2][0] / dms[2][1] : dms[2];
 
     let decimal = d + (m / 60) + (s / 3600);
-    
+
     if (ref === 'S' || ref === 'W') {
         decimal = decimal * -1;
     }
@@ -211,36 +223,36 @@ function resizeImage(file, maxSide = 1024, maxArea = 1024 * 1024) {
         img.onload = () => {
             let w = img.width;
             let h = img.height;
-            
+
             // 1. Max-side limit
             let scaleSide = 1;
             if (Math.max(w, h) > maxSide) {
                 scaleSide = maxSide / Math.max(w, h);
             }
-            
+
             // 2. Area limit
             let scaleArea = 1;
             if (w * h > maxArea) {
                 scaleArea = Math.sqrt(maxArea / (w * h));
             }
-            
+
             const scale = Math.min(scaleSide, scaleArea);
-            
+
             w = Math.round(w * scale);
             h = Math.round(h * scale);
-            
+
             const canvas = document.createElement('canvas');
             canvas.width = w;
             canvas.height = h;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, w, h);
-            
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.85); 
-            resolve({ 
-                base64: dataUrl.split(',')[1], 
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            resolve({
+                base64: dataUrl.split(',')[1],
                 dataUrl: dataUrl,
-                w: w, 
-                h: h 
+                w: w,
+                h: h
             });
         };
         img.onerror = reject;
@@ -258,11 +270,12 @@ els.genBtn.onclick = async () => {
 
     // 프롬프트 구성 분리 및 가독성 개선
     const prompt = `
-        Role: Professional Storyteller.
+        Role: Professional Storyteller (Service Name: RECOCO).
         Task: Create a compelling story based on the image metadata and visual context.
         Context:
           - Platform: ${state.sns}
           - Mood: ${els.style.value}
+          - Emotion Temperature: ${state.temp}
           - Language: ${els.lang.value}
           - User Tags: ${userTags}
           - Metadata: ${JSON.stringify(state.meta)}
@@ -277,52 +290,52 @@ els.genBtn.onclick = async () => {
             body: JSON.stringify({
                 contents: [{
                     parts: [
-                        { text: prompt }, 
+                        { text: prompt },
                         { inlineData: { mimeType: "image/jpeg", data: state.base64 } }
-                    ] 
+                    ]
                 }],
                 systemInstruction: { parts: [{ text: state.sysPrompt }] },
                 generationConfig: { responseMimeType: "application/json" }
             })
         });
-        
+
         const data = await response.json();
         const resultText = data.candidates[0].content.parts[0].text;
-        
+
         // JSON 파싱 전처리
         const cleanedText = resultText.replace(/```json|```/g, '').trim();
-        
+
         try {
             state.currentData = JSON.parse(cleanedText);
         } catch (e) {
             console.error("JSON Parse Error:", resultText);
             throw new Error("AI 응답을 처리하는 중 오류가 발생했습니다. (JSON 형식 불일치)");
         }
-        
+
         renderCaption();
-        els.resArea.classList.remove('hidden'); 
+        els.resArea.classList.remove('hidden');
         els.resArea.scrollIntoView({ behavior: 'smooth' });
-    } catch (err) { 
-        showError("AI 생성 중 오류 발생: " + err.message); 
-    } finally { 
-        setLoading(false); 
-    } 
+    } catch (err) {
+        showError("AI 생성 중 오류 발생: " + err.message);
+    } finally {
+        setLoading(false);
+    }
 };
 
 // 6. 결과 렌더링 및 인터랙션 로직
 function renderCaption() {
     let text = state.currentData.original_caption;
-    const sortedKeywords = [...state.currentData.keywords].sort((a,b) => b.word.length - a.word.length);
-    
+    const sortedKeywords = [...state.currentData.keywords].sort((a, b) => b.word.length - a.word.length);
+
     sortedKeywords.forEach((item, i) => {
         // Fix: Correctly escape special regex characters including backslashes
         const regex = new RegExp(`(${item.word.replace(/[.*+?^${}()|[\\]/g, '\\$&')})`, 'gi');
         text = text.replace(regex, `<span class="keyword-highlight" data-word="${item.word}">$1</span>`);
     });
-    
+
     els.captionInt.innerHTML = `"${text}"`;
     els.captionEdit.value = state.currentData.original_caption;
-    
+
     // 키워드 클릭 시 추천 모달 오픈
     document.querySelectorAll('.keyword-highlight').forEach(el => {
         el.onclick = () => {
@@ -336,12 +349,12 @@ function openSugModal(data) {
     els.mod.sugList.innerHTML = '';
     data.suggestions.forEach(s => {
         const b = document.createElement('button');
-        b.className = "w-full text-left p-4 hover:bg-[#E7FF68] rounded-xl font-bold border border-slate-100 mb-2 transition-colors";
+        b.className = "w-full text-left p-4 hover:bg-[#B2A5CF] hover:text-white rounded-xl font-bold border border-slate-100 mb-2 transition-colors";
         b.innerText = s;
         b.onclick = () => {
             state.currentData.original_caption = state.currentData.original_caption.replace(data.word, s);
-            data.word = s; 
-            renderCaption(); 
+            data.word = s;
+            renderCaption();
             els.mod.sug.classList.add('hidden');
         };
         els.mod.sugList.appendChild(b);
@@ -361,13 +374,13 @@ async function fetchWithRetry(url, opt, retries = 5, backoff = 1000) {
 }
 
 function setLoading(l) {
-    els.genBtn.disabled = l; 
+    els.genBtn.disabled = l;
     els.loader.classList.toggle('hidden', !l);
     els.btnText.innerText = l ? "기억을 분석하는 중..." : "내 기억을 선명하게 하기";
 }
 
 function showError(m) {
-    els.error.innerText = m; 
+    els.error.innerText = m;
     els.error.classList.remove('hidden');
     setTimeout(() => els.error.classList.add('hidden'), 5000);
 }
@@ -385,12 +398,12 @@ els.copy.onclick = () => {
     tempInput.select();
     document.execCommand("copy");
     document.body.removeChild(tempInput);
-    
+
     const originalText = els.copy.innerText;
     els.copy.innerText = "복사 완료!";
-    els.copy.classList.add("bg-[#E7FF68]");
+    els.copy.classList.add("bg-[#B2A5CF]", "text-white");
     setTimeout(() => {
         els.copy.innerText = originalText;
-        els.copy.classList.remove("bg-[#E7FF68]");
+        els.copy.classList.remove("bg-[#B2A5CF]", "text-white");
     }, 2000);
 };
