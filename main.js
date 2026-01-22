@@ -1,409 +1,247 @@
-import './style.css';
-import ExifReader from 'exifreader';
+/**
+ * RECOCO - Narrative AI Application
+ * Entry point that orchestrates all modules
+ */
 
-// 1. API Key 설정 (Vite 환경 변수 사용)
+import './style.css';
+
+// Constants
+import { UI_MESSAGES, DEFAULT_SYSTEM_PROMPT } from './src/constants/config.js';
+
+// State Management
+import { StateManager } from './src/state/StateManager.js';
+
+// Services
+import { GeminiService } from './src/services/GeminiService.js';
+
+// Components
+import { DropZone } from './src/components/DropZone.js';
+import { SelectionGroup, DropdownGroup } from './src/components/SelectionGroup.js';
+import { ResultViewer } from './src/components/ResultViewer.js';
+import { SuggestionModal, SettingsModal, ConfirmModal } from './src/components/Modal.js';
+
+// Initialize API Key
 const apiKey = import.meta.env?.VITE_GEMINI_API_KEY;
 
-// 2. DOM 요소 참조
+// Initialize Core Services
+const store = new StateManager();
+const geminiService = new GeminiService(apiKey);
+
+// Log initialization status
+console.log('RECOCO - Vite project loaded successfully');
+if (apiKey) {
+    console.log('API Key loaded');
+} else {
+    console.warn('API Key not found. Check VITE_GEMINI_API_KEY in .env file');
+}
+
+// DOM Elements for UI controls
 const els = {
-    input: document.getElementById('image-input'),
-    dropZone: document.getElementById('drop-zone'),
-    preview: document.getElementById('image-preview'),
-    container: document.getElementById('preview-container'),
-    placeholder: document.getElementById('upload-placeholder'),
     genBtn: document.getElementById('generate-btn'),
     btnText: document.getElementById('btn-text'),
     loader: document.getElementById('btn-loader'),
-    resArea: document.getElementById('result-area'),
-    captionInt: document.getElementById('caption-interactive'),
-    captionEdit: document.getElementById('caption-edit'),
-    editBtn: document.getElementById('edit-btn'),
-    saveBtn: document.getElementById('save-btn'), // Added Save Button
     error: document.getElementById('error-msg'),
     lang: document.getElementById('language-select'),
     style: document.getElementById('style-select'),
-    copy: document.getElementById('copy-btn'),
-    tagsInput: document.getElementById('tags-input'), // Added Tag Input
-    mod: {
-        sug: document.getElementById('suggestion-modal'),
-        set: document.getElementById('settings-modal'),
-        sugList: document.getElementById('suggestion-list'),
-        sysIn: document.getElementById('system-prompt-input'),
-        editConfirm: document.getElementById('edit-confirm-modal'), // Added Edit Confirm Modal
-        confirmEditBtn: document.getElementById('confirm-edit-btn'),
-        cancelEditBtn: document.getElementById('cancel-edit-btn')
-    }
+    tagsInput: document.getElementById('tags-input'),
+    activity: document.getElementById('activity-select'),
+    bodyState: document.getElementById('body-state-select'),
+    relationship: document.getElementById('relationship-select')
 };
 
-// 3. 앱 상태 관리
-let state = {
-    base64: null,
-    meta: {},
-    currentData: null,
-    sns: "Instagram",
-    temp: "Lukewarm", // Added Emotion Temperature state
-    sysPrompt: "You are RECOCO, a professional storyteller. Help users tell stories using image metadata. Use emojis and platform-appropriate tone."
-};
+// Initialize Components
 
-// --- 초기 설정 및 이벤트 바인딩 ---
-
-console.log("Vite 프로젝트가 성공적으로 로드되었습니다.");
-if (apiKey) {
-    console.log("API Key 로드 성공");
-} else {
-    console.warn("API Key를 찾을 수 없습니다. .env 파일의 VITE_GEMINI_API_KEY를 확인해주세요.");
-}
-
-// SNS 선택 토글 이벤트
-document.querySelectorAll('.sns-item').forEach(item => {
-    item.onclick = () => {
-        document.querySelectorAll('.sns-item').forEach(i => i.classList.remove('active'));
-        item.classList.add('active');
-        state.sns = item.dataset.value;
-    };
+// 1. Drop Zone for image upload
+const dropZone = new DropZone({
+    dropZone: 'drop-zone',
+    input: 'image-input',
+    preview: 'image-preview',
+    container: 'preview-container',
+    placeholder: 'upload-placeholder',
+    metaElements: {
+        date: 'meta-date',
+        gps: 'meta-gps'
+    },
+    onFileLoaded: (data) => {
+        store.setImageData(data.base64, data.metadata);
+    },
+    onError: (error) => {
+        showError(UI_MESSAGES.ERROR_IMAGE_PROCESS);
+        console.error('Image upload error:', error);
+    }
 });
 
-// 감정의 온도 토글 이벤트
-document.querySelectorAll('#temp-toggle-group button').forEach(btn => {
-    btn.onclick = () => {
-        document.querySelectorAll('#temp-toggle-group button').forEach(b => {
-            b.classList.remove('bg-white', 'shadow-sm');
-            b.classList.add('hover:bg-white/50');
-        });
-        btn.classList.add('bg-white', 'shadow-sm');
-        btn.classList.remove('hover:bg-white/50');
-        state.temp = btn.dataset.value;
-    };
+// 2. SNS Platform Selection
+const snsGroup = new SelectionGroup({
+    container: '.sns-grid',
+    itemSelector: '.sns-item',
+    activeClass: 'active',
+    onChange: (value) => {
+        store.setPreference('sns', value);
+    }
 });
 
-// 설정 모달 핸들러
-const openSettings = document.getElementById('open-settings');
-const closeSettings = document.getElementById('close-settings');
-const saveSettings = document.getElementById('save-settings');
+// 3. Emotion Temperature Toggle
+const tempGroup = new SelectionGroup({
+    container: '#temp-toggle-group',
+    itemSelector: 'button',
+    activeClass: 'bg-white shadow-sm',
+    inactiveClass: 'hover:bg-white/50',
+    onChange: (value) => {
+        store.setPreference('temp', value);
+    }
+});
 
-if (openSettings) openSettings.onclick = () => els.mod.set.classList.remove('hidden');
-if (closeSettings) closeSettings.onclick = () => els.mod.set.classList.add('hidden');
-if (saveSettings) {
-    saveSettings.onclick = () => {
-        if (els.mod.sysIn.value.trim()) state.sysPrompt = els.mod.sysIn.value.trim();
-        els.mod.set.classList.add('hidden');
-    };
-}
-
-// Edit Mode Logic
-if (els.editBtn) {
-    els.editBtn.onclick = () => {
-        // Show confirmation modal
-        els.mod.editConfirm.classList.remove('hidden');
-    };
-}
-
-// Confirm Edit (Yes)
-if (els.mod.confirmEditBtn) {
-    els.mod.confirmEditBtn.onclick = () => {
-        els.mod.editConfirm.classList.add('hidden');
-
-        // Switch to Edit Mode
-        els.captionInt.classList.add('hidden');
-        els.captionEdit.classList.remove('hidden');
-        els.captionEdit.value = state.currentData.original_caption; // Load current text
-        els.editBtn.classList.add('hidden');
-        els.saveBtn.classList.remove('hidden');
-    };
-}
-
-// Cancel Edit (No)
-if (els.mod.cancelEditBtn) {
-    els.mod.cancelEditBtn.onclick = () => {
-        els.mod.editConfirm.classList.add('hidden');
-    };
-}
-
-// Save Edit
-if (els.saveBtn) {
-    els.saveBtn.onclick = () => {
-        // Save changes
-        const newText = els.captionEdit.value;
-        state.currentData.original_caption = newText;
-
-        // Switch back to View Mode (Plain text, no highlights)
-        els.captionInt.innerHTML = `"${newText.replace(/\n/g, '<br>')}"`;
-        els.captionInt.classList.remove('hidden');
-        els.captionEdit.classList.add('hidden');
-
-        els.saveBtn.classList.add('hidden');
-        els.editBtn.classList.remove('hidden');
-    };
-}
-
-
-// 이미지 업로드 핸들러
-els.dropZone.onclick = () => els.input.click();
-els.input.onchange = (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); };
-
-// 4. 파일 처리 및 메타데이터 추출 로직
-async function handleFile(file) {
-    // 초기화
-    state.meta = {};
-
-    // UI 요소 리셋 (구 정보 숨김 확인)
-    ['meta-name', 'meta-size', 'meta-dim'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.add('hidden');
-    });
-
-    try {
-        // 1. ExifReader로 메타데이터 추출
-        const tags = await ExifReader.load(file);
-
-        // 날짜 정보 추출 (DateTimeOriginal)
-        if (tags['DateTimeOriginal']) {
-            const rawDate = tags['DateTimeOriginal'].description;
-            const displayDate = rawDate.substring(0, 16).replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
-
-            const metaDateEl = document.getElementById('meta-date');
-            metaDateEl.innerText = `📅 ${displayDate}`;
-            metaDateEl.classList.remove('hidden');
-            state.meta.date = displayDate;
+// 4. Result Viewer
+const resultViewer = new ResultViewer({
+    resultArea: 'result-area',
+    interactiveCaption: 'caption-interactive',
+    editCaption: 'caption-edit',
+    editBtn: 'edit-btn',
+    saveBtn: 'save-btn',
+    copyBtn: 'copy-btn',
+    onKeywordClick: (wordData) => {
+        suggestionModal.renderSuggestions(wordData, handleSuggestionSelect);
+    },
+    onSave: (newText) => {
+        const currentResult = store.getState('currentResult');
+        if (currentResult) {
+            currentResult.original_caption = newText;
+            store.setResult(currentResult);
         }
+    }
+});
 
-        // GPS 정보 추출
-        if (tags['GPSLatitude'] && tags['GPSLongitude']) {
-            const latVal = tags['GPSLatitude'].value;
-            const lonVal = tags['GPSLongitude'].value;
-            const latRef = tags['GPSLatitudeRef'] ? tags['GPSLatitudeRef'].value[0] : 'N';
-            const lonRef = tags['GPSLongitudeRef'] ? tags['GPSLongitudeRef'].value[0] : 'E';
+// 5. Modals
+const suggestionModal = new SuggestionModal('suggestion-modal', 'suggestion-list');
+suggestionModal.setCloseButton('close-modal');
 
-            const latDec = convertDMSToDecimal(latVal, latRef);
-            const lonDec = convertDMSToDecimal(lonVal, lonRef);
+const settingsModal = new SettingsModal('settings-modal', 'system-prompt-input');
+settingsModal.setCloseButton('close-settings');
+settingsModal.setSaveButton('save-settings', (value) => {
+    store.setState('systemPrompt', value);
+});
+settingsModal.setValue(DEFAULT_SYSTEM_PROMPT);
 
-            const metaGpsEl = document.getElementById('meta-gps');
-            metaGpsEl.innerText = `📍 ${latDec.toFixed(4)}, ${lonDec.toFixed(4)}`;
-            metaGpsEl.classList.remove('hidden');
-            state.meta.gps = { lat: latDec, lon: lonDec };
-        }
+const editConfirmModal = new ConfirmModal('edit-confirm-modal');
+editConfirmModal.setup({
+    confirmBtn: 'confirm-edit-btn',
+    cancelBtn: 'cancel-edit-btn',
+    onConfirm: () => {
+        resultViewer.enterEditMode();
+    }
+});
 
-    } catch (error) {
-        console.error("Metadata extraction error:", error);
+// 6. Settings Modal Opener
+const openSettingsBtn = document.getElementById('open-settings');
+if (openSettingsBtn) {
+    openSettingsBtn.onclick = () => settingsModal.open();
+}
+
+// 7. Edit Button Handler
+const editBtn = document.getElementById('edit-btn');
+if (editBtn) {
+    editBtn.onclick = () => editConfirmModal.open();
+}
+
+// 8. Save Button Handler
+const saveBtn = document.getElementById('save-btn');
+if (saveBtn) {
+    saveBtn.onclick = () => resultViewer.exitEditMode();
+}
+
+// Handle suggestion selection
+function handleSuggestionSelect(suggestion, originalWord) {
+    const currentResult = store.getState('currentResult');
+    if (!currentResult) return;
+
+    // Update caption with new word
+    const newCaption = currentResult.original_caption.replace(originalWord, suggestion);
+    currentResult.original_caption = newCaption;
+
+    // Update keyword reference
+    const keyword = currentResult.keywords.find(k => k.word === originalWord);
+    if (keyword) {
+        keyword.word = suggestion;
     }
 
-    // 2. 이미지 리사이징 및 미리보기 설정
-    resizeImage(file).then(resized => {
-        state.base64 = resized.base64;
-        els.preview.src = resized.dataUrl;
-
-        els.container.classList.remove('hidden');
-        els.placeholder.classList.add('hidden');
-    }).catch(err => {
-        console.error("Image resize error:", err);
-        showError("이미지 처리 중 오류가 발생했습니다.");
-    });
+    store.setResult(currentResult);
+    resultViewer.renderCaption(currentResult);
 }
 
-// DMS(Degree, Minute, Second) -> Decimal 변환 함수
-function convertDMSToDecimal(dms, ref) {
-    if (!dms || dms.length < 3) return 0;
-
-    const d = Array.isArray(dms[0]) ? dms[0][0] / dms[0][1] : dms[0];
-    const m = Array.isArray(dms[1]) ? dms[1][0] / dms[1][1] : dms[1];
-    const s = Array.isArray(dms[2]) ? dms[2][0] / dms[2][1] : dms[2];
-
-    let decimal = d + (m / 60) + (s / 3600);
-
-    if (ref === 'S' || ref === 'W') {
-        decimal = decimal * -1;
-    }
-    return decimal;
-}
-
-// 이미지 리사이징 함수 (Max-side + Area-preserving)
-function resizeImage(file, maxSide = 1024, maxArea = 1024 * 1024) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-            let w = img.width;
-            let h = img.height;
-
-            // 1. Max-side limit
-            let scaleSide = 1;
-            if (Math.max(w, h) > maxSide) {
-                scaleSide = maxSide / Math.max(w, h);
-            }
-
-            // 2. Area limit
-            let scaleArea = 1;
-            if (w * h > maxArea) {
-                scaleArea = Math.sqrt(maxArea / (w * h));
-            }
-
-            const scale = Math.min(scaleSide, scaleArea);
-
-            w = Math.round(w * scale);
-            h = Math.round(h * scale);
-
-            const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-            resolve({
-                base64: dataUrl.split(',')[1],
-                dataUrl: dataUrl,
-                w: w,
-                h: h
-            });
-        };
-        img.onerror = reject;
-        img.src = URL.createObjectURL(file);
-    });
-}
-
-// 5. Gemini AI API 호출
+// Generate button handler
 els.genBtn.onclick = async () => {
-    if (!apiKey) { showError("API Key가 설정되지 않았습니다. .env 파일을 확인하세요."); return; }
-    if (!state.base64) { showError("사진을 업로드해주세요."); return; }
+    if (!geminiService.isConfigured()) {
+        showError(UI_MESSAGES.ERROR_NO_API_KEY);
+        return;
+    }
+
+    const imageData = store.getState('base64');
+    if (!imageData) {
+        showError(UI_MESSAGES.ERROR_NO_IMAGE);
+        return;
+    }
+
     setLoading(true);
 
-    const userTags = els.tagsInput.value.trim(); // Get user tags
-
-    // 프롬프트 구성 분리 및 가독성 개선
-    const prompt = `
-        Role: Professional Storyteller (Service Name: RECOCO).
-        Task: Create a compelling story based on the image metadata and visual context.
-        Context:
-          - Platform: ${state.sns}
-          - Mood: ${els.style.value}
-          - Emotion Temperature: ${state.temp}
-          - Language: ${els.lang.value}
-          - User Tags: ${userTags}
-          - Metadata: ${JSON.stringify(state.meta)}
-        Output Requirement: Identify 3-4 key emotional words for synonyms.
-        Format: JSON only. {"original_caption": "caption text here", "keywords": [{"word": "target_word", "suggestions": ["synonym1", "synonym2"]}]}
-    `;
+    // Build context from UI selections
+    const context = {
+        sns: store.getPreference('sns') || snsGroup.getValue() || 'Instagram',
+        mood: els.style.value,
+        temp: store.getPreference('temp') || tempGroup.getValue() || 'Lukewarm',
+        language: els.lang.value,
+        tags: els.tagsInput.value.trim(),
+        activity: els.activity.value,
+        bodyState: els.bodyState.value,
+        relationship: els.relationship.value,
+        metadata: store.getState('metadata'),
+        systemPrompt: store.getState('systemPrompt')
+    };
 
     try {
-        const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: prompt },
-                        { inlineData: { mimeType: "image/jpeg", data: state.base64 } }
-                    ]
-                }],
-                systemInstruction: { parts: [{ text: state.sysPrompt }] },
-                generationConfig: { responseMimeType: "application/json" }
-            })
-        });
+        // Generate story
+        const storyResult = await geminiService.generateStory(imageData, context);
 
-        const data = await response.json();
-        const resultText = data.candidates[0].content.parts[0].text;
+        // Update button text for synonym generation
+        els.btnText.innerText = UI_MESSAGES.FINDING_SYNONYMS;
 
-        // JSON 파싱 전처리
-        const cleanedText = resultText.replace(/```json|```/g, '').trim();
+        // Get synonyms for keywords
+        const keywordsWithSuggestions = await geminiService.getSynonyms(
+            storyResult.keywords,
+            context.language
+        );
 
-        try {
-            state.currentData = JSON.parse(cleanedText);
-        } catch (e) {
-            console.error("JSON Parse Error:", resultText);
-            throw new Error("AI 응답을 처리하는 중 오류가 발생했습니다. (JSON 형식 불일치)");
-        }
+        // Store result
+        const result = {
+            original_caption: storyResult.original_caption,
+            keywords: keywordsWithSuggestions
+        };
+        store.setResult(result);
 
-        renderCaption();
-        els.resArea.classList.remove('hidden');
-        els.resArea.scrollIntoView({ behavior: 'smooth' });
-    } catch (err) {
-        showError("AI 생성 중 오류 발생: " + err.message);
+        // Render result
+        resultViewer.renderCaption(result);
+        resultViewer.show();
+        resultViewer.scrollIntoView();
+
+    } catch (error) {
+        showError('AI 생성 중 오류 발생: ' + error.message);
+        console.error('Generation error:', error);
     } finally {
         setLoading(false);
     }
 };
 
-// 6. 결과 렌더링 및 인터랙션 로직
-function renderCaption() {
-    let text = state.currentData.original_caption;
-    const sortedKeywords = [...state.currentData.keywords].sort((a, b) => b.word.length - a.word.length);
-
-    sortedKeywords.forEach((item, i) => {
-        // Fix: Correctly escape special regex characters including backslashes
-        const regex = new RegExp(`(${item.word.replace(/[.*+?^${}()|[\\]/g, '\\$&')})`, 'gi');
-        text = text.replace(regex, `<span class="keyword-highlight" data-word="${item.word}">$1</span>`);
-    });
-
-    els.captionInt.innerHTML = `"${text}"`;
-    els.captionEdit.value = state.currentData.original_caption;
-
-    // 키워드 클릭 시 추천 모달 오픈
-    document.querySelectorAll('.keyword-highlight').forEach(el => {
-        el.onclick = () => {
-            const wordData = state.currentData.keywords.find(k => k.word === el.dataset.word);
-            if (wordData) openSugModal(wordData);
-        };
-    });
+// Utility functions
+function setLoading(isLoading) {
+    els.genBtn.disabled = isLoading;
+    els.loader.classList.toggle('hidden', !isLoading);
+    els.btnText.innerText = isLoading
+        ? UI_MESSAGES.LOADING
+        : UI_MESSAGES.GENERATE_BUTTON;
 }
 
-function openSugModal(data) {
-    els.mod.sugList.innerHTML = '';
-    data.suggestions.forEach(s => {
-        const b = document.createElement('button');
-        b.className = "w-full text-left p-4 hover:bg-[#B2A5CF] hover:text-white rounded-xl font-bold border border-slate-100 mb-2 transition-colors";
-        b.innerText = s;
-        b.onclick = () => {
-            state.currentData.original_caption = state.currentData.original_caption.replace(data.word, s);
-            data.word = s;
-            renderCaption();
-            els.mod.sug.classList.add('hidden');
-        };
-        els.mod.sugList.appendChild(b);
-    });
-    els.mod.sug.classList.remove('hidden');
-}
-
-// 7. 유틸리티 함수 (Retry, Loading, Error)
-async function fetchWithRetry(url, opt, retries = 5, backoff = 1000) {
-    const res = await fetch(url, opt);
-    if (!res.ok && retries > 0) {
-        await new Promise(r => setTimeout(r, backoff));
-        return fetchWithRetry(url, opt, retries - 1, backoff * 2);
-    }
-    if (!res.ok) throw new Error(`서버 응답 오류: ${res.status}`);
-    return res;
-}
-
-function setLoading(l) {
-    els.genBtn.disabled = l;
-    els.loader.classList.toggle('hidden', !l);
-    els.btnText.innerText = l ? "기억을 분석하는 중..." : "내 기억을 선명하게 하기";
-}
-
-function showError(m) {
-    els.error.innerText = m;
+function showError(message) {
+    els.error.innerText = message;
     els.error.classList.remove('hidden');
     setTimeout(() => els.error.classList.add('hidden'), 5000);
 }
-
-// 모달 닫기 이벤트
-const closeModal = document.getElementById('close-modal');
-if (closeModal) closeModal.onclick = () => els.mod.sug.classList.add('hidden');
-
-// 복사 버튼 기능
-els.copy.onclick = () => {
-    const textToCopy = state.currentData ? state.currentData.original_caption : "";
-    const tempInput = document.createElement("textarea");
-    tempInput.value = textToCopy;
-    document.body.appendChild(tempInput);
-    tempInput.select();
-    document.execCommand("copy");
-    document.body.removeChild(tempInput);
-
-    const originalText = els.copy.innerText;
-    els.copy.innerText = "복사 완료!";
-    els.copy.classList.add("bg-[#B2A5CF]", "text-white");
-    setTimeout(() => {
-        els.copy.innerText = originalText;
-        els.copy.classList.remove("bg-[#B2A5CF]", "text-white");
-    }, 2000);
-};

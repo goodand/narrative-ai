@@ -99,7 +99,7 @@
             font-size: 0.75rem;
             font-weight: 700;
             border: 2px solid transparent;
-            background: #f3f4f6;
+            background: #E1E1E1;
             transition: all 0.2s;
         }
 
@@ -143,7 +143,7 @@
         <div class="p-8">
             <!-- 이미지 업로드 존 -->
             <div id="drop-zone"
-                class="border-2 border-dashed border-slate-200 rounded-[2rem] p-10 text-center hover:border-[#B2A5CF] transition-all cursor-pointer mb-8 bg-slate-50/50 group">
+                class="border-2 border-dashed border-slate-200 rounded-[2rem] p-10 text-center hover:border-[#B2A5CF] transition-all cursor-pointer mb-8 bg-[#E1E1E1] group">
                 <input type="file" id="image-input" accept="image/*" class="hidden">
                 <div id="upload-placeholder">
                     <div
@@ -176,7 +176,7 @@
             <div class="space-y-6 mb-8">
                 <div>
                     <label
-                        class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Target
+                        class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Target
                         Platform</label>
                     <div class="sns-grid" id="sns-toggle-group">
                         <div class="sns-item active" data-value="Instagram">Instagram</div>
@@ -191,19 +191,19 @@
                 <div class="flex gap-4">
                     <div class="flex-1">
                         <label
-                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Language</label>
+                            class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-2 ml-1">Language</label>
                         <select id="language-select"
-                            class="w-full bg-slate-100 border-none rounded-2xl p-4 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer">
+                            class="w-full bg-[#E1E1E1] border-none rounded-2xl p-4 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer">
                             <option value="Korean">한국어</option>
                             <option value="English">English</option>
                         </select>
                     </div>
                     <div class="flex-1">
                         <label
-                            class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Mood
+                            class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-2 ml-1">Mood
                             Style</label>
                         <select id="style-select"
-                            class="w-full bg-slate-100 border-none rounded-2xl p-4 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer">
+                            class="w-full bg-[#E1E1E1] border-none rounded-2xl p-4 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer">
                             <option value="emotional">감성적인 기록</option>
                             <option value="descriptive">상세한 묘사</option>
                             <option value="funny">유머러스한 코멘트</option>
@@ -215,11 +215,60 @@
                     </div>
                 </div>
 
+                <!-- 추가 드롭다운 메뉴 (활동, 신체 상태, 관계) -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- 1. 무엇을 하고 있었나요? -->
+                    <div>
+                        <label class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-2 ml-1">Activity</label>
+                        <select id="activity-select"
+                            class="w-full bg-[#E1E1E1] border-none rounded-2xl p-4 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer text-xs">
+                            <option value="" disabled selected>무엇을 하고 있었나요?</option>
+                            <option value="working">일하는 중</option>
+                            <option value="resting">쉬는 중</option>
+                            <option value="playing">놀고 있는 중</option>
+                            <option value="exercising">운동 중</option>
+                            <option value="eating">먹는 중</option>
+                            <option value="moving">이동 중</option>
+                            <option value="nothing">아무것도 안 하는 중</option>
+                        </select>
+                    </div>
+
+                    <!-- 2. 이 때 몸은 어땠어요? -->
+                    <div>
+                        <label class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-2 ml-1">Body State</label>
+                        <select id="body-state-select"
+                            class="w-full bg-[#E1E1E1] border-none rounded-2xl p-4 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer text-xs">
+                            <option value="" disabled selected>몸은 어땠어요?</option>
+                            <option value="light">가벼웠어요</option>
+                            <option value="tired">피곤했어요</option>
+                            <option value="stiff">뻐근했어요</option>
+                            <option value="weak">힘이 빠져 있었어요</option>
+                            <option value="tense">몸에 힘이 들어가 있었어요</option>
+                        </select>
+                    </div>
+
+                    <!-- 3. 관계의 상태 -->
+                    <div>
+                        <label class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-2 ml-1">Relationship</label>
+                        <select id="relationship-select"
+                            class="w-full bg-[#E1E1E1] border-none rounded-2xl p-4 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer text-xs">
+                            <option value="" disabled selected>관계의 상태</option>
+                            <option value="alone_full">혼자였지만 충만</option>
+                            <option value="alone_lonely">혼자였고 외로움</option>
+                            <option value="together_alone">함께 있었지만 혼자 같음</option>
+                            <option value="together_stable">함께 있어서 안정됨</option>
+                            <option value="connected">연결되어 있다고 느꼈음</option>
+                            <option value="distanced">거리감을 느꼈음</option>
+                            <option value="changing">관계가 변하고 있던 시점</option>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- 감정의 온도 UI -->
                 <div>
-                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">감정의
+                    <label class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">감정의
                         온도 (Emotion Temperature)</label>
-                    <div class="flex bg-slate-100 p-1.5 rounded-[1.5rem] gap-1" id="temp-toggle-group">
+                    <div class="flex bg-[#E1E1E1] p-1.5 rounded-[1.5rem] gap-1" id="temp-toggle-group">
                         <button
                             class="flex-1 py-3 px-4 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 hover:bg-white/50"
                             data-value="Cold">
@@ -241,10 +290,10 @@
 
             <!-- 태그 입력 (추가) -->
             <div class="mb-6">
-                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Tags
+                <label class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-2 ml-1">Tags
                     (Optional)</label>
                 <input type="text" id="tags-input"
-                    class="w-full bg-slate-100 border-none rounded-2xl p-4 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none placeholder-slate-400"
+                    class="w-full bg-[#E1E1E1] border-none rounded-2xl p-4 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none placeholder-slate-400"
                     placeholder="#태그 #키워드 #입력">
             </div>
 
