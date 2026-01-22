@@ -7,9 +7,7 @@
 export const GEMINI_CONFIG = {
     BASE_URL: 'https://generativelanguage.googleapis.com/v1beta/models',
     STORY_MODEL: 'gemini-2.5-flash',
-    SUGGESTIONS_MODEL: 'gemini-2.5-flash',
-    MAX_OUTPUT_TOKENS: 2048,
-    SUGGESTIONS_MAX_TOKENS: 1024
+    SUGGESTIONS_MODEL: 'gemini-2.5-flash'
 };
 
 // Image Processing Configuration

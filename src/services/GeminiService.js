@@ -47,7 +47,6 @@ export class GeminiService {
                     systemInstruction: { parts: [{ text: context.systemPrompt }] },
                     generationConfig: {
                         responseMimeType: 'application/json',
-                        maxOutputTokens: GEMINI_API.MAX_OUTPUT_TOKENS,
                         topP: 0.85
                     }
                 })
@@ -87,8 +86,7 @@ export class GeminiService {
                         generationConfig: {
                             responseMimeType: 'application/json',
                             temperature: 1.2,
-                            topP: 0.95,
-                            maxOutputTokens: GEMINI_API.SUGGESTIONS_MAX_TOKENS
+                            topP: 0.95
                         }
                     })
                 }
