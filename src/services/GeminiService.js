@@ -3,7 +3,7 @@
  * AI 스토리 생성 및 유의어 추천 API 담당
  */
 
-import { GEMINI_API, UI_MESSAGES } from '../constants/config.js';
+import { GEMINI_CONFIG as GEMINI_API, UI_MESSAGES } from '../constants/config.js';
 import { fetchWithRetry, delay } from '../utils/fetch.js';
 
 export class GeminiService {

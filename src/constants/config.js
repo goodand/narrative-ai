@@ -4,12 +4,12 @@
  */
 
 // API Configuration
-export const GEMINI_API = {
+export const GEMINI_CONFIG = {
     BASE_URL: 'https://generativelanguage.googleapis.com/v1beta/models',
-    STORY_MODEL: 'gemini-2.5-flash-preview-09-2025',
-    SUGGESTIONS_MODEL: 'gemini-2.0-flash',
+    STORY_MODEL: 'gemini-2.5-flash',
+    SUGGESTIONS_MODEL: 'gemini-2.5-flash',
     MAX_OUTPUT_TOKENS: 2048,
-    SUGGESTIONS_MAX_TOKENS: 512
+    SUGGESTIONS_MAX_TOKENS: 1024
 };
 
 // Image Processing Configuration
