@@ -20,6 +20,15 @@ interview.md
 
 test-assets
 
+# Backend (Python/uv)
+backend/.env
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/.pytest_cache/
+*.egg-info/
+
 
 
 

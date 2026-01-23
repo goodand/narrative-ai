@@ -1,0 +1,1 @@
+Markdown documents append content to the bottom to preserve existing content.

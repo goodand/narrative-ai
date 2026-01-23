@@ -14,6 +14,14 @@ export default defineConfig({
     },
   },
   server: {
-    open: true
+    open: true,
+    // FastAPI 백엔드 프록시 설정
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false
+      }
+    }
   }
 });

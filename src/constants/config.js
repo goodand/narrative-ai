@@ -3,7 +3,14 @@
  * 앱 전역에서 사용되는 상수 및 설정값
  */
 
-// API Configuration
+// Backend API Configuration (프록시 서버)
+export const API_CONFIG = {
+    // 개발 환경: Vite 프록시가 /api 요청을 백엔드로 전달
+    // 프로덕션: 실제 백엔드 URL로 교체 필요
+    BASE_URL: import.meta.env.VITE_API_BASE_URL || ''
+};
+
+// Legacy: 직접 API 호출 설정 (더 이상 사용하지 않음, 참조용)
 export const GEMINI_CONFIG = {
     BASE_URL: 'https://generativelanguage.googleapis.com/v1beta/models',
     STORY_MODEL: 'gemini-2.5-flash',

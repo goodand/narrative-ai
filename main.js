@@ -20,20 +20,13 @@ import { SelectionGroup, DropdownGroup } from './src/components/SelectionGroup.j
 import { ResultViewer } from './src/components/ResultViewer.js';
 import { SuggestionModal, SettingsModal, ConfirmModal } from './src/components/Modal.js';
 
-// Initialize API Key
-const apiKey = import.meta.env?.VITE_GEMINI_API_KEY;
-
 // Initialize Core Services
 const store = new StateManager();
-const geminiService = new GeminiService(apiKey);
+const geminiService = new GeminiService();  // API Key는 백엔드에서 관리
 
 // Log initialization status
 console.log('RECOCO - Vite project loaded successfully');
-if (apiKey) {
-    console.log('API Key loaded');
-} else {
-    console.warn('API Key not found. Check VITE_GEMINI_API_KEY in .env file');
-}
+console.log('Backend Proxy Mode: API calls routed through /api');
 
 // DOM Elements for UI controls
 const els = {
