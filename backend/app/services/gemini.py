@@ -5,12 +5,15 @@ Google Gemini API 통신 담당
 
 import asyncio
 import json
+import logging
 import httpx
 from typing import Optional
 
 from ..config import get_settings, DEFAULT_SYSTEM_PROMPT
 from ..models.schemas import NarrativeContext, NarrativeResponse, SynonymsResponse, SynonymItem
 from ..utils.prompts import build_story_prompt, build_synonyms_prompt
+
+logger = logging.getLogger(__name__)
 
 
 class GeminiService:
@@ -48,13 +51,18 @@ class GeminiService:
 
             except httpx.HTTPStatusError as e:
                 last_error = e
+                error_body = e.response.text[:500] if e.response.text else "No body"
+                logger.error(f"HTTP {e.response.status_code} error: {error_body}")
+
                 if e.response.status_code == 429:
                     # Rate limit - wait longer
                     wait_time = initial_backoff * (2 ** attempt) * 2
+                    logger.warning(f"Rate limited. Waiting {wait_time}s before retry {attempt + 1}")
                     await asyncio.sleep(wait_time)
                 elif e.response.status_code >= 500:
                     # Server error - retry with backoff
                     wait_time = initial_backoff * (2 ** attempt)
+                    logger.warning(f"Server error. Waiting {wait_time}s before retry {attempt + 1}")
                     await asyncio.sleep(wait_time)
                 else:
                     raise
@@ -167,13 +175,38 @@ class GeminiService:
 
     def _parse_story_response(self, data: dict) -> NarrativeResponse:
         """스토리 응답 파싱"""
+        logger.info(f"Gemini API raw response keys: {data.keys()}")
+
+        # 안전성 필터 차단 확인
+        if "promptFeedback" in data:
+            feedback = data["promptFeedback"]
+            logger.warning(f"Prompt feedback: {feedback}")
+            if feedback.get("blockReason"):
+                raise ValueError(f"콘텐츠가 안전성 필터에 의해 차단되었습니다: {feedback.get('blockReason')}")
+
+        # candidates 확인
         if not data.get("candidates") or len(data["candidates"]) == 0:
+            logger.error(f"No candidates in response. Full response: {json.dumps(data, indent=2, ensure_ascii=False)[:1000]}")
             raise ValueError("AI 응답이 없습니다. 다시 시도해주세요.")
 
-        result_text = data["candidates"][0].get("content", {}).get("parts", [{}])[0].get("text")
+        candidate = data["candidates"][0]
+
+        # finishReason 확인
+        finish_reason = candidate.get("finishReason")
+        if finish_reason and finish_reason != "STOP":
+            logger.warning(f"Unexpected finish reason: {finish_reason}")
+            if finish_reason == "SAFETY":
+                raise ValueError("콘텐츠가 안전성 정책에 의해 차단되었습니다.")
+            elif finish_reason == "RECITATION":
+                raise ValueError("응답이 인용 정책에 의해 차단되었습니다.")
+
+        result_text = candidate.get("content", {}).get("parts", [{}])[0].get("text")
 
         if not result_text:
+            logger.error(f"No text in candidate. Candidate: {json.dumps(candidate, indent=2, ensure_ascii=False)[:500]}")
             raise ValueError("AI 응답 형식이 올바르지 않습니다.")
+
+        logger.info(f"Gemini response text (first 200 chars): {result_text[:200]}")
 
         # Clean JSON markdown wrapper
         cleaned_text = result_text.replace("```json", "").replace("```", "").strip()
@@ -185,6 +218,7 @@ class GeminiService:
                 keywords=parsed.get("keywords", [])
             )
         except json.JSONDecodeError as e:
+            logger.error(f"JSON parse error. Text: {cleaned_text[:500]}")
             raise ValueError(f"AI 응답을 처리하는 중 오류가 발생했습니다. (JSON 형식 불일치): {e}")
 
     def _parse_synonyms_response(self, data: dict, original_keywords: list[str]) -> SynonymsResponse:
