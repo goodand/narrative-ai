@@ -12,7 +12,8 @@ import { fetchWithRetry } from '../utils/fetch.js';
 export class GeminiService {
     constructor() {
         // API Key는 더 이상 클라이언트에서 관리하지 않음
-        this.baseUrl = API_CONFIG.BASE_URL;
+        // baseUrl 끝의 슬래시 제거 처리
+        this.baseUrl = (API_CONFIG.BASE_URL || '').replace(/\/$/, '');
     }
 
     /**

@@ -36,16 +36,25 @@ app = FastAPI(
     version="0.5.0",
     lifespan=lifespan,
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    redirect_slashes=True  # /api/v1/narrative/ -> /api/v1/narrative 자동 리다이렉트
 )
 
 # Configure CORS
 settings = get_settings()
+# 허용할 도메인 목록 명시 (Render 배포 도메인 포함)
+origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://recoco.onrender.com",  # 예시: 실제 프론트엔드 도메인으로 교체 필요
+    "*"  # 모든 도메인 허용 (테스트용, 보안을 위해 나중에 특정 도메인만 지정 권장)
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins + ["*"],  # 개발 환경용
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],  # OPTIONS 명시적 허용
     allow_headers=["*"],
 )
 
