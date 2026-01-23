@@ -32,6 +32,7 @@ async def generate_narrative(request: Request, body: NarrativeRequest):
     """
     try:
         logger.info(f"Narrative request received - SNS: {body.context.sns}, Language: {body.context.language}")
+        logger.info(f"Image data length: {len(body.image)}, first 50 chars: {body.image[:50]}")
 
         # Get HTTP client from app state
         client = request.app.state.http_client

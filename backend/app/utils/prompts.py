@@ -12,11 +12,16 @@ def build_story_prompt(context: NarrativeContext) -> str:
     스토리 생성 프롬프트 빌드
     기존 GeminiService._buildStoryPrompt 로직을 서버로 이전
     """
-    metadata_str = json.dumps({
-        "date": context.metadata.date,
-        "gps": context.metadata.gps,
-        "location": context.metadata.location
-    })
+    # metadata가 dict 또는 객체일 수 있음
+    metadata = context.metadata
+    if metadata is None:
+        metadata = {}
+    elif hasattr(metadata, 'model_dump'):
+        metadata = metadata.model_dump()
+    elif not isinstance(metadata, dict):
+        metadata = {}
+
+    metadata_str = json.dumps(metadata, default=str, ensure_ascii=False)
 
     return f"""
 Role: Professional Storyteller (Service Name: RECOCO).
@@ -34,7 +39,7 @@ Context:
   - Metadata: {metadata_str}
 
 Length Constraint: Keep the caption CONCISE - around 2-3 sentences maximum. Be brief and impactful.
-Output Requirement: Identify 2-3 key emotional words from the caption.
+Output Requirement: Identify 2-3 key emotional words that appear EXACTLY in the generated caption (must be exact substrings).
 Format: JSON only. {{"original_caption": "caption text here", "keywords": ["word1", "word2", "word3"]}}
 """.strip()
 

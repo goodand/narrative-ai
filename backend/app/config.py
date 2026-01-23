@@ -11,6 +11,9 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
 
+    # Server Configuration
+    port: int = 8000
+
     # API Keys
     gemini_api_key: str = ""
 
