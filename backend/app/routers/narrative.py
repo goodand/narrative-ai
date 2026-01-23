@@ -4,6 +4,7 @@ Narrative Router
 """
 
 import logging
+import httpx
 from fastapi import APIRouter, HTTPException, Request
 
 from ..models.schemas import NarrativeRequest, NarrativeResponse, ErrorResponse
@@ -50,6 +51,14 @@ async def generate_narrative(request: Request, body: NarrativeRequest):
     except ValueError as e:
         logger.warning(f"Narrative generation failed (ValueError): {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
+    except httpx.HTTPStatusError as e:
+        status_code = e.response.status_code
+        error_detail = f"AI 서비스 할당량 초과 또는 오류가 발생했습니다 ({status_code}). 잠시 후 다시 시도해주세요."
+        if status_code == 429:
+            logger.warning(f"Gemini API Rate Limit reached: {e}")
+            raise HTTPException(status_code=429, detail=error_detail)
+        logger.error(f"Gemini API HTTP Error {status_code}: {e}")
+        raise HTTPException(status_code=status_code, detail=error_detail)
     except Exception as e:
         logger.error(f"Narrative generation failed (Exception): {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"스토리 생성 중 오류가 발생했습니다: {str(e)}")

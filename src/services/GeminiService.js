@@ -64,10 +64,6 @@ export class GeminiService {
         const responseText = await response.text();
 
         if (!response.ok) {
-            if (response.status === 429) {
-                throw new Error('요청이 너무 많습니다. 잠시 후 다시 시도해주세요.');
-            }
-            
             let errorMessage = UI_MESSAGES.ERROR_NO_RESPONSE;
             try {
                 const errorData = JSON.parse(responseText);
@@ -75,7 +71,11 @@ export class GeminiService {
             } catch {
                 console.error('Non-JSON error response:', responseText);
             }
-            throw new Error(`[${response.status}] ${errorMessage}`);
+            
+            if (response.status === 429) {
+                throw new Error(errorMessage || '사용자가 많아 요청이 지연되고 있습니다. 1분 후 다시 시도해주세요.');
+            }
+            throw new Error(errorMessage);
         }
 
         if (!responseText) {

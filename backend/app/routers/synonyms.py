@@ -3,6 +3,7 @@ Synonyms Router
 /api/v1/synonyms 엔드포인트
 """
 
+import httpx
 from fastapi import APIRouter, HTTPException, Request
 
 from ..models.schemas import SynonymsRequest, SynonymsResponse, ErrorResponse
@@ -43,5 +44,8 @@ async def get_synonyms(request: Request, body: SynonymsRequest):
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except httpx.HTTPStatusError as e:
+        status_code = e.response.status_code
+        raise HTTPException(status_code=status_code, detail=f"유의어 추천 서비스 오류 ({status_code})")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"유의어 추천 중 오류가 발생했습니다: {str(e)}")
