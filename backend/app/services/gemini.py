@@ -89,6 +89,22 @@ class GeminiService:
             "systemInstruction": {"parts": [{"text": system_prompt}]},
             "generationConfig": {
                 "responseMimeType": "application/json",
+                "responseSchema": {
+                    "type": "object",
+                    "properties": {
+                        "original_caption": {
+                            "type": "string",
+                            "description": "The generated story caption"
+                        },
+                        "keywords": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "2-3 key emotional words from the caption"
+                        }
+                    },
+                    "required": ["original_caption", "keywords"]
+                },
+                "temperature": 0.9,
                 "topP": 0.85
             }
         }
@@ -115,6 +131,26 @@ class GeminiService:
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
                 "responseMimeType": "application/json",
+                "responseSchema": {
+                    "type": "object",
+                    "properties": {
+                        "suggestions": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "word": {"type": "string"},
+                                    "alternatives": {
+                                        "type": "array",
+                                        "items": {"type": "string"}
+                                    }
+                                },
+                                "required": ["word", "alternatives"]
+                            }
+                        }
+                    },
+                    "required": ["suggestions"]
+                },
                 "temperature": 1.2,
                 "topP": 0.95
             }

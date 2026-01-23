@@ -12,7 +12,7 @@ pnpm-debug.log*
 .vscode/
 .history/
 
- .gemini/
+.gemini/
 feedback.md
 develop-plan.md
 develope-plan.md

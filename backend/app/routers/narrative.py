@@ -3,11 +3,13 @@ Narrative Router
 /api/v1/narrative 엔드포인트
 """
 
+import logging
 from fastapi import APIRouter, HTTPException, Request
 
 from ..models.schemas import NarrativeRequest, NarrativeResponse, ErrorResponse
 from ..services.gemini import GeminiService
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["narrative"])
 
 
@@ -29,6 +31,8 @@ async def generate_narrative(request: Request, body: NarrativeRequest):
     - **context**: 생성 컨텍스트 (SNS 플랫폼, 분위기, 감정 온도 등)
     """
     try:
+        logger.info(f"Narrative request received - SNS: {body.context.sns}, Language: {body.context.language}")
+
         # Get HTTP client from app state
         client = request.app.state.http_client
         gemini_service = GeminiService(client)
@@ -38,9 +42,12 @@ async def generate_narrative(request: Request, body: NarrativeRequest):
             context=body.context
         )
 
+        logger.info(f"Narrative generated successfully - Keywords: {result.keywords}")
         return result
 
     except ValueError as e:
+        logger.warning(f"Narrative generation failed (ValueError): {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.error(f"Narrative generation failed (Exception): {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"스토리 생성 중 오류가 발생했습니다: {str(e)}")
