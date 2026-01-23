@@ -5,9 +5,15 @@
 
 // Backend API Configuration (프록시 서버)
 export const API_CONFIG = {
-    // 개발 환경: Vite 프록시가 /api 요청을 백엔드로 전달
-    // 프로덕션: 실제 백엔드 URL로 교체 필요
-    BASE_URL: import.meta.env.VITE_API_BASE_URL || ''
+    // 런타임 환경에 따라 API 주소 자동 결정
+    // 1. VITE_API_BASE_URL 환경 변수가 있으면 최우선 사용
+    // 2. localhost면 로컬 백엔드 포트(8000) 사용
+    // 3. 그 외(배포 환경)는 상대 경로('') 또는 명시적 백엔드 URL 사용
+    BASE_URL: import.meta.env.VITE_API_BASE_URL || (
+        window.location.hostname === 'localhost' 
+            ? 'http://localhost:8000' 
+            : ''  // 배포 시 상대 경로 사용 (프론트/백엔드가 같은 도메인일 경우)
+    )
 };
 
 // Legacy: 직접 API 호출 설정 (더 이상 사용하지 않음, 참조용)
