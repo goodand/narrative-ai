@@ -42,19 +42,19 @@ app = FastAPI(
 
 # Configure CORS
 settings = get_settings()
-# 허용할 도메인 목록 명시 (Render 배포 도메인 포함)
+# 실제 프론트엔드 도메인 및 로컬 주소 명시
 origins = [
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://recoco.onrender.com",  # 예시: 실제 프론트엔드 도메인으로 교체 필요
-    "*"  # 모든 도메인 허용 (테스트용, 보안을 위해 나중에 특정 도메인만 지정 권장)
+    "https://narrative-ai-5p8q.onrender.com", # 현재 프론트엔드 도메인
+    "https://recoco.onrender.com",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],  # OPTIONS 명시적 허용
+    allow_methods=["*"], # 모든 메서드 허용 (GET, POST, OPTIONS 등)
     allow_headers=["*"],
 )
 

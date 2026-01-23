@@ -21,6 +21,7 @@ router = APIRouter(prefix="/api/v1", tags=["synonyms"])
     summary="키워드 유의어 추천",
     description="주어진 키워드들에 대한 창의적인 유의어/대체 표현을 추천합니다."
 )
+@router.post("/synonyms/") # 슬래시 있는 버전 추가
 async def get_synonyms(request: Request, body: SynonymsRequest):
     """
     키워드 유의어 추천 API
