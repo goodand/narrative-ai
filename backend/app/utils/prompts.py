@@ -64,7 +64,7 @@ Context:
 
 Length Constraint: Keep the caption CONCISE - around 2-3 sentences maximum. Be brief and impactful.
 Output Requirement: Identify 2-3 key emotional words that appear EXACTLY in the generated caption (must be exact substrings).
-Format: JSON only. {{"original_caption": "caption text here", "keywords": ["word1", "word2", "word3"]}}
+Format: JSON only. {{'original_caption': 'caption text here', 'keywords': ['word1', 'word2', 'word3']}}
 """.strip()
 
 
@@ -78,5 +78,5 @@ Generate 3-4 creative synonyms or alternative expressions for each word.
 Language: {language}
 Words: {json.dumps(keywords)}
 Be creative and suggest expressive alternatives.
-Format: JSON only. {{"suggestions": [{{'word': 'original', 'alternatives': ['alt1', 'alt2', 'alt3']}}]}}
+Format: JSON only. {{'suggestions': [{{'word': 'original', 'alternatives': ['alt1', 'alt2', 'alt3']}}]}}
 """.strip()
