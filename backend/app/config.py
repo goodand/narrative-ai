@@ -39,9 +39,3 @@ def get_settings() -> Settings:
     """Get cached settings instance"""
     return Settings()
 
-
-# Default System Prompt (서버 측에서 관리)
-DEFAULT_SYSTEM_PROMPT = """You are RECOCO, a professional storyteller.
-Help users tell stories using image metadata.
-Use emojis and platform-appropriate tone.
-Be creative, emotional, and engaging."""

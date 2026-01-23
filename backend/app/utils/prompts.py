@@ -6,6 +6,12 @@ Prompt Templates
 from ..models.schemas import NarrativeContext
 import json
 
+# Default System Prompt (페르소나 정의)
+DEFAULT_SYSTEM_PROMPT = """You are RECOCO, a professional storyteller.
+Help users tell stories using image metadata.
+Use emojis and platform-appropriate tone.
+Be creative, emotional, and engaging."""
+
 
 def build_story_prompt(context: NarrativeContext) -> str:
     """
@@ -23,20 +29,38 @@ def build_story_prompt(context: NarrativeContext) -> str:
 
     metadata_str = json.dumps(metadata, default=str, ensure_ascii=False)
 
+    # 기본 컨텍스트 항목 구성
+    context_lines = [
+        f"- Platform: {context.sns}",
+        f"- Mood: {context.mood}",
+        f"- Emotion Temperature: {context.temp}",
+        f"- Language: {context.language}",
+    ]
+
+    # 선택적 항목 (값이 있고 'Not specified'가 아닐 때만 추가)
+    if context.tags and context.tags.strip():
+        context_lines.append(f"- User Tags: {context.tags}")
+    
+    if context.activity and context.activity.strip() and context.activity != "Not specified":
+        context_lines.append(f"- Activity: {context.activity}")
+        
+    if context.bodyState and context.bodyState.strip() and context.bodyState != "Not specified":
+        context_lines.append(f"- Body State: {context.bodyState}")
+        
+    if context.relationship and context.relationship.strip() and context.relationship != "Not specified":
+        context_lines.append(f"- Relationship State: {context.relationship}")
+    
+    # 메타데이터 추가
+    context_lines.append(f"- Metadata: {metadata_str}")
+
+    context_str = "\n  ".join(context_lines)
+
     return f"""
 Role: Professional Storyteller (Service Name: RECOCO).
 Task: Create a compelling story based on the image metadata and visual context.
 
 Context:
-  - Platform: {context.sns}
-  - Mood: {context.mood}
-  - Emotion Temperature: {context.temp}
-  - Language: {context.language}
-  - User Tags: {context.tags or ''}
-  - Activity: {context.activity or 'Not specified'}
-  - Body State: {context.bodyState or 'Not specified'}
-  - Relationship State: {context.relationship or 'Not specified'}
-  - Metadata: {metadata_str}
+  {context_str}
 
 Length Constraint: Keep the caption CONCISE - around 2-3 sentences maximum. Be brief and impactful.
 Output Requirement: Identify 2-3 key emotional words that appear EXACTLY in the generated caption (must be exact substrings).
@@ -54,5 +78,5 @@ Generate 3-4 creative synonyms or alternative expressions for each word.
 Language: {language}
 Words: {json.dumps(keywords)}
 Be creative and suggest expressive alternatives.
-Format: JSON only. {{"suggestions": [{{"word": "original", "alternatives": ["alt1", "alt2", "alt3"]}}]}}
+Format: JSON only. {{"suggestions": [{{'word': 'original', 'alternatives': ['alt1', 'alt2', 'alt3']}}]}}
 """.strip()

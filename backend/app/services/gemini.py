@@ -9,9 +9,9 @@ import logging
 import httpx
 from typing import Optional
 
-from ..config import get_settings, DEFAULT_SYSTEM_PROMPT
+from ..config import get_settings
 from ..models.schemas import NarrativeContext, NarrativeResponse, SynonymsResponse, SynonymItem
-from ..utils.prompts import build_story_prompt, build_synonyms_prompt
+from ..utils.prompts import build_story_prompt, build_synonyms_prompt, DEFAULT_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 

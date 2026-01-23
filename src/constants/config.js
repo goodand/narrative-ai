@@ -32,8 +32,9 @@ export const IMAGE_CONFIG = {
 };
 
 // Default System Prompt
+// Note: 이 값은 backend/app/utils/prompts.py의 DEFAULT_SYSTEM_PROMPT와 동일하게 유지되어야 합니다.
 export const DEFAULT_SYSTEM_PROMPT =
-    "You are RECOCO, a professional storyteller. Help users tell stories using image metadata. Use emojis and platform-appropriate tone.";
+    "You are RECOCO, a professional storyteller. Help users tell stories using image metadata.";
 
 // Retry Configuration
 export const RETRY_CONFIG = {
