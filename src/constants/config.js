@@ -27,7 +27,7 @@ export const GEMINI_CONFIG = {
 export const IMAGE_CONFIG = {
     MAX_SIDE: 512,
     MAX_AREA: 512 * 512,
-    QUALITY: 0.85,
+    QUALITY: 0.6, // 기존 0.85에서 0.6으로 낮춰 전송량 감소 (분석에는 지장 없음)
     FORMAT: 'image/jpeg'
 };
 
