@@ -88,6 +88,14 @@ class GeminiService:
                 logger.info(f"GPS data found (Type: {type(gps_data)}): {gps_data}")
                 lat, lon = None, None
                 
+                # 0. 만약 문자열로 들어왔다면 JSON 파싱 시도
+                if isinstance(gps_data, str):
+                    try:
+                        import json
+                        gps_data = json.loads(gps_data)
+                    except:
+                        pass
+
                 # 1. 딕셔너리 형태인 경우
                 if isinstance(gps_data, dict):
                     lat = gps_data.get("lat")

@@ -13,16 +13,33 @@ function formatDate(rawDate) {
         .replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
 }
 
-// DMS 좌표를 십진수로 변환
+// DMS 좌표를 십진수로 변환 (유연한 포맷 대응)
 function convertDMSToDecimal(values, ref) {
     if (!values || values.length < 3) return null;
-    const d = values[0].numerator / values[0].denominator;
-    const m = values[1].numerator / values[1].denominator;
-    const s = values[2].numerator / values[2].denominator;
     
-    let decimal = d + (m / 60) + (s / 3600);
-    if (ref === 'S' || ref === 'W') decimal = -decimal;
-    return decimal;
+    // 유연한 값 추출 로직 (numerator/denominator 또는 단순 숫자 대응)
+    const getValue = (v) => {
+        if (typeof v === 'object' && v !== null && 'numerator' in v) {
+            return v.numerator / v.denominator;
+        }
+        if (Array.isArray(v)) {
+            return v[0] / v[1];
+        }
+        return Number(v);
+    };
+
+    try {
+        const d = getValue(values[0]);
+        const m = getValue(values[1]);
+        const s = getValue(values[2]);
+        
+        let decimal = d + (m / 60) + (s / 3600);
+        if (ref === 'S' || ref === 'W') decimal = -decimal;
+        return decimal;
+    } catch (err) {
+        console.warn('DMS conversion error:', err);
+        return null;
+    }
 }
 
 self.onmessage = async (e) => {
