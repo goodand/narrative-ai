@@ -133,11 +133,11 @@ class GeminiService:
                     except Exception as e:
                         logger.error(f"Failed to resolve address: {e}", exc_info=True)
                 else:
-                    logger.info(f"GPS data exists but coordinates are empty (lat/lon is None). This is normal if the image has no GPS metadata.")
+                    logger.info("GPS data exists but coordinates are empty. Normal for no GPS metadata.")
             else:
-                logger.info("No GPS data found in the request (gps_data is None).")
+                logger.info("No GPS data found in the request.")
         else:
-            logger.info("No metadata provided in the request context.")
+            logger.info("No metadata provided in context.")
 
         prompt = build_story_prompt(context)
         system_prompt = context.systemPrompt or DEFAULT_SYSTEM_PROMPT
