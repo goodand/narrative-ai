@@ -20,14 +20,23 @@ def build_story_prompt(context: NarrativeContext) -> str:
     """
     # metadata가 dict 또는 객체일 수 있음
     metadata = context.metadata
+    metadata_dict = {}
+    
     if metadata is None:
-        metadata = {}
+        metadata_dict = {}
     elif hasattr(metadata, 'model_dump'):
-        metadata = metadata.model_dump()
-    elif not isinstance(metadata, dict):
-        metadata = {}
+        metadata_dict = metadata.model_dump()
+    elif isinstance(metadata, dict):
+        metadata_dict = metadata.copy()
+    
+    # 주소 정보 추출 (서비스 계층에서 주입됨)
+    location_address = metadata_dict.pop("location_address", None)
+    
+    # GPS 데이터 제거 (주소 정보 활용을 위해 raw 데이터는 제거)
+    if "gps" in metadata_dict:
+        del metadata_dict["gps"]
 
-    metadata_str = json.dumps(metadata, default=str, ensure_ascii=False)
+    metadata_str = json.dumps(metadata_dict, default=str, ensure_ascii=False)
 
     # 기본 컨텍스트 항목 구성
     context_lines = [
@@ -36,6 +45,10 @@ def build_story_prompt(context: NarrativeContext) -> str:
         f"- Emotion Temperature: {context.temp}",
         f"- Language: {context.language}",
     ]
+
+    # 위치 정보 추가 (최우선 순위)
+    if location_address:
+        context_lines.append(f"- Location: {location_address}")
 
     # 선택적 항목 (값이 있고 'Not specified'가 아닐 때만 추가)
     if context.tags and context.tags.strip():

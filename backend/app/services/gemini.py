@@ -12,6 +12,7 @@ from typing import Optional
 from ..config import get_settings
 from ..models.schemas import NarrativeContext, NarrativeResponse, SynonymsResponse, SynonymItem
 from ..utils.prompts import build_story_prompt, build_synonyms_prompt, DEFAULT_SYSTEM_PROMPT
+from .geocoding import get_address_from_coords
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,40 @@ class GeminiService:
         """
         이미지 기반 스토리 생성
         """
+        # Geocoding 처리 (위도/경도 -> 주소 변환)
+        if context.metadata:
+            # metadata가 dict인 경우와 객체인 경우 모두 처리
+            gps_data = None
+            if isinstance(context.metadata, dict):
+                gps_data = context.metadata.get("gps")
+            elif hasattr(context.metadata, "gps"):
+                gps_data = context.metadata.gps
+
+            # GPS 데이터가 존재하면 주소 변환 시도
+            if gps_data:
+                lat, lon = None, None
+                
+                if isinstance(gps_data, dict):
+                    lat = gps_data.get("lat")
+                    lon = gps_data.get("lon")
+                elif hasattr(gps_data, "lat") and hasattr(gps_data, "lon"):
+                    lat = gps_data.lat
+                    lon = gps_data.lon
+
+                if lat is not None and lon is not None:
+                    try:
+                        address = get_address_from_coords(lat, lon)
+                        if address:
+                            logger.info(f"Address resolved: {address} (from {lat}, {lon})")
+                            # 메타데이터에 주소 추가 (dict/object 호환 처리)
+                            if isinstance(context.metadata, dict):
+                                context.metadata["location_address"] = address
+                            else:
+                                # Pydantic 모델인 경우 extra fields 허용 설정이 되어 있어야 함
+                                setattr(context.metadata, "location_address", address)
+                    except Exception as e:
+                        logger.warning(f"Failed to resolve address: {e}")
+
         prompt = build_story_prompt(context)
         system_prompt = context.systemPrompt or DEFAULT_SYSTEM_PROMPT
 

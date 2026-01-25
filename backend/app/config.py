@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     # API Keys
     gemini_api_key: str = ""
+    google_cloud_api_key: str = ""
 
     # Gemini API Configuration
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/models"
