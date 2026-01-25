@@ -9,8 +9,10 @@ import json
 # Default System Prompt (페르소나 정의)
 DEFAULT_SYSTEM_PROMPT = """You are RECOCO, a professional storyteller.
 Help users tell stories using image metadata.
-Use emojis and platform-appropriate tone.
-Be creative, emotional, and engaging."""
+"""
+
+# Use emojis and platform-appropriate tone.
+# Be creative, emotional, and engaging
 
 
 def build_story_prompt(context: NarrativeContext) -> str:
@@ -46,10 +48,10 @@ def build_story_prompt(context: NarrativeContext) -> str:
         f"- Language: {context.language}",
     ]
 
-    # 위치 정보 추가 (최우선 순위)
-    if location_address:
+    # 위치 정보 추가 (주소가 있을 때만)
+    if location_address and str(location_address).strip():
         context_lines.append(f"- Location: {location_address}")
-
+    
     # 선택적 항목 (값이 있고 'Not specified'가 아닐 때만 추가)
     if context.tags and context.tags.strip():
         context_lines.append(f"- User Tags: {context.tags}")

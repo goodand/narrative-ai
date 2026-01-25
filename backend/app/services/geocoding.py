@@ -1,5 +1,8 @@
 import requests
+import logging
 from ..config import get_settings
+
+logger = logging.getLogger(__name__)
 
 def get_address_from_coords(lat: float, lon: float) -> str:
     """
@@ -10,21 +13,26 @@ def get_address_from_coords(lat: float, lon: float) -> str:
     api_key = settings.google_cloud_api_key
     
     if not api_key:
-        print("Warning: GOOGLE_CLOUD_API_KEY is not set.")
+        logger.warning("GOOGLE_CLOUD_API_KEY is not set. Skipping geocoding.")
         return ""
 
     url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lon}&key={api_key}&language=ko"
     
     try:
+        logger.info(f"Requesting reverse geocoding for {lat}, {lon}")
         response = requests.get(url)
         data = response.json()
         
-        if data["status"] != "OK":
-            print(f"Geocoding API error: {data['status']}")
+        status = data.get("status")
+        if status != "OK":
+            logger.error(f"Geocoding API error status: {status}. Error Message: {data.get('error_message', 'No message')}")
+            return ""
+
+        if not data.get("results"):
+            logger.warning("No results found for these coordinates.")
             return ""
 
         # 주소 구성 요소 분석
-        # Google API는 결과를 여러 개 반환하는데, 가장 상세한 첫 번째 결과를 사용합니다.
         address_components = data["results"][0]["address_components"]
         
         dong = ""
@@ -33,23 +41,19 @@ def get_address_from_coords(lat: float, lon: float) -> str:
 
         for comp in address_components:
             types = comp["types"]
-            # sublocality_level_2 가 보통 '동'
             if "sublocality_level_2" in types:
                 dong = comp["long_name"]
-            # sublocality_level_1 이 보통 '구'
             elif "sublocality_level_1" in types:
                 gu = comp["long_name"]
-            # locality 가 보통 '시'
             elif "locality" in types:
                 city = comp["long_name"]
-            # administrative_area_level_1 이 '도' 또는 '특별시/광역시'
             elif "administrative_area_level_1" in types and not city:
                 city = comp["long_name"]
 
-        # 동 -> 구 -> 시 순서로 반환 (fallback)
         result = dong or gu or city
+        logger.info(f"Successfully resolved address: {result}")
         return result
 
     except Exception as e:
-        print(f"Error in reverse geocoding: {e}")
+        logger.error(f"Error in reverse geocoding: {e}", exc_info=True)
         return ""

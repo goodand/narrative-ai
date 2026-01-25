@@ -94,6 +94,7 @@ class GeminiService:
 
             # GPS 데이터가 존재하면 주소 변환 시도
             if gps_data:
+                logger.info(f"GPS data found in metadata: {gps_data}")
                 lat, lon = None, None
                 
                 if isinstance(gps_data, dict):
@@ -107,15 +108,22 @@ class GeminiService:
                     try:
                         address = get_address_from_coords(lat, lon)
                         if address:
-                            logger.info(f"Address resolved: {address} (from {lat}, {lon})")
+                            logger.info(f"Address resolved successfully: {address}")
                             # 메타데이터에 주소 추가 (dict/object 호환 처리)
                             if isinstance(context.metadata, dict):
                                 context.metadata["location_address"] = address
                             else:
-                                # Pydantic 모델인 경우 extra fields 허용 설정이 되어 있어야 함
                                 setattr(context.metadata, "location_address", address)
+                        else:
+                            logger.warning(f"Geocoding returned empty address for {lat}, {lon}")
                     except Exception as e:
-                        logger.warning(f"Failed to resolve address: {e}")
+                        logger.error(f"Failed to resolve address: {e}", exc_info=True)
+                else:
+                    logger.warning(f"GPS data present but lat/lon missing: lat={lat}, lon={lon}")
+            else:
+                logger.info("No GPS data found in image metadata.")
+        else:
+            logger.info("No metadata provided in the request context.")
 
         prompt = build_story_prompt(context)
         system_prompt = context.systemPrompt or DEFAULT_SYSTEM_PROMPT
