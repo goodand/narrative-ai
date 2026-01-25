@@ -109,7 +109,7 @@ export class GeminiService {
         if (!keywords || keywords.length === 0) return [];
 
         try {
-            const response = await fetch(
+            const response = await fetchWithRetry(
                 `${this.baseUrl}/api/v1/synonyms`,
                 {
                     method: 'POST',
@@ -120,11 +120,6 @@ export class GeminiService {
                     })
                 }
             );
-
-            if (!response.ok) {
-                console.warn(`Synonyms API returned status ${response.status}`);
-                return keywords.map(w => ({ word: w, suggestions: [] }));
-            }
 
             const data = await response.json();
 

@@ -128,8 +128,8 @@ class GeminiService:
         """
         키워드 유의어 추천
         """
-        # Rate limit prevention
-        await asyncio.sleep(1.0)
+        # Rate limit prevention (잠시 대기 시간을 0.5초로 단축)
+        await asyncio.sleep(0.5)
 
         prompt = build_synonyms_prompt(keywords, language)
 

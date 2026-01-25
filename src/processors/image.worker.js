@@ -50,7 +50,9 @@ self.onmessage = async (e) => {
         }
 
         // 2. 이미지 리사이징 (OffscreenCanvas 사용)
-        const bitmap = await createImageBitmap(file);
+        // 파일을 직접 넘기기보다 Blob으로 변환하여 디코딩 안정성 확보
+        const blobForBitmap = new Blob([file], { type: file.type });
+        const bitmap = await createImageBitmap(blobForBitmap);
         let { width: w, height: h } = bitmap;
 
         const scaleSide = Math.max(w, h) > config.MAX_SIDE ? config.MAX_SIDE / Math.max(w, h) : 1;
