@@ -83,45 +83,42 @@ class GeminiService:
         """
         이미지 기반 스토리 생성
         """
-        # Geocoding 처리 (위도/경도 -> 주소 변환)
-        if context.metadata:
-            # metadata가 dict인 경우와 객체인 경우 모두 처리
-            gps_data = None
-            if isinstance(context.metadata, dict):
-                gps_data = context.metadata.get("gps")
-            elif hasattr(context.metadata, "gps"):
-                gps_data = context.metadata.gps
-
             # GPS 데이터가 존재하면 주소 변환 시도
             if gps_data:
-                logger.info(f"GPS data found in metadata: {gps_data}")
+                logger.info(f"GPS data found (Type: {type(gps_data)}): {gps_data}")
                 lat, lon = None, None
                 
+                # 1. 딕셔너리 형태인 경우
                 if isinstance(gps_data, dict):
                     lat = gps_data.get("lat")
                     lon = gps_data.get("lon")
+                # 2. Pydantic 모델 형태인 경우 (lat, lon 속성 직접 접근)
                 elif hasattr(gps_data, "lat") and hasattr(gps_data, "lon"):
-                    lat = gps_data.lat
-                    lon = gps_data.lon
+                    lat = getattr(gps_data, "lat", None)
+                    lon = getattr(gps_data, "lon", None)
+                # 3. 만약 lat/lon이 여전히 None이면 dict 변환 후 재시도
+                if lat is None and lon is None and hasattr(gps_data, "dict"):
+                    temp_dict = gps_data.dict()
+                    lat = temp_dict.get("lat")
+                    lon = temp_dict.get("lon")
 
                 if lat is not None and lon is not None:
                     try:
                         address = get_address_from_coords(lat, lon)
                         if address:
                             logger.info(f"Address resolved successfully: {address}")
-                            # 메타데이터에 주소 추가 (dict/object 호환 처리)
                             if isinstance(context.metadata, dict):
                                 context.metadata["location_address"] = address
                             else:
                                 setattr(context.metadata, "location_address", address)
                         else:
-                            logger.warning(f"Geocoding returned empty address for {lat}, {lon}")
+                            logger.warning(f"Geocoding returned empty result for {lat}, {lon}")
                     except Exception as e:
                         logger.error(f"Failed to resolve address: {e}", exc_info=True)
                 else:
-                    logger.warning(f"GPS data present but lat/lon missing: lat={lat}, lon={lon}")
+                    logger.info(f"GPS data exists but coordinates are empty (lat/lon is None). This is normal if the image has no GPS metadata.")
             else:
-                logger.info("No GPS data found in image metadata.")
+                logger.info("No GPS data found in the request (gps_data is None).")
         else:
             logger.info("No metadata provided in the request context.")
 
