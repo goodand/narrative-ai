@@ -159,7 +159,7 @@ class GeminiService:
                     },
                     "required": ["suggestions"]
                 },
-                "temperature": 1.2,
+                "temperature": 0.8,
                 "topP": 0.95
             }
         }
