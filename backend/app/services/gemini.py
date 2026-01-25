@@ -83,6 +83,15 @@ class GeminiService:
         """
         이미지 기반 스토리 생성
         """
+        # Geocoding 처리 (위도/경도 -> 주소 변환)
+        if context.metadata:
+            # metadata가 dict인 경우와 객체인 경우 모두 처리
+            gps_data = None
+            if isinstance(context.metadata, dict):
+                gps_data = context.metadata.get("gps")
+            elif hasattr(context.metadata, "gps"):
+                gps_data = context.metadata.gps
+
             # GPS 데이터가 존재하면 주소 변환 시도
             if gps_data:
                 logger.info(f"GPS data found (Type: {type(gps_data)}): {gps_data}")
