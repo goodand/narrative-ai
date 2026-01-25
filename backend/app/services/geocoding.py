@@ -38,19 +38,27 @@ def get_address_from_coords(lat: float, lon: float) -> str:
         dong = ""
         gu = ""
         city = ""
+        neighborhood = ""
 
         for comp in address_components:
             types = comp["types"]
-            if "sublocality_level_2" in types:
+            # 동 (Dong) - 여러 레벨 및 neighborhood 확인
+            if "sublocality_level_2" in types or "sublocality_level_3" in types:
                 dong = comp["long_name"]
+            elif "neighborhood" in types:
+                neighborhood = comp["long_name"]
+            # 구 (Gu)
             elif "sublocality_level_1" in types:
                 gu = comp["long_name"]
+            # 시 (City)
             elif "locality" in types:
                 city = comp["long_name"]
+            # 도/광역시 (Province/Admin Area)
             elif "administrative_area_level_1" in types and not city:
                 city = comp["long_name"]
 
-        result = dong or gu or city
+        # 우선순위: 동 -> 동네 -> 구 -> 시
+        result = dong or neighborhood or gu or city
         logger.info(f"Successfully resolved address: {result}")
         return result
 

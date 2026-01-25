@@ -21,6 +21,7 @@ class ImageMetadata(BaseModel):
     date: Optional[str] = None
     gps: Optional[Union[GPSData, dict, str]] = None  # 유연한 타입 허용
     location: Optional[str] = None
+    location_address: Optional[str] = None  # 역지오코딩된 주소 저장 필드 추가
 
     class Config:
         extra = "allow"  # 추가 필드 허용
