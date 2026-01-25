@@ -130,20 +130,22 @@ export class DropZone {
     }
 
     async _handleFile(file) {
-        // Hide old metadata
+        // 1. 기존 메타데이터 숨기기 및 초기 로딩 UI 상태 (필요 시)
         this._hideMetadata();
 
         try {
-            // Process image (extract metadata and resize)
+            // 2. [핵심] 파일을 받자마자 즉시 리사이징 및 메타데이터 추출 실행
+            // 사용자가 다른 설정을 만지는 동안 백그라운드에서 이미 처리가 완료됨
             const result = await this.imageProcessor.process(file);
 
-            // Update preview
+            // 3. 최적화된 리사이징 이미지를 사용하여 미리보기 표시
+            // (원본 고해상도 이미지를 렌더링하지 않으므로 메모리 효율성 증대)
             this.setPreview(result.dataUrl);
 
-            // Show metadata
+            // 4. 추출된 메타데이터 표시
             this.showMetadata(result.metadata);
 
-            // Callback with result
+            // 5. 전역 상태(Store)에 즉시 저장하여 '생성' 버튼 클릭 시 지연 최소화
             if (this.onFileLoaded) {
                 this.onFileLoaded({
                     base64: result.base64,
@@ -154,7 +156,7 @@ export class DropZone {
                 });
             }
         } catch (error) {
-            console.error('File handling error:', error);
+            console.error('이미지 처리 중 오류 발생:', error);
             if (this.onError) {
                 this.onError(error);
             }
