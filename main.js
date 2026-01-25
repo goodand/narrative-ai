@@ -195,6 +195,18 @@ els.genBtn.onclick = async () => {
         // Generate story
         const storyResult = await geminiService.generateStory(imageData, context);
 
+        // [추가] 키워드 검증 로직: 추출된 키워드가 본문에 실제로 존재하는지 확인
+        const missingKeywords = storyResult.keywords.filter(
+            kw => !storyResult.original_caption.includes(kw)
+        );
+
+        if (missingKeywords.length > 0) {
+            console.error('키워드 불일치 발견:', missingKeywords);
+            showError(`AI가 본문에 없는 키워드를 추출했습니다: ${missingKeywords.join(', ')}`);
+            // 기능을 중단하지 않고 계속 진행하려면 아래 return을 주석 처리할 수 있습니다.
+            // return; 
+        }
+
         // Update button text for synonym generation
         els.btnText.innerText = UI_MESSAGES.FINDING_SYNONYMS;
 
