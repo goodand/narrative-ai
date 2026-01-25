@@ -71,20 +71,30 @@ export class ResultViewer {
         this._currentData = data;
         let text = data.original_caption;
 
-        // Sort keywords by length (longest first) to avoid partial matches
-        const sortedKeywords = [...data.keywords].sort(
-            (a, b) => b.word.length - a.word.length
-        );
-
-        // Highlight keywords
-        sortedKeywords.forEach(item => {
-            const escapedWord = item.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(`(${escapedWord})`, 'gi');
-            text = text.replace(
-                regex,
-                `<span class="keyword-highlight" data-word="${item.word}">$1</span>`
+        if (data.keywords && data.keywords.length > 0) {
+            // Sort keywords by length (longest first) to avoid partial matches
+            const sortedKeywords = [...data.keywords].sort(
+                (a, b) => b.word.length - a.word.length
             );
-        });
+
+            // Build a single regex to match all keywords at once
+            // This prevents HTML tags from being corrupted by subsequent replaces
+            const pattern = sortedKeywords
+                .map(item => {
+                    const escaped = item.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    return `(${escaped})`;
+                })
+                .join('|');
+
+            const regex = new RegExp(pattern, 'gi');
+
+            text = text.replace(regex, (match) => {
+                // Find the original item to maintain correct data-word mapping
+                // case-insensitive matching for the word itself
+                const item = data.keywords.find(k => k.word.toLowerCase() === match.toLowerCase()) || { word: match };
+                return `<span class="keyword-highlight" data-word="${item.word}">${match}</span>`;
+            });
+        }
 
         if (this.interactiveCaption) {
             this.interactiveCaption.innerHTML = `"${text}"`;

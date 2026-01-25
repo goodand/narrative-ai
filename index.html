@@ -176,9 +176,8 @@
             <!-- 타겟 플랫폼 및 스타일 옵션 -->
             <div class="space-y-6 mb-8">
                 <div>
-                    <label
-                        class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Target
-                        Platform</label>
+                    <span class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Target
+                        Platform</span>
                     <div class="sns-grid" id="sns-toggle-group">
                         <div class="sns-item active" data-value="Instagram">Instagram</div>
                         <div class="sns-item" data-value="Threads">Threads</div>
@@ -191,7 +190,7 @@
 
                 <div class="flex flex-col sm:flex-row gap-6">
                     <div class="flex-1">
-                        <label
+                        <label for="language-select"
                             class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Language</label>
                         <select id="language-select"
                             class="w-full bg-[#F1F3F4] border-none rounded-2xl p-7 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer">
@@ -200,7 +199,7 @@
                         </select>
                     </div>
                     <div class="flex-1">
-                        <label
+                        <label for="style-select"
                             class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Mood
                             Style</label>
                         <select id="style-select"
@@ -220,7 +219,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <!-- 1. 무엇을 하고 있었나요? -->
                     <div>
-                        <label class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Activity</label>
+                        <label for="activity-select" class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Activity</label>
                         <select id="activity-select"
                             class="w-full bg-[#F1F3F4] border-none rounded-2xl p-6 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer">
                             <option value="" disabled selected>무엇을 하고 있었나요?</option>
@@ -236,7 +235,7 @@
 
                     <!-- 2. 이 때 몸은 어땠어요? -->
                     <div>
-                        <label class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Body State</label>
+                        <label for="body-state-select" class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Body State</label>
                         <select id="body-state-select"
                             class="w-full bg-[#F1F3F4] border-none rounded-2xl p-6 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer">
                             <option value="" disabled selected>몸은 어땠어요?</option>
@@ -250,7 +249,7 @@
 
                     <!-- 3. 관계의 상태 -->
                     <div>
-                        <label class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Relationship</label>
+                        <label for="relationship-select" class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Relationship</label>
                         <select id="relationship-select"
                             class="w-full bg-[#F1F3F4] border-none rounded-2xl p-6 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer">
                             <option value="" disabled selected>관계의 상태</option>
@@ -267,8 +266,8 @@
 
                 <!-- 감정의 온도 UI -->
                 <div>
-                    <label class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">감정의
-                        온도 (Emotion Temperature)</label>
+                    <span class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">감정의
+                        온도 (Emotion Temperature)</span>
                     <div class="flex bg-[#F1F3F4] p-2 rounded-[1.5rem] gap-1" id="temp-toggle-group">
                         <button
                             class="flex-1 py-4 px-4 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 hover:bg-white/50"
@@ -291,7 +290,7 @@
 
             <!-- 태그 입력 (추가) -->
             <div class="mb-8">
-                <label class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Tags
+                <label for="tags-input" class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Tags
                     (Optional)</label>
                 <input type="text" id="tags-input"
                     class="w-full bg-[#F1F3F4] border-none rounded-2xl p-5 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none placeholder-slate-400"
@@ -388,7 +387,7 @@
             </div>
             <div class="p-8 space-y-6">
                 <div>
-                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">AI
+                    <label for="system-prompt-input" class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">AI
                         System Prompt</label>
                     <textarea id="system-prompt-input"
                         class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 text-slate-700 font-medium leading-relaxed focus:border-[#B2A5CF] outline-none min-h-[180px] text-sm shadow-inner"

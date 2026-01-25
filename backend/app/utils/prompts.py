@@ -73,10 +73,11 @@ def build_synonyms_prompt(keywords: list[str], language: str) -> str:
     유의어 추천 프롬프트 빌드
     기존 GeminiService.getSynonyms 프롬프트 로직을 서버로 이전
     """
+    words_json = json.dumps(keywords, ensure_ascii=False)
     return f"""
 Generate 3-4 creative synonyms or alternative expressions for each word.
 Language: {language}
-Words: {json.dumps(keywords)}
+Words: {words_json}
 Be creative and suggest expressive alternatives.
-Format: JSON only. {{'suggestions': [{{'word': 'original', 'alternatives': ['alt1', 'alt2', 'alt3']}}]}}
+Format: JSON only. {{"suggestions": [{{"word": "original", "alternatives": ["alt1", "alt2", "alt3"]}}]}}
 """.strip()
