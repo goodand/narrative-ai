@@ -1,0 +1,14 @@
+{
+  "nodes": [
+    {"id": "app/models/schemas.py::NarrativeRequest", "type": "class"},
+    {"id": "app/models/schemas.py::NarrativeContext", "type": "class"},
+    {"id": "app/models/schemas.py::ImageMetadata", "type": "class"},
+    {"id": "app/models/schemas.py::GPSData", "type": "class"}
+  ],
+  "edges": [
+    {"source": "app/models/schemas.py::NarrativeRequest", "target": "pydantic::BaseModel", "type": "INHERITANCE"},
+    {"source": "app/models/schemas.py::NarrativeContext", "target": "pydantic::BaseModel", "type": "INHERITANCE"},
+    {"source": "app/models/schemas.py::ImageMetadata", "target": "pydantic::BaseModel", "type": "INHERITANCE"},
+    {"source": "app/models/schemas.py::GPSData", "target": "pydantic::BaseModel", "type": "INHERITANCE"}
+  ]
+}

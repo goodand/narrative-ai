@@ -11,6 +11,7 @@ pnpm-debug.log*
 
 .vscode/
 .history/
+.claude/
 
 .gemini/
 feedback.md
@@ -19,6 +20,7 @@ develope-plan.md
 interview.md
 
 test-assets
+ /Users/jaehyuntak/Desktop/Project_____현재 진행중인/narrative-ai/skill-pipline-test.md
 
 # Backend (Python/uv)
 backend/.env

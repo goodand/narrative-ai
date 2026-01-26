@@ -142,9 +142,9 @@
         </div>
 
         <div class="p-8">
-            <!-- 이미지 업로드 존 -->
+            <!-- [STAGE 1] IMAGE CARD -->
             <div id="drop-zone"
-                class="border-2 border-dashed border-slate-200 rounded-[2rem] p-12 text-center hover:border-[#B2A5CF] transition-all cursor-pointer mb-10 bg-[#F1F3F4] group">
+                class="border-2 border-dashed border-slate-200 rounded-[2rem] p-12 text-center hover:border-[#B2A5CF] transition-all cursor-pointer mb-6 bg-[#F1F3F4] group">
                 <input type="file" id="image-input" accept="image/*" class="hidden">
                 <div id="upload-placeholder">
                     <div
@@ -173,48 +173,42 @@
                 </div>
             </div>
 
-            <!-- 타겟 플랫폼 및 스타일 옵션 -->
-            <div class="space-y-6 mb-8">
-                <div>
-                    <span class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Target
-                        Platform</span>
-                    <div class="sns-grid" id="sns-toggle-group">
-                        <div class="sns-item active" data-value="Instagram">Instagram</div>
-                        <div class="sns-item" data-value="Threads">Threads</div>
-                        <div class="sns-item" data-value="Twitter (X)">Twitter (X)</div>
-                        <div class="sns-item" data-value="Facebook">Facebook</div>
-                        <div class="sns-item" data-value="Naver Blog">Blog</div>
-                        <div class="sns-item" data-value="TikTok">TikTok</div>
+            <!-- [STAGE 1] NARRATIVE (결과물 우선 배치) -->
+            <div id="result-area" class="mb-12 hidden relative">
+                <div class="flex justify-between items-end mb-4 px-2">
+                    <div>
+                        <h3 class="text-2xl font-black text-slate-900 tracking-tighter">NARRATIVE</h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Select highlighted
+                            words for suggestions</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="edit-btn"
+                            class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl transition-colors font-black uppercase">Edit</button>
+                        <button id="save-btn"
+                            class="hidden text-[10px] bg-slate-900 text-white px-4 py-2 rounded-xl font-black uppercase">Save</button>
                     </div>
                 </div>
 
-                <div class="flex flex-col sm:flex-row gap-6">
-                    <div class="flex-1">
-                        <label for="language-select"
-                            class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Language</label>
-                        <select id="language-select"
-                            class="w-full bg-[#F1F3F4] border-none rounded-2xl p-7 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer">
-                            <option value="Korean">한국어</option>
-                            <option value="English">English</option>
-                        </select>
-                    </div>
-                    <div class="flex-1">
-                        <label for="style-select"
-                            class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Mood
-                            Style</label>
-                        <select id="style-select"
-                            class="w-full bg-[#F1F3F4] border-none rounded-2xl p-6 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer">
-                            <option value="emotional">감성적인 기록</option>
-                            <option value="descriptive">상세한 묘사</option>
-                            <option value="funny">유머러스한 코멘트</option>
-                            <option value="minimalist">미니멀리스트</option>
-                            <option value="gen-z">젠지 (Gen-Z)</option>
-                            <option value="young-forty">영포티 (Young Forty)</option>
-                            <option value="middle-aged">50대 아버님</option>
-                        </select>
+                <div class="bg-slate-50 rounded-[2rem] p-10 border border-slate-100 relative shadow-inner">
+                    <div id="caption-interactive" class="text-slate-800 text-xl font-medium leading-relaxed"></div>
+                    <textarea id="caption-edit"
+                        class="hidden w-full bg-white border-2 border-slate-200 rounded-2xl p-6 text-slate-800 text-xl font-medium leading-relaxed focus:border-[#B2A5CF] outline-none min-h-[160px]"></textarea>
+
+                    <div class="mt-10 flex items-center justify-between border-t border-slate-200 pt-6">
+                        <button id="copy-btn"
+                            class="bg-white text-slate-900 text-xs font-black px-6 py-4 rounded-xl shadow-sm hover:shadow-lg transition-all border border-slate-100">문구
+                            복사하기</button>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-[#B2A5CF] animate-pulse"></span>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Gemini
+                                Engine</span>
+                        </div>
                     </div>
                 </div>
+            </div>
 
+            <!-- [STAGE 2] OPTIONS (세부 설정 및 태그) -->
+            <div class="space-y-8 mb-12">
                 <!-- 추가 드롭다운 메뉴 (활동, 신체 상태, 관계) -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <!-- 1. 무엇을 하고 있었나요? -->
@@ -286,57 +280,66 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- 태그 입력 -->
+                <div>
+                    <label for="tags-input" class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Tags
+                        (Optional)</label>
+                    <input type="text" id="tags-input"
+                        class="w-full bg-[#F1F3F4] border-none rounded-2xl p-5 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none placeholder-slate-400"
+                        placeholder="#태그 #키워드 #입력">
+                </div>
             </div>
 
-            <!-- 태그 입력 (추가) -->
-            <div class="mb-8">
-                <label for="tags-input" class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Tags
-                    (Optional)</label>
-                <input type="text" id="tags-input"
-                    class="w-full bg-[#F1F3F4] border-none rounded-2xl p-5 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none placeholder-slate-400"
-                    placeholder="#태그 #키워드 #입력">
+            <!-- [STAGE 3] SYSTEM (플랫폼 및 스타일 설정) -->
+            <div class="space-y-6 mb-10 border-t border-slate-100 pt-10">
+                <div>
+                    <span class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Target
+                        Platform</span>
+                    <div class="sns-grid" id="sns-toggle-group">
+                        <div class="sns-item active" data-value="Instagram">Instagram</div>
+                        <div class="sns-item" data-value="Threads">Threads</div>
+                        <div class="sns-item" data-value="Twitter (X)">Twitter (X)</div>
+                        <div class="sns-item" data-value="Facebook">Facebook</div>
+                        <div class="sns-item" data-value="Naver Blog">Blog</div>
+                        <div class="sns-item" data-value="TikTok">TikTok</div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-6">
+                    <div class="flex-1">
+                        <label for="language-select"
+                            class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Language</label>
+                        <select id="language-select"
+                            class="w-full bg-[#F1F3F4] border-none rounded-2xl p-7 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer">
+                            <option value="Korean">한국어</option>
+                            <option value="English">English</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label for="style-select"
+                            class="block text-[10px] font-black text-[#111111] uppercase tracking-widest mb-3 ml-1">Mood
+                            Style</label>
+                        <select id="style-select"
+                            class="w-full bg-[#F1F3F4] border-none rounded-2xl p-6 text-slate-900 font-bold focus:ring-2 focus:ring-[#B2A5CF] outline-none cursor-pointer">
+                            <option value="emotional">감성적인 기록</option>
+                            <option value="descriptive">상세한 묘사</option>
+                            <option value="funny">유머러스한 코멘트</option>
+                            <option value="minimalist">미니멀리스트</option>
+                            <option value="gen-z">젠지 (Gen-Z)</option>
+                            <option value="young-forty">영포티 (Young Forty)</option>
+                            <option value="middle-aged">50대 아버님</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
             <!-- 생성 버튼 -->
             <button id="generate-btn"
-                class="w-full btn-main py-5 px-6 rounded-2xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-xl shadow-indigo-100">
+                class="w-full btn-main py-6 px-6 rounded-[1.5rem] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-lg shadow-xl shadow-indigo-100">
                 <span id="btn-text">내 기억을 선명하게 하기</span>
                 <div id="btn-loader" class="loader hidden"></div>
             </button>
-
-            <!-- 분석 결과 영역 -->
-            <div id="result-area" class="mt-12 hidden relative">
-                <div class="flex justify-between items-end mb-4 px-2">
-                    <div>
-                        <h3 class="text-2xl font-black text-slate-900 tracking-tighter">NARRATIVE</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Select highlighted
-                            words for suggestions</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button id="edit-btn"
-                            class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl transition-colors font-black uppercase">Edit</button>
-                        <button id="save-btn"
-                            class="hidden text-[10px] bg-slate-900 text-white px-4 py-2 rounded-xl font-black uppercase">Save</button>
-                    </div>
-                </div>
-
-                <div class="bg-slate-50 rounded-[2rem] p-10 border border-slate-100 relative shadow-inner">
-                    <div id="caption-interactive" class="text-slate-800 text-xl font-medium leading-relaxed"></div>
-                    <textarea id="caption-edit"
-                        class="hidden w-full bg-white border-2 border-slate-200 rounded-2xl p-6 text-slate-800 text-xl font-medium leading-relaxed focus:border-[#B2A5CF] outline-none min-h-[160px]"></textarea>
-
-                    <div class="mt-10 flex items-center justify-between border-t border-slate-200 pt-6">
-                        <button id="copy-btn"
-                            class="bg-white text-slate-900 text-xs font-black px-6 py-4 rounded-xl shadow-sm hover:shadow-lg transition-all border border-slate-100">문구
-                            복사하기</button>
-                        <div class="flex items-center gap-2">
-                            <span class="w-2.5 h-2.5 rounded-full bg-[#B2A5CF] animate-pulse"></span>
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Gemini
-                                Engine</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <div id="error-msg"
                 class="mt-6 text-red-500 text-sm hidden text-center font-bold bg-red-50 p-5 rounded-2xl"></div>
