@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-15
 
     steps:
       - uses: actions/checkout@v4
@@ -17,19 +17,20 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      - name: Check Xcode & SDK info
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes
+          xcodebuild -showsdks | grep -i sim
+
       - name: Install dependencies
         run: npm ci
 
       - name: Build web assets
         run: npm run build
 
-      - name: Copy web assets to iOS
-        run: npx cap copy ios
-
-      - name: Resolve Swift packages
-        run: |
-          cd ios/App
-          xcodebuild -resolvePackageDependencies -scheme App -project App.xcodeproj
+      - name: Sync iOS project
+        run: npx cap sync ios
 
       - name: Build for iOS Simulator
         run: |
@@ -40,23 +41,27 @@ jobs:
             -sdk iphonesimulator \
             -configuration Debug \
             -derivedDataPath ./build \
-            -destination "generic/platform=iOS Simulator" \
+            -destination "platform=iOS Simulator,name=iPhone 16,OS=latest" \
             CODE_SIGNING_ALLOWED=NO \
-            ARCHS="x86_64 arm64" \
-            ONLY_ACTIVE_ARCH=NO \
             build
 
       - name: Zip .app for Appetize.io
         run: |
-          APP_PATH=$(find ios/App/build -name "*.app" -type d | head -1)
+          # .app 찾기
+          APP_PATH=$(find ios/App/build/Build/Products -name "*.app" -type d | head -1)
           echo "Found: $APP_PATH"
-          # zip 루트에 App.app이 바로 오도록 압축
+          ls -la "$APP_PATH"
+
+          # symlink 보존하며 루트에 .app 바로 위치하도록 압축
           pushd "$(dirname "$APP_PATH")"
           zip -ry "$GITHUB_WORKSPACE/NarrativeAI.zip" "$(basename "$APP_PATH")"
           popd
-          # 구조 검증
-          echo "=== Zip structure ==="
-          zipinfo "$GITHUB_WORKSPACE/NarrativeAI.zip" | head -10
+
+          # 검증
+          echo "=== Zip top-level ==="
+          zipinfo -1 "$GITHUB_WORKSPACE/NarrativeAI.zip" | head -15
+          echo "=== Zip size ==="
+          ls -lh "$GITHUB_WORKSPACE/NarrativeAI.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
