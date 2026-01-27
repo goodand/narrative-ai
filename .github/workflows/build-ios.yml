@@ -44,10 +44,15 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
-      - name: Zip .app for Appetize.io
+      - name: Find and zip .app for Appetize.io
         run: |
-          cd ios/App/build/Build/Products/Debug-iphonesimulator
-          zip -r "$GITHUB_WORKSPACE/NarrativeAI.zip" App.app
+          APP_PATH=$(find ios/App/build -name "*.app" -type d | head -1)
+          echo "Found app at: $APP_PATH"
+          ls -la "$APP_PATH"
+          cd "$(dirname "$APP_PATH")"
+          zip -r "$GITHUB_WORKSPACE/NarrativeAI.zip" "$(basename "$APP_PATH")"
+          echo "Zip contents:"
+          zipinfo "$GITHUB_WORKSPACE/NarrativeAI.zip" | head -20
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
