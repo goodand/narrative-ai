@@ -49,9 +49,9 @@ jobs:
 
       - name: Verify binary architectures
         run: |
-          APP_PATH=$(find ios/App/build/Build/Products/Debug-iphonesimulator -name "*.app" -type d | head -1)
+          APP_PATH=$(find "$GITHUB_WORKSPACE/ios/App/build/Build/Products/Debug-iphonesimulator" -name "*.app" -type d | head -1)
           echo "App: $APP_PATH"
-          BINARY="$APP_PATH/$(defaults read "$APP_PATH/Info.plist" CFBundleExecutable)"
+          BINARY="$APP_PATH/App"
           echo "Binary: $BINARY"
           file "$BINARY"
           lipo -info "$BINARY"
