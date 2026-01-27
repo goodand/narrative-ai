@@ -42,17 +42,21 @@ jobs:
             -derivedDataPath ./build \
             -destination "generic/platform=iOS Simulator" \
             CODE_SIGNING_ALLOWED=NO \
+            ARCHS="x86_64 arm64" \
+            ONLY_ACTIVE_ARCH=NO \
             build
 
-      - name: Find and zip .app for Appetize.io
+      - name: Zip .app for Appetize.io
         run: |
           APP_PATH=$(find ios/App/build -name "*.app" -type d | head -1)
-          echo "Found app at: $APP_PATH"
-          ls -la "$APP_PATH"
-          cd "$(dirname "$APP_PATH")"
-          zip -r "$GITHUB_WORKSPACE/NarrativeAI.zip" "$(basename "$APP_PATH")"
-          echo "Zip contents:"
-          zipinfo "$GITHUB_WORKSPACE/NarrativeAI.zip" | head -20
+          echo "Found: $APP_PATH"
+          # zip 루트에 App.app이 바로 오도록 압축
+          pushd "$(dirname "$APP_PATH")"
+          zip -ry "$GITHUB_WORKSPACE/NarrativeAI.zip" "$(basename "$APP_PATH")"
+          popd
+          # 구조 검증
+          echo "=== Zip structure ==="
+          zipinfo "$GITHUB_WORKSPACE/NarrativeAI.zip" | head -10
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
