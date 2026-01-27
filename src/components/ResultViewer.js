@@ -13,8 +13,10 @@ export class ResultViewer {
      * @param {string|HTMLElement} options.editBtn - Edit button
      * @param {string|HTMLElement} options.saveBtn - Save button
      * @param {string|HTMLElement} options.copyBtn - Copy button
+     * @param {string|HTMLElement} options.shareBtn - Share button
      * @param {Function} options.onKeywordClick - Callback when keyword is clicked
      * @param {Function} options.onSave - Callback when save is clicked
+     * @param {Function} options.onShare - Callback when share is clicked
      */
     constructor({
         resultArea,
@@ -23,8 +25,10 @@ export class ResultViewer {
         editBtn,
         saveBtn,
         copyBtn,
+        shareBtn,
         onKeywordClick = null,
-        onSave = null
+        onSave = null,
+        onShare = null
     }) {
         this.resultArea = this._getElement(resultArea);
         this.interactiveCaption = this._getElement(interactiveCaption);
@@ -32,9 +36,11 @@ export class ResultViewer {
         this.editBtn = this._getElement(editBtn);
         this.saveBtn = this._getElement(saveBtn);
         this.copyBtn = this._getElement(copyBtn);
+        this.shareBtn = this._getElement(shareBtn);
 
         this.onKeywordClick = onKeywordClick;
         this.onSave = onSave;
+        this.onShare = onShare;
 
         this._currentData = null;
         this._isEditMode = false;
@@ -211,6 +217,13 @@ export class ResultViewer {
     _init() {
         if (this.copyBtn) {
             this.copyBtn.addEventListener('click', () => this.copyToClipboard());
+        }
+        if (this.shareBtn) {
+            this.shareBtn.addEventListener('click', () => {
+                if (this.onShare) {
+                    this.onShare(this.getCurrentText());
+                }
+            });
         }
     }
 

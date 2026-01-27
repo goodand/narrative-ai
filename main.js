@@ -93,6 +93,7 @@ const resultViewer = new ResultViewer({
     editBtn: 'edit-btn',
     saveBtn: 'save-btn',
     copyBtn: 'copy-btn',
+    shareBtn: 'share-btn',
     onKeywordClick: (wordData) => {
         suggestionModal.renderSuggestions(wordData, handleSuggestionSelect);
     },
@@ -101,6 +102,15 @@ const resultViewer = new ResultViewer({
         if (currentResult) {
             currentResult.original_caption = newText;
             store.setResult(currentResult);
+        }
+    },
+    onShare: async (captionText) => {
+        const { shareWithImage, shareCaption } = await import('./src/services/ShareService.js');
+        const imageBase64 = store.getState('base64');
+        if (imageBase64) {
+            await shareWithImage({ imageBase64, caption: captionText });
+        } else {
+            await shareCaption(captionText);
         }
     }
 });

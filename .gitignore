@@ -1,6 +1,11 @@
 .env
 node_modules/
 .DS_Store
+
+# Capacitor iOS
+ios/App/Pods/
+ios/App/App/public/
+ios/App/DerivedData/
 .history
 
 node_modules/
@@ -31,8 +36,12 @@ backend/*.pyc
 backend/.pytest_cache/
 *.egg-info/
 
+.mcp.json
 
 
 
 
+skill-processed/
+/Users/jaehyuntak/Desktop/Project_____현재 진행중인/narrative-ai/setup_skills.sh
 
+setup_skills.sh
