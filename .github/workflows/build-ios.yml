@@ -56,21 +56,29 @@ jobs:
           file "$BINARY"
           lipo -info "$BINARY"
 
-      - name: Zip .app for Appetize.io
+      - name: Find and zip .app for Appetize.io
         run: |
-          APP_PATH=$(find ios/App/build/Build/Products/Release-iphonesimulator -name "*.app" -type d | head -1)
+          # 1. 빌드된 .app 폴더의 위치를 찾습니다.
+          APP_PATH=$(find ios/App/build -name "App.app" -type d | head -1)
+
           if [ -z "$APP_PATH" ]; then
-            echo "Error: .app not found!"
+            echo "Error: App.app not found!"
             exit 1
           fi
 
-          cd "$(dirname "$APP_PATH")"
-          zip -r "$GITHUB_WORKSPACE/NarrativeAI.zip" App.app
+          # 2. .app 폴더가 있는 위치의 '부모 디렉토리'로 이동합니다.
+          PARENT_DIR=$(dirname "$APP_PATH")
+          APP_NAME=$(basename "$APP_PATH")
 
-          echo "=== Zip top-level ==="
-          zipinfo -1 "$GITHUB_WORKSPACE/NarrativeAI.zip" | head -5
-          echo "=== Size ==="
-          ls -lh "$GITHUB_WORKSPACE/NarrativeAI.zip"
+          echo "Moving to $PARENT_DIR and zipping $APP_NAME"
+          cd "$PARENT_DIR"
+
+          # 3. 여기서 압축을 수행합니다. (중요: 상대 경로인 $APP_NAME 사용)
+          zip -r "$GITHUB_WORKSPACE/NarrativeAI.zip" "$APP_NAME"
+
+          # 4. 압축 파일 구조가 제대로 되었는지 로그에 남깁니다.
+          echo "Final Zip structure check:"
+          zipinfo "$GITHUB_WORKSPACE/NarrativeAI.zip" | head -10
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
