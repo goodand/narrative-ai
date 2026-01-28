@@ -64,13 +64,11 @@ jobs:
             exit 1
           fi
 
-          PARENT_DIR=$(dirname "$APP_PATH")
-          APP_NAME=$(basename "$APP_PATH")
-          cd "$PARENT_DIR"
-          zip -ry "$GITHUB_WORKSPACE/NarrativeAI.zip" "$APP_NAME"
+          cd "$(dirname "$APP_PATH")"
+          zip -r "$GITHUB_WORKSPACE/NarrativeAI.zip" App.app
 
           echo "=== Zip top-level ==="
-          zipinfo -1 "$GITHUB_WORKSPACE/NarrativeAI.zip" | head -10
+          zipinfo -1 "$GITHUB_WORKSPACE/NarrativeAI.zip" | head -5
           echo "=== Size ==="
           ls -lh "$GITHUB_WORKSPACE/NarrativeAI.zip"
 
