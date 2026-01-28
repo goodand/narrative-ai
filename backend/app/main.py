@@ -48,6 +48,8 @@ origins = [
     "http://localhost:3000",
     "https://narrative-ai-5p8q.onrender.com", # 현재 프론트엔드 도메인
     "https://recoco.onrender.com",
+    "capacitor://localhost",  # Capacitor iOS 앱
+    "ionic://localhost",      # Capacitor iOS (구버전)
 ]
 
 app.add_middleware(

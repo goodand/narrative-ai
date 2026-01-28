@@ -4,15 +4,20 @@
  */
 
 // Backend API Configuration (프록시 서버)
+const isCapacitor = window.location.protocol === 'capacitor:' || window.location.hostname === 'localhost' && typeof window.Capacitor !== 'undefined';
+
 export const API_CONFIG = {
     // 런타임 환경에 따라 API 주소 자동 결정
     // 1. VITE_API_BASE_URL 환경 변수가 있으면 최우선 사용
-    // 2. localhost면 로컬 백엔드 포트(8000) 사용
-    // 3. 그 외(배포 환경)는 상대 경로('') 또는 명시적 백엔드 URL 사용
+    // 2. Capacitor 네이티브 앱이면 render.com 백엔드 사용
+    // 3. localhost면 로컬 백엔드 포트(8000) 사용
+    // 4. 그 외(배포 환경)는 상대 경로('') 사용
     BASE_URL: import.meta.env.VITE_API_BASE_URL || (
-        window.location.hostname === 'localhost' 
-            ? 'http://localhost:8000' 
-            : ''  // 배포 시 상대 경로 사용 (프론트/백엔드가 같은 도메인일 경우)
+        isCapacitor
+            ? 'https://narrative-ai-backend.onrender.com'
+            : window.location.hostname === 'localhost'
+                ? 'http://localhost:8000'
+                : ''
     )
 };
 
