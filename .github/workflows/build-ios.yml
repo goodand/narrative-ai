@@ -32,14 +32,14 @@ jobs:
       - name: Sync iOS project
         run: npx cap sync ios
 
-      - name: Build for iOS Simulator (Universal)
+      - name: Build for iOS Simulator (Universal Release)
         run: |
           cd ios/App
           xcodebuild \
             -scheme App \
             -project App.xcodeproj \
             -sdk iphonesimulator \
-            -configuration Debug \
+            -configuration Release \
             -derivedDataPath ./build \
             -destination "generic/platform=iOS Simulator" \
             ARCHS="arm64 x86_64" \
@@ -49,7 +49,7 @@ jobs:
 
       - name: Verify binary architectures
         run: |
-          APP_PATH=$(find "$GITHUB_WORKSPACE/ios/App/build/Build/Products/Debug-iphonesimulator" -name "*.app" -type d | head -1)
+          APP_PATH=$(find "$GITHUB_WORKSPACE/ios/App/build/Build/Products/Release-iphonesimulator" -name "*.app" -type d | head -1)
           echo "App: $APP_PATH"
           BINARY="$APP_PATH/App"
           echo "Binary: $BINARY"
@@ -58,7 +58,7 @@ jobs:
 
       - name: Zip .app for Appetize.io
         run: |
-          APP_PATH=$(find ios/App/build/Build/Products/Debug-iphonesimulator -name "*.app" -type d | head -1)
+          APP_PATH=$(find ios/App/build/Build/Products/Release-iphonesimulator -name "*.app" -type d | head -1)
           if [ -z "$APP_PATH" ]; then
             echo "Error: .app not found!"
             exit 1
