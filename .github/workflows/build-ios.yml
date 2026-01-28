@@ -43,28 +43,33 @@ jobs:
 
       - name: Find and zip .app for Appetize.io
         run: |
+          # 1. 빌드된 .app 경로 찾기
           APP_PATH=$(find ios/App/build -maxdepth 6 -name "*.app" -type d | head -1)
 
           if [ -z "$APP_PATH" ]; then
-            echo "Error: .app not found!"
+            echo "Error: .app folder not found!"
             find ios/App/build -type d -maxdepth 6
             exit 1
           fi
 
           echo "Found .app at: $APP_PATH"
-          ls -la "$APP_PATH"
 
-          # 실행 권한 보장 (Appetize "Unexpected error" 방지)
+          # 2. 실행 권한 부여 (Appetize "Unexpected error" 방지)
+          # .app 폴더 내부의 실행 파일(App)에 실행 권한(+x)을 명시적으로 부여합니다.
           chmod +x "$APP_PATH/App"
-          echo "App binary permissions:"
-          ls -la "$APP_PATH/App"
+          echo "Updated execution permissions for $APP_PATH/App"
 
-          # ditto: Apple 공식 도구, --keepParent가 .app 폴더를 루트로 유지
-          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$GITHUB_WORKSPACE/NarrativeAI.zip"
+          # 3. 압축 구조 최적화 (핵심: .app 폴더의 상위 디렉토리로 이동 후 압축)
+          # zip 파일 안에 .app 폴더가 통째로 들어가도록 구성합니다.
+          PARENT_DIR=$(dirname "$APP_PATH")
+          APP_NAME=$(basename "$APP_PATH")
+          
+          cd "$PARENT_DIR"
+          zip -r "$GITHUB_WORKSPACE/NarrativeAI.zip" "$APP_NAME"
 
-          # 검증
-          echo "=== Zip 내부 구조 ==="
-          zipinfo "$GITHUB_WORKSPACE/NarrativeAI.zip" | head -15
+          # 4. 구조 검증
+          echo "=== Zip 구조 확인 (최상위에 $APP_NAME 이 보여야 함) ==="
+          unzip -l "$GITHUB_WORKSPACE/NarrativeAI.zip" | head -15
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
