@@ -54,6 +54,11 @@ jobs:
           echo "Found .app at: $APP_PATH"
           ls -la "$APP_PATH"
 
+          # 실행 권한 보장 (Appetize "Unexpected error" 방지)
+          chmod +x "$APP_PATH/App"
+          echo "App binary permissions:"
+          ls -la "$APP_PATH/App"
+
           # ditto: Apple 공식 도구, --keepParent가 .app 폴더를 루트로 유지
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$GITHUB_WORKSPACE/NarrativeAI.zip"
 
