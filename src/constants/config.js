@@ -13,11 +13,9 @@ export const API_CONFIG = {
     // 3. localhost면 로컬 백엔드 포트(8000) 사용
     // 4. 그 외(배포 환경)는 상대 경로('') 사용
     BASE_URL: import.meta.env.VITE_API_BASE_URL || (
-        isCapacitor
-            ? 'https://narrative-ai-backend.onrender.com'
-            : window.location.hostname === 'localhost'
-                ? 'http://localhost:8000'
-                : ''
+        (window.location.hostname === 'localhost' && !isCapacitor)
+            ? 'http://localhost:8000'
+            : 'https://narrative-ai-backend.onrender.com'
     )
 };
 
