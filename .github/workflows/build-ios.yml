@@ -47,18 +47,17 @@ jobs:
 
           if [ -z "$APP_PATH" ]; then
             echo "Error: App.app not found!"
+            find ios/App/build -type d -maxdepth 5
             exit 1
           fi
 
-          PARENT_DIR=$(dirname "$APP_PATH")
-          APP_NAME=$(basename "$APP_PATH")
+          echo "Found App.app at: $APP_PATH"
 
-          echo "Moving to $PARENT_DIR and zipping $APP_NAME"
-          cd "$PARENT_DIR"
+          # 핵심: .app 폴더의 상위로 이동 후, App.app 폴더째 압축
+          cd "$(dirname "$APP_PATH")"
+          zip -r "$GITHUB_WORKSPACE/NarrativeAI.zip" App.app
 
-          zip -r "$GITHUB_WORKSPACE/NarrativeAI.zip" "$APP_NAME"
-
-          echo "Final Zip structure check:"
+          echo "Zip structure check (App.app이 루트에 있어야 함):"
           zipinfo "$GITHUB_WORKSPACE/NarrativeAI.zip" | head -10
 
       - name: Upload artifact
