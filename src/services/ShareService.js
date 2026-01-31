@@ -39,14 +39,15 @@ async function saveImageToTemp(base64Data) {
  */
 export async function shareWithImage({ imageBase64, caption }) {
     if (isNative()) {
-        // 캡션을 클립보드에 복사
+        // 캡션을 클립보드에 복사 (인스타그램 등 텍스트 자동 입력이 안 되는 앱을 위함)
         await Clipboard.write({ string: caption });
 
-        // 이미지를 임시 파일로 저장
+        // 이미지는 임시 파일로 저장하여 전달
         const fileUri = await saveImageToTemp(imageBase64);
 
-        // Share Sheet 호출
         await Share.share({
+            title: 'RECOCO Narrative',
+            text: caption, // 이미지와 텍스트 함께 전달 시도
             files: [fileUri],
             dialogTitle: '공유하기',
         });
@@ -58,7 +59,6 @@ export async function shareWithImage({ imageBase64, caption }) {
 
 /**
  * 캡션만 공유 (이미지 없이)
- * @param {string} caption
  */
 export async function shareCaption(caption) {
     if (isNative()) {
@@ -76,30 +76,49 @@ export async function shareCaption(caption) {
 }
 
 /**
- * 웹 환경 폴백: navigator.share 또는 다운로드
+ * 웹 환경 폴백: 캡션 공유 최우선 전략
+ * 인스타그램 등에서 이미지+텍스트 동시 공유가 안 될 경우 캡션을 우선함
  */
 async function shareWeb({ imageBase64, caption }) {
-    // navigator.share + file 지원 여부 확인
-    if (navigator.share && navigator.canShare) {
-        try {
-            const blob = await (await fetch(imageBase64)).blob();
-            const file = new File([blob], 'narrative.jpg', { type: 'image/jpeg' });
-
-            if (navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    text: caption,
-                    files: [file],
-                });
-                return;
-            }
-        } catch {
-            // canShare 실패 시 다운로드로 폴백
-        }
+    // 1. 기본적으로 클립보드에 복사 (백업)
+    try {
+        await navigator.clipboard.writeText(caption);
+    } catch (err) {
+        console.warn('Clipboard write failed:', err);
     }
 
-    // 최종 폴백: 이미지 다운로드 + 클립보드 복사
-    downloadImage(imageBase64);
-    await navigator.clipboard.writeText(caption);
+    if (!navigator.share) return;
+
+    try {
+        // 2. 이미지 + 텍스트 동시 공유 시도
+        const blob = await (await fetch(imageBase64)).blob();
+        const file = new File([blob], 'narrative.jpg', { type: 'image/jpeg' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                title: 'RECOCO Narrative',
+                text: caption,
+                files: [file],
+            });
+        } else {
+            // 3. 동시 공유 미지원 시 텍스트만 공유 (캡션 우선)
+            await navigator.share({
+                title: 'RECOCO Narrative',
+                text: caption,
+            });
+        }
+    } catch (err) {
+        // 사용자가 취소했거나 에러 발생 시 텍스트만이라도 다시 시도
+        console.log('Dual share failed, attempting text-only share:', err);
+        try {
+            await navigator.share({
+                title: 'RECOCO Narrative',
+                text: caption,
+            });
+        } catch (finalErr) {
+            console.error('Final share attempt failed:', finalErr);
+        }
+    }
 }
 
 /**

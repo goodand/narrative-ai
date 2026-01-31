@@ -1,6 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700;900&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #B2A5CF;
-  --font-sans: 'Noto Sans KR', sans-serif;
+  --color-primary: #B2A5CF;
+  --color-dark-bg: #121212;
+  --color-field-bg: #1E1E1E;
+  --color-muted-lavender: #A199B4;
+  --font-display: 'Plus Jakarta Sans', 'Noto Sans KR', sans-serif;
+}
+
+
+body {
+    font-family: 'Plus Jakarta Sans', 'Noto Sans KR', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 100dvh;
+    background-color: #121212;
+    color: white;
+}
+
+.ios-tab-bar {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Loader */
+.loader {
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top: 3px solid #B2A5CF;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Keyword Highlight - Dark Mode Adapted */
+.keyword-highlight {
+    background-color: #B2A5CF;
+    color: #121212;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-weight: 700;
+    transition: all 0.2s;
+    display: inline-block;
+    margin: 2px 0;
+}
+
+.keyword-highlight:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 12px rgba(178, 165, 207, 0.6);
+}
+
+/* SNS Item Active State (for JS toggling) */
+.sns-item.active {
+    background-color: #B2A5CF !important;
+    color: white !important;
+}
+
+/* Temp Button Active State */
+.active-temp {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Modal Backdrop */
+#suggestion-modal,
+#settings-modal,
+#edit-confirm-modal {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
 }

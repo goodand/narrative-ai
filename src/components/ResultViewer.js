@@ -249,7 +249,7 @@ export class ResultViewer {
 
         const originalText = this.copyBtn.innerText;
         this.copyBtn.innerText = '복사 완료!';
-        this.copyBtn.classList.add('bg-[#B2A5CF]', 'text-white');
+        this.copyBtn.classList.add('bg-primary', 'text-white');
 
         setTimeout(() => {
             this.copyBtn.innerText = originalText;

@@ -64,27 +64,27 @@ const dropZone = new DropZone({
     }
 });
 
-// 2. SNS Platform Selection
-const snsGroup = new SelectionGroup({
-    container: '.sns-grid',
-    itemSelector: '.sns-item',
-    activeClass: 'active',
-    onChange: (value) => {
-        store.setPreference('sns', value);
-    }
-});
+    // 2. SNS Platform Selection
+    const snsGroup = new SelectionGroup({
+        container: '.sns-grid',
+        itemSelector: '.sns-item',
+        activeClass: 'bg-primary text-white rounded-xl text-xs font-semibold sns-item active', // Updated activeClass
+        inactiveClass: 'bg-field-bg text-muted-lavender rounded-xl text-xs font-semibold sns-item', // Updated inactiveClass
+        onChange: (value) => {
+            store.setPreference('sns', value);
+        }
+    });
 
-// 3. Emotion Temperature Toggle
-const tempGroup = new SelectionGroup({
-    container: '#temp-toggle-group',
-    itemSelector: 'button',
-    activeClass: 'bg-white shadow-sm',
-    inactiveClass: 'hover:bg-white/50',
-    onChange: (value) => {
-        store.setPreference('temp', value);
-    }
-});
-
+    // 3. Emotion Temperature Toggle
+    const tempGroup = new SelectionGroup({
+        container: '#temp-toggle-group',
+        itemSelector: 'button',
+        activeClass: 'bg-white/10 shadow-sm', // Updated activeClass
+        inactiveClass: 'hover:bg-white/5', // Updated inactiveClass
+        onChange: (value) => {
+            store.setPreference('temp', value);
+        }
+    });
 // 4. Result Viewer
 const resultViewer = new ResultViewer({
     resultArea: 'result-area',
