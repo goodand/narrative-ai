@@ -74,44 +74,58 @@ export class ResultViewer {
      * @param {Object} data - Caption data with keywords
      */
     renderCaption(data) {
+        console.log('ResultViewer: Starting renderCaption with data:', data);
+        if (!data || !data.original_caption) {
+            console.error('ResultViewer: Invalid caption data provided');
+            return;
+        }
+
         this._currentData = data;
         let text = data.original_caption;
 
-        if (data.keywords && data.keywords.length > 0) {
-            // Sort keywords by length (longest first) to avoid partial matches
-            const sortedKeywords = [...data.keywords].sort(
-                (a, b) => b.word.length - a.word.length
-            );
+        try {
+            if (data.keywords && Array.isArray(data.keywords) && data.keywords.length > 0) {
+                // word 속성이 있는 유효한 데이터만 필터링
+                const validKeywords = data.keywords.filter(item => item && typeof item.word === 'string');
+                
+                if (validKeywords.length > 0) {
+                    const sortedKeywords = [...validKeywords].sort(
+                        (a, b) => (b.word?.length || 0) - (a.word?.length || 0)
+                    );
 
-            // Build a single regex to match all keywords at once
-            // This prevents HTML tags from being corrupted by subsequent replaces
-            const pattern = sortedKeywords
-                .map(item => {
-                    const escaped = item.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    return `(${escaped})`;
-                })
-                .join('|');
+                    const pattern = sortedKeywords
+                        .map(item => {
+                            const escaped = item.word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                            return `(${escaped})`;
+                        })
+                        .filter(p => p !== '()')
+                        .join('|');
 
-            const regex = new RegExp(pattern, 'gi');
-
-            text = text.replace(regex, (match) => {
-                // Find the original item to maintain correct data-word mapping
-                // case-insensitive matching for the word itself
-                const item = data.keywords.find(k => k.word.toLowerCase() === match.toLowerCase()) || { word: match };
-                return `<span class="keyword-highlight" data-word="${item.word}">${match}</span>`;
-            });
+                    if (pattern) {
+                        const regex = new RegExp(pattern, 'gi');
+                        text = text.replace(regex, (match) => {
+                            const item = validKeywords.find(k => k.word.toLowerCase() === match.toLowerCase()) || { word: match };
+                            return `<span class="keyword-highlight" data-word="${item.word}">${match}</span>`;
+                        });
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('ResultViewer: Keyword highlighting failed:', err);
+            // 하이라이팅 실패 시 원본 텍스트만 표시하여 중단 방지
+            text = data.original_caption;
         }
 
         if (this.interactiveCaption) {
-            this.interactiveCaption.innerHTML = `"${text}"`;
+            this.interactiveCaption.innerHTML = `"${text.replace(/\n/g, '<br>')}"`;
         }
 
         if (this.editCaption) {
             this.editCaption.value = data.original_caption;
         }
 
-        // Bind keyword click events
         this._bindKeywordEvents();
+        console.log('ResultViewer: renderCaption completed');
     }
 
     /**

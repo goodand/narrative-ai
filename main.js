@@ -87,7 +87,7 @@ const dropZone = new DropZone({
     });
 // 4. Result Viewer
 const resultViewer = new ResultViewer({
-    resultArea: 'result-area',
+    resultArea: 'result-view',
     interactiveCaption: 'caption-interactive',
     editCaption: 'caption-edit',
     editBtn: 'edit-btn',
@@ -187,6 +187,10 @@ els.genBtn.onclick = async () => {
 
     setLoading(true);
 
+    // [수정] 데이터 생성이 시작되자마자 UI 전환 준비
+    const inputView = document.getElementById('input-view');
+    const headerTitle = document.getElementById('header-title');
+    
     // Build context from UI selections
     const context = {
         sns: store.getPreference('sns') || snsGroup.getValue() || 'Instagram',
@@ -204,18 +208,9 @@ els.genBtn.onclick = async () => {
     try {
         // Generate story
         const storyResult = await geminiService.generateStory(imageData, context);
-
-        // [추가] 키워드 검증 로직: 추출된 키워드가 본문에 실제로 존재하는지 확인
-        const missingKeywords = storyResult.keywords.filter(
-            kw => !storyResult.original_caption.includes(kw)
-        );
-
-        if (missingKeywords.length > 0) {
-            console.error('키워드 불일치 발견:', missingKeywords);
-            showError(`AI가 본문에 없는 키워드를 추출했습니다: ${missingKeywords.join(', ')}`);
-            // 기능을 중단하지 않고 계속 진행하려면 아래 return을 주석 처리할 수 있습니다.
-            // return; 
-        }
+        
+        // 데이터 수신 성공 로그
+        console.log('Main: Story received, now fetching synonyms');
 
         // Update button text for synonym generation
         els.btnText.innerText = UI_MESSAGES.FINDING_SYNONYMS;
@@ -233,9 +228,15 @@ els.genBtn.onclick = async () => {
         };
         store.setResult(result);
 
-        // Render result
-        resultViewer.renderCaption(result);
+        console.log('Main: All data ready, transitioning UI');
+        
+        // UI 전환: 입력창 숨기고 결과창 보이기
+        if (inputView) inputView.classList.add('hidden');
+        if (headerTitle) headerTitle.innerText = '리코코 기록 결과';
         resultViewer.show();
+
+        // 렌더링 시도
+        resultViewer.renderCaption(result);
         resultViewer.scrollIntoView();
 
     } catch (error) {
