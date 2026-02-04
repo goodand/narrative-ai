@@ -69,7 +69,10 @@ const dropZone = new DropZone({
         gps: 'meta-gps'
     },
     onFileLoaded: (data) => {
-        store.setImageData(data.base64, data.metadata);
+        // base64는 백엔드 전송용, dataUrl은 브라우저 표시용
+        store.setState('base64', data.base64);
+        store.setState('dataUrl', data.dataUrl);
+        store.setState('metadata', data.metadata);
     },
     onError: (error) => {
         showError(UI_MESSAGES.ERROR_IMAGE_PROCESS);
@@ -299,10 +302,12 @@ els.genBtn.onclick = async () => {
         );
 
         const metadata = store.getState('metadata');
+        const displayImage = store.getState('dataUrl'); // UI 표시용
+        
         const result = {
             original_caption: storyResult.original_caption,
             keywords: keywordsWithSuggestions,
-            image: imageData,
+            image: displayImage,
             metadata: metadata
         };
         store.setResult(result);

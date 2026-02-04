@@ -92,20 +92,24 @@ export class ResultViewer {
         // Update image if provided
         if (data.image && this.resultImage) {
             const img = this.resultImage;
+            let imageSrc = data.image;
+
+            // 접두사가 없는 순수 base64인 경우 처리 (안전장치)
+            if (typeof imageSrc === 'string' && !imageSrc.startsWith('data:')) {
+                console.log('ResultViewer: Prepending data URL prefix to raw base64');
+                imageSrc = `data:image/jpeg;base64,${imageSrc}`;
+            }
             
-            // 이미지 로딩 완료 후 처리 (안전장치)
             img.onload = () => {
-                console.log('ResultViewer: Image successfully loaded in UI');
+                console.log('ResultViewer: Image successfully loaded');
                 img.classList.remove('opacity-0');
-                img.parentElement.classList.remove('bg-dark-bg');
             };
             
-            img.onerror = () => {
-                console.error('ResultViewer: Failed to load image source');
+            img.onerror = (e) => {
+                console.error('ResultViewer: Failed to load image. Src length:', imageSrc.length);
             };
 
-            img.src = data.image;
-            console.log('ResultViewer: Image src assigned');
+            img.src = imageSrc;
         }
 
         try {
