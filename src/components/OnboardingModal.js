@@ -81,26 +81,28 @@ export class OnboardingModal extends Modal {
 
     _getStep1HTML() {
         return `
-            <div class="flex flex-col h-full justify-between py-8 px-8 text-center">
-                <header class="flex justify-end h-8">
+            <div class="flex flex-col justify-between py-10 px-8 text-center">
+                <header class="flex justify-end h-6 mb-2">
                     <button id="onboarding-skip" class="text-white/40 text-sm font-medium">Skip</button>
                 </header>
-                <main class="flex-1 flex flex-col items-center justify-center">
-                    <div class="relative w-full max-w-[240px] aspect-square flex flex-col items-center justify-center mb-8">
-                        <div class="relative z-10 mb-[-20px]">
-                            <span class="material-symbols-outlined text-[100px] text-primary leading-none" style="font-variation-settings: 'FILL' 1">
+                <main class="flex flex-col items-center justify-center mb-8">
+                    <div class="relative w-full max-w-[180px] aspect-square flex flex-col items-center justify-center mb-8">
+                        <div class="relative z-10 mb-[-15px]">
+                            <span class="material-symbols-outlined text-[80px] text-primary leading-none" style="font-variation-settings: 'FILL' 1">
                                 water_lux
                             </span>
                         </div>
-                        <div class="wave-container">
+                        <div class="wave-container" style="height: 60px;">
                             <div class="wave"></div>
                         </div>
                     </div>
                     <h1 class="text-2xl font-bold leading-tight mb-4 whitespace-pre-line">
-                        비움으로 선명해지는\n당신의 기록
+                        비움으로 선명해지는
+당신의 기록
                     </h1>
                     <p class="text-muted-lavender text-sm leading-relaxed whitespace-pre-line">
-                        매일 아침 도착하는 사진 한 장으로\n디지털 다이어트를 시작해보세요.
+                        매일 아침 도착하는 사진 한 장으로
+디지털 다이어트를 시작해보세요.
                     </p>
                 </main>
                 <footer class="flex flex-col items-center gap-6">
@@ -120,24 +122,24 @@ export class OnboardingModal extends Modal {
 
     _getStep2HTML() {
         return `
-            <div class="flex flex-col h-full justify-between py-8 px-8 text-center">
-                <header class="flex justify-end h-8">
+            <div class="flex flex-col justify-between py-10 px-8 text-center">
+                <header class="flex justify-end h-6 mb-2">
                     <button id="onboarding-skip" class="text-white/40 text-sm font-medium">Skip</button>
                 </header>
-                <main class="flex-1 flex flex-col items-center justify-center">
-                    <div class="relative w-full max-w-[240px] aspect-square flex items-center justify-center mb-8">
-                        <div class="photo-stack">
-                            <div class="photo-card"></div>
-                            <div class="photo-card"></div>
-                            <div class="photo-card flex flex-col gap-2 p-4">
-                                <div class="w-16 h-1.5 bg-primary/20 rounded-full"></div>
-                                <div class="w-12 h-1.5 bg-primary/20 rounded-full"></div>
+                <main class="flex flex-col items-center justify-center mb-8">
+                    <div class="relative w-full max-w-[180px] aspect-square flex items-center justify-center mb-8">
+                        <div class="photo-stack" style="width: 140px; height: 170px;">
+                            <div class="photo-card" style="width: 110px; height: 140px;"></div>
+                            <div class="photo-card" style="width: 110px; height: 140px;"></div>
+                            <div class="photo-card flex flex-col gap-2 p-4" style="width: 110px; height: 140px;">
+                                <div class="w-12 h-1 bg-primary/20 rounded-full"></div>
+                                <div class="w-8 h-1 bg-primary/20 rounded-full"></div>
                             </div>
-                            <div class="floating-icon top-0 -right-2 text-primary">
-                                <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1">favorite</span>
+                            <div class="floating-icon top-0 -right-2 text-primary" style="width: 32px; height: 32px;">
+                                <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">favorite</span>
                             </div>
-                            <div class="floating-icon bottom-8 -left-4 text-white/40">
-                                <span class="material-symbols-outlined text-xl">delete</span>
+                            <div class="floating-icon bottom-6 -left-4 text-white/40" style="width: 32px; height: 32px;">
+                                <span class="material-symbols-outlined text-lg">delete</span>
                             </div>
                         </div>
                     </div>
@@ -167,25 +169,25 @@ export class OnboardingModal extends Modal {
 
     _getStep3HTML() {
         return `
-            <div class="flex flex-col h-full justify-between py-8 px-8 text-center">
-                <header class="flex justify-end h-8">
+            <div class="flex flex-col justify-between py-10 px-8 text-center">
+                <header class="flex justify-end h-6 mb-2">
                     <button id="onboarding-skip" class="opacity-0 pointer-events-none text-white/40 text-sm font-medium">Skip</button>
                 </header>
-                <main class="flex-1 flex flex-col items-center justify-center">
-                    <div class="relative w-full max-w-[240px] aspect-square flex flex-col items-center justify-center mb-8">
-                        <div class="photo-frame">
+                <main class="flex flex-col items-center justify-center mb-8">
+                    <div class="relative w-full max-w-[180px] aspect-square flex flex-col items-center justify-center mb-8">
+                        <div class="photo-frame" style="width: 140px; height: 180px;">
                             <div class="photo-content">
-                                <span class="material-symbols-outlined text-white/10 text-4xl">image</span>
+                                <span class="material-symbols-outlined text-white/10 text-3xl">image</span>
                             </div>
                             <div class="mt-3 flex justify-between items-center px-1">
-                                <div class="w-16 h-1.5 bg-white/10 rounded-full"></div>
-                                <div class="w-6 h-1.5 bg-white/10 rounded-full"></div>
+                                <div class="w-12 h-1 bg-white/10 rounded-full"></div>
+                                <div class="w-4 h-1 bg-white/10 rounded-full"></div>
                             </div>
-                            <div class="icon-badge -left-3 top-1/2 -translate-y-1/2">
-                                <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">edit_note</span>
+                            <div class="icon-badge -left-3 top-1/2 -translate-y-1/2" style="width: 32px; height: 32px;">
+                                <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">edit_note</span>
                             </div>
-                            <div class="icon-badge -right-3 top-1/4">
-                                <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1">share</span>
+                            <div class="icon-badge -right-3 top-1/4" style="width: 32px; height: 32px;">
+                                <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1">share</span>
                             </div>
                         </div>
                     </div>
@@ -215,29 +217,27 @@ export class OnboardingModal extends Modal {
 
     _getStep4HTML() {
         return `
-            <div class="flex flex-col h-full justify-between py-8 px-8 text-center">
-                <header class="h-8"></header>
-                <main class="flex-1 flex flex-col items-center justify-center">
-                    <div class="relative w-full max-w-[200px] aspect-square flex items-center justify-center mb-8">
+            <div class="flex flex-col justify-between py-10 px-8 text-center">
+                <header class="h-6 mb-2"></header>
+                <main class="flex flex-col items-center justify-center mb-8">
+                    <div class="relative w-full max-w-[160px] aspect-square flex items-center justify-center mb-8">
                         <div class="absolute inset-0 bg-primary/5 rounded-[2.5rem] glow-effect"></div>
-                        <div class="relative w-32 h-32 border-4 border-white/10 rounded-3xl overflow-hidden flex items-center justify-center bg-field-bg">
-                            <span class="material-symbols-outlined text-primary text-5xl" style="font-variation-settings: 'FILL' 1">
+                        <div class="relative w-24 h-28 border-4 border-white/10 rounded-3xl overflow-hidden flex items-center justify-center bg-field-bg">
+                            <span class="material-symbols-outlined text-primary text-4xl" style="font-variation-settings: 'FILL' 1">
                                 water_lux
                             </span>
                         </div>
                     </div>
-                    <h1 class="text-2xl font-bold leading-tight mb-4 whitespace-pre-line">
+                    <h1 class="text-xl font-bold leading-tight mb-3 whitespace-pre-line">
                         당신의 소중한 순간들을
 마주할 수 있게 해주세요
                     </h1>
-                    <p class="text-muted-lavender text-xs leading-relaxed mb-6">
+                    <p class="text-muted-lavender text-[13px] leading-relaxed mb-6">
                         AI가 사진을 분석하여 매일 아침
 최적의 기록 한 장을 골라드릴게요.
-                        <span class="text-white/30 block mt-1">(권한은 언제든지 설정에서 변경 가능해요)</span>
                     </p>
                     <div class="w-full bg-field-bg/50 rounded-2xl p-4 text-left border border-white/5">
-                        <h2 class="text-white/60 text-[10px] font-bold mb-3 tracking-wider uppercase">왜 접근 권한이 필요한가요?</h2>
-                        <ul class="space-y-2">
+                        <ul class="space-y-3">
                             <li class="flex items-center gap-2">
                                 <span class="material-symbols-outlined text-primary text-sm">check_circle</span>
                                 <span class="text-white/50 text-xs font-medium">하루 한 장 최적의 큐레이션</span>
