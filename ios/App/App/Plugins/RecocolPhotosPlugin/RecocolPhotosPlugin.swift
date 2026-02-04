@@ -29,6 +29,7 @@ public class RecocolPhotosPlugin: CAPPlugin {
             for i in startIndex..<endIndex {
                 let asset = allPhotos.object(at: i)
                 
+                // Location 추출
                 var locationDict: [String: Double]? = nil
                 if let location = asset.location {
                     locationDict = [
@@ -38,6 +39,10 @@ public class RecocolPhotosPlugin: CAPPlugin {
                     ]
                 }
 
+                // [지시사항 반영] 파일 크기 추출 (비동기 리소스 접근 대신 동기적 정보 활용)
+                let resources = PHAssetResource.assetResources(for: asset)
+                let fileSize = resources.first?.value(forKey: "fileSize") as? Int64 ?? 0
+
                 let photoData: [String: Any] = [
                     "id": asset.localIdentifier,
                     "creationDate": asset.creationDate?.iso8601String ?? "",
@@ -45,6 +50,7 @@ public class RecocolPhotosPlugin: CAPPlugin {
                     "mediaType": "image",
                     "pixelWidth": asset.pixelWidth,
                     "pixelHeight": asset.pixelHeight,
+                    "fileSize": fileSize,
                     "isFavorite": asset.isFavorite,
                     "isScreenshot": asset.mediaSubtypes.contains(.photoScreenshot),
                     "location": locationDict as Any
