@@ -251,6 +251,9 @@ supabase.auth.onAuthStateChange((event, session) => {
  * App Initialization
  */
 async function initApp() {
+    // 17:00 데일리 리셋 체크
+    store.checkAndResetDaily();
+
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) console.error('Session error:', error.message);
 

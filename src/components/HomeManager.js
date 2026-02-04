@@ -1,12 +1,13 @@
 /**
  * HomeManager - Daily Curation Dashboard
- * 리코코 메인 데일리 큐레이션 화면 (필터 엔진 연동)
+ * 리코코 메인 데일리 큐레이션 화면 (필터 엔진 및 통계 연동)
  */
 
 import { supabase } from '../services/supabase.js';
 import RecocolPhotos from '../plugins/RecocolPhotos.ts';
 import { geocodingService } from '../services/GeocodingService.js';
 import { CurationEngine } from '../services/CurationEngine.js';
+import { StatsService } from '../services/StatsService.js';
 
 export class HomeManager {
     constructor(containerId, options = {}) {
@@ -14,6 +15,7 @@ export class HomeManager {
         this.onPreciousClick = options.onPreciousClick || null;
         this.onThanksClick = options.onThanksClick || null;
         this.user = null;
+        this.geminiService = null; // 필요 시 생성
 
         this.curationPhotos = [];
         this.currentIndex = 0;
@@ -33,15 +35,12 @@ export class HomeManager {
 
         try {
             console.log('HomeManager: 사진 분석 및 큐레이션 시작...');
-            // 1. 분석을 위해 넉넉하게 30장을 가져옴
             const { photos } = await RecocolPhotos.fetchPhotos({ limit: 30, offset: 0 });
             
             if (photos && photos.length > 0) {
-                // 2. CurationEngine을 통한 점수 산정 및 정렬
                 const rankedAssets = CurationEngine.rankAssets(photos);
-                const targetAssets = rankedAssets.slice(0, 10); // 상위 10개만 큐레이션
+                const targetAssets = rankedAssets.slice(0, 10);
 
-                // 3. 선정된 사진들의 데이터 로드
                 this.curationPhotos = await Promise.all(targetAssets.map(async (asset) => {
                     const { base64 } = await RecocolPhotos.loadImageData({ 
                         assetId: asset.id, 
@@ -50,10 +49,15 @@ export class HomeManager {
                     
                     let locationLabel = '위치 정보 없음';
                     if (asset.location) {
-                        locationLabel = await geocodingService.getAddress(
-                            asset.location.latitude, 
-                            asset.location.longitude
-                        );
+                        try {
+                            locationLabel = await geocodingService.getAddress(
+                                asset.location.latitude, 
+                                asset.location.longitude
+                            );
+                        } catch (e) {
+                            console.warn('주소 변환 실패:', e);
+                            locationLabel = '위치 확인 불가';
+                        }
                     }
                     
                     return {
@@ -61,7 +65,6 @@ export class HomeManager {
                         imageUrl: `data:image/jpeg;base64,${base64}`,
                         date: asset.creationDate.split('T')[0],
                         location: locationLabel,
-                        // 필터 사유를 메시지에 녹여냄
                         contextMessage: asset.curationReasons.length > 0 
                             ? `${asset.curationReasons.join(', ')}이라 비워내기 좋아요.`
                             : '오늘의 소중한 기록 한 장입니다.',
@@ -155,11 +158,19 @@ export class HomeManager {
         try {
             const { success } = await RecocolPhotos.deletePhoto({ assetId: current.id });
             if (success) {
+                // [통계 연동] Supabase에 비움 성과 기록
+                await StatsService.logDetox({
+                    fileSize: current.rawAsset.fileSize,
+                    reason: current.rawAsset.curationReasons?.join(', ') || '사용자 선택',
+                    photoDate: current.rawAsset.creationDate,
+                    location: current.location
+                });
+
                 this.curationPhotos.splice(this.currentIndex, 1);
                 if (this.currentIndex >= this.curationPhotos.length) {
                     this.currentIndex = Math.max(0, this.curationPhotos.length - 1);
                 }
-                console.log('HomeManager: 사진 삭제 성공');
+                console.log('HomeManager: 사진 삭제 성공 및 통계 기록 완료');
                 this.render();
             }
         } catch (err) {
