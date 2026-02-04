@@ -247,15 +247,15 @@
         </div>
         
         <nav class="bg-dark-bg/90 ios-tab-bar border-t border-white/5 px-10 pb-8 pt-3 flex justify-between items-center max-w-md mx-auto">
-            <div class="flex flex-col items-center gap-1 opacity-40">
-                <span class="material-symbols-outlined text-[28px]">home</span>
+            <div id="nav-home" class="flex flex-col items-center gap-1 text-primary cursor-pointer">
+                <span class="material-symbols-outlined text-[28px] fill-[1]">home</span>
                 <span class="text-[10px] font-bold">홈</span>
             </div>
-            <div class="flex flex-col items-center gap-1 text-primary">
-                <span class="material-symbols-outlined text-[28px] fill-[1]">bar_chart</span>
+            <div id="nav-report" class="flex flex-col items-center gap-1 opacity-40 cursor-pointer">
+                <span class="material-symbols-outlined text-[28px]">bar_chart</span>
                 <span class="text-[10px] font-bold">리포트</span>
             </div>
-            <div class="flex flex-col items-center gap-1 opacity-40">
+            <div id="nav-mypage" class="flex flex-col items-center gap-1 opacity-40 cursor-pointer">
                 <span class="material-symbols-outlined text-[28px]">person</span>
                 <span class="text-[10px] font-bold">마이페이지</span>
             </div>
@@ -322,7 +322,7 @@
 
     <!-- Onboarding Modal -->
     <div id="onboarding-modal" class="fixed inset-0 z-[200] flex items-center justify-center hidden">
-        <div class="bg-dark-bg w-full h-full max-w-md mx-auto overflow-hidden relative" id="onboarding-content">
+        <div class="bg-dark-bg w-full h-[100dvh] max-w-md mx-auto overflow-hidden relative" id="onboarding-content">
             <!-- Dynamic content will be injected here -->
         </div>
     </div>

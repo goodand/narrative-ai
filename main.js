@@ -13,6 +13,7 @@ import { StateManager } from './src/state/StateManager.js';
 
 // Services
 import { GeminiService } from './src/services/GeminiService.js';
+import { supabase } from './src/services/supabase.js';
 
 // Components
 import { DropZone } from './src/components/DropZone.js';
@@ -22,14 +23,14 @@ import { SuggestionModal, SettingsModal, ConfirmModal } from './src/components/M
 import { OnboardingModal } from './src/components/OnboardingModal.js';
 import { AuthModal } from './src/components/AuthModal.js';
 import { PermissionModal } from './src/components/PermissionModal.js';
+import { MyPageManager } from './src/components/MyPageManager.js';
 
 // Initialize Core Services
 const store = new StateManager();
-const geminiService = new GeminiService();  // API Key는 백엔드에서 관리
+const geminiService = new GeminiService();
 
 // Log initialization status
 console.log('RECOCO - Vite project loaded successfully');
-console.log('Backend Proxy Mode: API calls routed through /api');
 
 // DOM Elements for UI controls
 const els = {
@@ -42,10 +43,19 @@ const els = {
     tagsInput: document.getElementById('tags-input'),
     activity: document.getElementById('activity-select'),
     bodyState: document.getElementById('body-state-select'),
-    relationship: document.getElementById('relationship-select')
+    relationship: document.getElementById('relationship-select'),
+    // Navigation
+    navHome: document.getElementById('nav-home'),
+    navReport: document.getElementById('nav-report'),
+    navMypage: document.getElementById('nav-mypage'),
+    mainContent: document.querySelector('main'),
+    inputView: document.getElementById('input-view'),
+    resultView: document.getElementById('result-view'),
+    header: document.querySelector('header'),
+    bottomBar: document.getElementById('bottom-action-bar')
 };
 
-// Initialize Components
+// --- Component Initializations ---
 
 // 1. Drop Zone for image upload
 const dropZone = new DropZone({
@@ -67,27 +77,28 @@ const dropZone = new DropZone({
     }
 });
 
-    // 2. SNS Platform Selection
-    const snsGroup = new SelectionGroup({
-        container: '.sns-grid',
-        itemSelector: '.sns-item',
-        activeClass: 'bg-primary text-white rounded-xl text-xs font-semibold sns-item active', // Updated activeClass
-        inactiveClass: 'bg-field-bg text-muted-lavender rounded-xl text-xs font-semibold sns-item', // Updated inactiveClass
-        onChange: (value) => {
-            store.setPreference('sns', value);
-        }
-    });
+// 2. SNS Platform Selection
+const snsGroup = new SelectionGroup({
+    container: '.sns-grid',
+    itemSelector: '.sns-item',
+    activeClass: 'bg-primary text-white rounded-xl text-xs font-semibold sns-item active',
+    inactiveClass: 'bg-field-bg text-muted-lavender rounded-xl text-xs font-semibold sns-item',
+    onChange: (value) => {
+        store.setPreference('sns', value);
+    }
+});
 
-    // 3. Emotion Temperature Toggle
-    const tempGroup = new SelectionGroup({
-        container: '#temp-toggle-group',
-        itemSelector: 'button',
-        activeClass: 'bg-white/10 shadow-sm', // Updated activeClass
-        inactiveClass: 'hover:bg-white/5', // Updated inactiveClass
-        onChange: (value) => {
-            store.setPreference('temp', value);
-        }
-    });
+// 3. Emotion Temperature Toggle
+const tempGroup = new SelectionGroup({
+    container: '#temp-toggle-group',
+    itemSelector: 'button',
+    activeClass: 'bg-white/10 shadow-sm',
+    inactiveClass: 'hover:bg-white/5',
+    onChange: (value) => {
+        store.setPreference('temp', value);
+    }
+});
+
 // 4. Result Viewer
 const resultViewer = new ResultViewer({
     resultArea: 'result-view',
@@ -141,52 +152,100 @@ editConfirmModal.setup({
 // 5-1. App Flow Initializations (Onboarding -> Auth -> Permission)
 
 const permissionModal = new PermissionModal('permission-modal');
-permissionModal.onComplete = () => {
-    console.log('App initialization flow complete');
-};
-
 const authModal = new AuthModal('auth-modal');
-authModal.onLoginSuccess = () => {
-    permissionModal.open();
-};
-
 const onboardingModal = new OnboardingModal('onboarding-modal', {
     onComplete: () => {
         authModal.open('signup');
     }
 });
 
-// Start the app flow
-onboardingModal.open();
+// 5-2. My Page Manager
+const mypageContainer = document.createElement('div');
+mypageContainer.id = 'mypage-view';
+mypageContainer.className = 'hidden min-h-screen bg-dark-bg';
+document.body.appendChild(mypageContainer);
 
-// 6. Settings Modal Opener
-const openSettingsBtn = document.getElementById('open-settings');
-if (openSettingsBtn) {
-    openSettingsBtn.onclick = () => settingsModal.open();
+const mypageManager = new MyPageManager('mypage-view', {
+    onLogout: () => {
+        // UI 리셋 후 온보딩 표시
+        window.location.reload();
+    }
+});
+
+// --- View Navigation Logic ---
+
+function showView(viewName) {
+    // Hide all views first
+    els.inputView.classList.add('hidden');
+    els.resultView.classList.add('hidden');
+    mypageContainer.classList.add('hidden');
+    
+    // Hide/Show common elements
+    els.header.classList.toggle('hidden', viewName === 'mypage');
+    els.bottomBar.classList.toggle('hidden', viewName === 'mypage');
+
+    // Update Nav UI
+    els.navHome.classList.toggle('text-primary', viewName === 'home');
+    els.navHome.classList.toggle('opacity-40', viewName !== 'home');
+    els.navMypage.classList.toggle('text-primary', viewName === 'mypage');
+    els.navMypage.classList.toggle('opacity-40', viewName !== 'mypage');
+
+    if (viewName === 'home') {
+        els.inputView.classList.remove('hidden');
+        els.header.querySelector('h2').innerText = '리코코 상세 기록 설정';
+    } else if (viewName === 'mypage') {
+        mypageContainer.classList.remove('hidden');
+        mypageManager.render();
+    }
 }
 
-// 7. Edit Button Handler
-const editBtn = document.getElementById('edit-btn');
-if (editBtn) {
-    editBtn.onclick = () => editConfirmModal.open();
+// Bind Navigation Events
+els.navHome.onclick = () => showView('home');
+els.navMypage.onclick = () => showView('mypage');
+window.addEventListener('nav-change', (e) => showView(e.detail));
+
+/**
+ * Handle Auth State Changes
+ */
+supabase.auth.onAuthStateChange((event, session) => {
+    console.log('Auth State Changed:', event, session?.user?.email);
+
+    if (event === 'SIGNED_IN') {
+        authModal.close();
+        onboardingModal.element.classList.add('hidden');
+        // 세션 정보 확인 후 신규 가입자 여부 판단 (임시로 항상 권한 모달 표시)
+        if (event === 'SIGNED_IN') {
+            permissionModal.open();
+        }
+    } else if (event === 'SIGNED_OUT') {
+        onboardingModal.open();
+    }
+});
+
+/**
+ * App Initialization
+ */
+async function initApp() {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+        onboardingModal.open();
+    } else {
+        console.log('Active session found:', session.user.email);
+        showView('home');
+    }
 }
 
-// 8. Save Button Handler
-const saveBtn = document.getElementById('save-btn');
-if (saveBtn) {
-    saveBtn.onclick = () => resultViewer.exitEditMode();
-}
+// --- Event Handlers ---
 
 // Handle suggestion selection
 function handleSuggestionSelect(suggestion, originalWord) {
     const currentResult = store.getState('currentResult');
     if (!currentResult) return;
 
-    // Update caption with new word
     const newCaption = currentResult.original_caption.replace(originalWord, suggestion);
     currentResult.original_caption = newCaption;
 
-    // Update keyword reference
     const keyword = currentResult.keywords.find(k => k.word === originalWord);
     if (keyword) {
         keyword.word = suggestion;
@@ -198,11 +257,6 @@ function handleSuggestionSelect(suggestion, originalWord) {
 
 // Generate button handler
 els.genBtn.onclick = async () => {
-    if (!geminiService.isConfigured()) {
-        showError(UI_MESSAGES.ERROR_NO_API_KEY);
-        return;
-    }
-
     const imageData = store.getState('base64');
     if (!imageData) {
         showError(UI_MESSAGES.ERROR_NO_IMAGE);
@@ -211,11 +265,9 @@ els.genBtn.onclick = async () => {
 
     setLoading(true);
 
-    // [수정] 데이터 생성이 시작되자마자 UI 전환 준비
     const inputView = document.getElementById('input-view');
-    const headerTitle = document.getElementById('header-title');
+    const headerTitle = els.header.querySelector('h2');
     
-    // Build context from UI selections
     const context = {
         sns: store.getPreference('sns') || snsGroup.getValue() || 'Instagram',
         mood: els.style.value,
@@ -230,36 +282,23 @@ els.genBtn.onclick = async () => {
     };
 
     try {
-        // Generate story
         const storyResult = await geminiService.generateStory(imageData, context);
-        
-        // 데이터 수신 성공 로그
-        console.log('Main: Story received, now fetching synonyms');
-
-        // Update button text for synonym generation
         els.btnText.innerText = UI_MESSAGES.FINDING_SYNONYMS;
 
-        // Get synonyms for keywords
         const keywordsWithSuggestions = await geminiService.getSynonyms(
             storyResult.keywords,
             context.language
         );
 
-        // Store result
         const result = {
             original_caption: storyResult.original_caption,
             keywords: keywordsWithSuggestions
         };
         store.setResult(result);
 
-        console.log('Main: All data ready, transitioning UI');
-        
-        // UI 전환: 입력창 숨기고 결과창 보이기
         if (inputView) inputView.classList.add('hidden');
         if (headerTitle) headerTitle.innerText = '리코코 기록 결과';
         resultViewer.show();
-
-        // 렌더링 시도
         resultViewer.renderCaption(result);
         resultViewer.scrollIntoView();
 
@@ -285,3 +324,6 @@ function showError(message) {
     els.error.classList.remove('hidden');
     setTimeout(() => els.error.classList.add('hidden'), 5000);
 }
+
+// Start the app
+initApp();
