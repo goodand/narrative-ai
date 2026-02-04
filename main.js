@@ -9,7 +9,7 @@ import './style.css';
 import { UI_MESSAGES, DEFAULT_SYSTEM_PROMPT } from './src/constants/config.js';
 
 // State Management
-import { StateManager } from './src/state/StateManager.js';
+import { StateManager, store } from './src/state/StateManager.js';
 
 // Services
 import { GeminiService } from './src/services/GeminiService.js';
@@ -25,9 +25,9 @@ import { AuthModal } from './src/components/AuthModal.js';
 import { PermissionModal } from './src/components/PermissionModal.js';
 import { HomeManager } from './src/components/HomeManager.js';
 import { MyPageManager } from './src/components/MyPageManager.js';
+import { ReportManager } from './src/components/ReportManager.js';
 
 // Initialize Core Services
-const store = new StateManager();
 const geminiService = new GeminiService();
 
 // Log initialization status
@@ -51,6 +51,7 @@ const els = {
     navMypage: document.getElementById('nav-mypage'),
     // Views
     homeView: document.getElementById('home-view'),
+    reportView: document.getElementById('report-view'),
     inputView: document.getElementById('input-view'),
     resultView: document.getElementById('result-view'),
     header: document.querySelector('header'),
@@ -190,6 +191,8 @@ const homeManager = new HomeManager('home-view', {
     }
 });
 
+const reportManager = new ReportManager('report-view');
+
 const mypageContainer = document.createElement('div');
 mypageContainer.id = 'mypage-view';
 mypageContainer.className = 'hidden min-h-screen bg-dark-bg';
@@ -203,22 +206,30 @@ const mypageManager = new MyPageManager('mypage-view', {
 
 function showView(viewName) {
     els.homeView.classList.add('hidden');
+    els.reportView.classList.add('hidden');
     els.inputView.classList.add('hidden');
     els.resultView.classList.add('hidden');
     mypageContainer.classList.add('hidden');
     
-    els.header.classList.toggle('hidden', viewName === 'mypage' || viewName === 'home');
+    els.header.classList.toggle('hidden', viewName === 'mypage' || viewName === 'home' || viewName === 'report');
     els.bottomBar.classList.toggle('hidden', viewName === 'mypage');
 
     const isDashboard = viewName === 'home';
     els.navHome.classList.toggle('text-primary', isDashboard);
     els.navHome.classList.toggle('opacity-40', !isDashboard);
+    
+    els.navReport.classList.toggle('text-primary', viewName === 'report');
+    els.navReport.classList.toggle('opacity-40', viewName !== 'report');
+
     els.navMypage.classList.toggle('text-primary', viewName === 'mypage');
     els.navMypage.classList.toggle('opacity-40', viewName !== 'mypage');
 
     if (viewName === 'home') {
         els.homeView.classList.remove('hidden');
         homeManager.render();
+    } else if (viewName === 'report') {
+        els.reportView.classList.remove('hidden');
+        reportManager.render();
     } else if (viewName === 'input') {
         els.inputView.classList.remove('hidden');
         els.header.classList.remove('hidden');
@@ -229,7 +240,9 @@ function showView(viewName) {
     }
 }
 
+// Bind Navigation Events
 els.navHome.onclick = () => showView('home');
+els.navReport.onclick = () => showView('report');
 els.navMypage.onclick = () => showView('mypage');
 window.addEventListener('nav-change', (e) => showView(e.detail));
 
@@ -260,6 +273,7 @@ async function initApp() {
     if (!session) {
         onboardingModal.open();
     } else {
+        console.log('Active session found:', session.user.email);
         onboardingModal.element.classList.add('hidden');
         authModal.close();
         showView('home');
