@@ -26,6 +26,7 @@ export class ResultViewer {
         saveBtn,
         copyBtn,
         shareBtn,
+        resultImage,
         onKeywordClick = null,
         onSave = null,
         onShare = null
@@ -37,6 +38,7 @@ export class ResultViewer {
         this.saveBtn = this._getElement(saveBtn);
         this.copyBtn = this._getElement(copyBtn);
         this.shareBtn = this._getElement(shareBtn);
+        this.resultImage = this._getElement(resultImage);
 
         this.onKeywordClick = onKeywordClick;
         this.onSave = onSave;
@@ -71,7 +73,7 @@ export class ResultViewer {
 
     /**
      * Render caption with highlighted keywords
-     * @param {Object} data - Caption data with keywords
+     * @param {Object} data - Caption data with keywords and image
      */
     renderCaption(data) {
         console.log('ResultViewer: Starting renderCaption with data:', data);
@@ -82,6 +84,11 @@ export class ResultViewer {
 
         this._currentData = data;
         let text = data.original_caption;
+
+        // Update image if provided
+        if (data.image && this.resultImage) {
+            this.resultImage.src = data.image;
+        }
 
         try {
             if (data.keywords && Array.isArray(data.keywords) && data.keywords.length > 0) {

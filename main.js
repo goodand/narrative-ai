@@ -108,6 +108,7 @@ const resultViewer = new ResultViewer({
     saveBtn: 'save-btn',
     copyBtn: 'copy-btn',
     shareBtn: 'share-btn',
+    resultImage: 'result-image',
     onKeywordClick: (wordData) => {
         suggestionModal.renderSuggestions(wordData, handleSuggestionSelect);
     },
@@ -297,14 +298,24 @@ els.genBtn.onclick = async () => {
             context.language
         );
 
+        const metadata = store.getState('metadata');
         const result = {
             original_caption: storyResult.original_caption,
-            keywords: keywordsWithSuggestions
+            keywords: keywordsWithSuggestions,
+            image: imageData,
+            metadata: metadata
         };
         store.setResult(result);
 
         if (inputView) inputView.classList.add('hidden');
         if (headerTitle) headerTitle.innerText = '리코코 기록 결과';
+        
+        // Update Metadata UI in result view
+        const resultDate = document.getElementById('result-date');
+        const resultLoc = document.getElementById('result-location');
+        if (resultDate && metadata.date) resultDate.innerText = metadata.date;
+        if (resultLoc && metadata.gps) resultLoc.innerText = metadata.gps.formatted;
+
         resultViewer.show();
         resultViewer.renderCaption(result);
         resultViewer.scrollIntoView();
