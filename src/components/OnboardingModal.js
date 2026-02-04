@@ -63,6 +63,14 @@ export class OnboardingModal extends Modal {
         this.close();
     }
 
+    /**
+     * Override to prevent closing when clicking outside (backdrop)
+     * 온보딩은 필수 과정이므로 배경 클릭 시 닫히지 않도록 설정
+     */
+    _setupCloseOnOutsideClick() {
+        // Do nothing
+    }
+
     setupEventListeners() {
         // Modal class handles backdrop clicks
     }
