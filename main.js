@@ -19,6 +19,7 @@ import { DropZone } from './src/components/DropZone.js';
 import { SelectionGroup, DropdownGroup } from './src/components/SelectionGroup.js';
 import { ResultViewer } from './src/components/ResultViewer.js';
 import { SuggestionModal, SettingsModal, ConfirmModal } from './src/components/Modal.js';
+import { OnboardingModal } from './src/components/OnboardingModal.js';
 
 // Initialize Core Services
 const store = new StateManager();
@@ -134,6 +135,10 @@ editConfirmModal.setup({
         resultViewer.enterEditMode();
     }
 });
+
+// 5-1. Onboarding Modal
+const onboardingModal = new OnboardingModal('onboarding-modal');
+onboardingModal.open();
 
 // 6. Settings Modal Opener
 const openSettingsBtn = document.getElementById('open-settings');

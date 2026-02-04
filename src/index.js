@@ -21,6 +21,7 @@ export { ImageProcessor, imageProcessor } from './processors/ImageProcessor.js';
 
 // Components
 export { Modal, SuggestionModal, SettingsModal, ConfirmModal } from './components/Modal.js';
+export { OnboardingModal } from './components/OnboardingModal.js';
 export { SelectionGroup, DropdownGroup } from './components/SelectionGroup.js';
 export { DropZone } from './components/DropZone.js';
 export { ResultViewer } from './components/ResultViewer.js';

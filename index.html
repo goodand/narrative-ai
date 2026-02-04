@@ -305,7 +305,7 @@
 
     <!-- Edit Confirm Modal -->
     <div id="edit-confirm-modal" class="fixed inset-0 z-[120] flex items-center justify-center hidden px-4">
-        <div class="bg-dark-bg border border-white/10 rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden p-8 text-center">
+        <div class="bg-dark-bg border border-white/10 rounded-[2rem] shadow-2xl w-full max-sm overflow-hidden p-8 text-center">
             <div class="mb-6">
                 <span class="material-symbols-outlined text-4xl text-amber-500 mb-4">warning</span>
                 <h3 class="text-lg font-bold text-white mb-2">수정 모드로 전환</h3>
@@ -317,6 +317,13 @@
                 <button id="cancel-edit-btn" class="flex-1 py-3 rounded-xl font-bold bg-field-bg text-muted-lavender hover:bg-white/5 transition-colors">취소</button>
                 <button id="confirm-edit-btn" class="flex-1 py-3 rounded-xl font-bold bg-primary text-white hover:bg-primary/90 transition-colors">확인</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Onboarding Modal -->
+    <div id="onboarding-modal" class="fixed inset-0 z-[200] flex items-center justify-center hidden">
+        <div class="bg-dark-bg w-full h-full max-w-md mx-auto overflow-hidden relative" id="onboarding-content">
+            <!-- Dynamic content will be injected here -->
         </div>
     </div>
 
