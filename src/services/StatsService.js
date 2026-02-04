@@ -7,7 +7,7 @@ import { supabase } from './supabase.js';
 
 export class StatsService {
     /**
-     * 사진 비움 로그를 기록하고 사용자의 전체 통계를 업데이트합니다.
+     * 사진 비움 로그를 기록하고 사용자의 전체 통계를 원자적으로 업데이트합니다.
      * @param {Object} data - 비움 데이터 (fileSize, reason, photoDate, location)
      */
     static async logDetox({ fileSize, reason, photoDate, location }) {
@@ -28,31 +28,41 @@ export class StatsService {
 
             if (logError) throw logError;
 
-            // 2. 사용자 통계(user_stats) 업데이트 (Upsert)
-            // 실제 구현에서는 RPC(Stored Procedure)를 사용하여 원자적으로 증가시키는 것이 좋으나,
-            // 여기서는 단순화하여 처리합니다.
-            const { data: stats } = await supabase
-                .from('user_stats')
-                .select('*')
-                .eq('user_id', user.id)
-                .single();
+            // 2. RPC를 통한 원자적 통계 증가 (Race Condition 방지)
+            // SQL: update user_stats set bytes = bytes + val, count = count + 1 ...
+            const { error: rpcError } = await supabase.rpc('increment_user_stats', {
+                user_id_param: user.id,
+                bytes_to_add: fileSize || 0
+            });
 
-            const updatedStats = {
-                user_id: user.id,
-                total_cleared_bytes: (stats?.total_cleared_bytes || 0) + (fileSize || 0),
-                total_cleared_count: (stats?.total_cleared_count || 0) + 1,
-                last_activity_date: new Date().toISOString().split('T')[0]
-            };
+            if (rpcError) {
+                console.warn('[STATS] RPC 호출 실패, Fallback(Upsert) 시도:', rpcError);
+                await this._fallbackUpdateStats(user.id, fileSize);
+            }
 
-            const { error: statsError } = await supabase
-                .from('user_stats')
-                .upsert(updatedStats);
-
-            if (statsError) throw statsError;
-
-            console.log('[STATS] 비움 데이터가 성공적으로 기록되었습니다.');
+            console.log('[STATS] 비움 성과가 안전하게 기록되었습니다.');
         } catch (error) {
             console.error('[STATS] 통계 기록 중 오류 발생:', error);
         }
+    }
+
+    /**
+     * RPC 실패 시 기존 방식으로 업데이트 시도
+     */
+    static async _fallbackUpdateStats(userId, fileSize) {
+        const { data: stats } = await supabase
+            .from('user_stats')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        await supabase
+            .from('user_stats')
+            .upsert({
+                user_id: userId,
+                total_cleared_bytes: (stats?.total_cleared_bytes || 0) + (fileSize || 0),
+                total_cleared_count: (stats?.total_cleared_count || 0) + 1,
+                last_activity_date: new Date().toISOString().split('T')[0]
+            });
     }
 }
