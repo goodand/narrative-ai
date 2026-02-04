@@ -129,6 +129,14 @@ export class DropZone {
         });
     }
 
+    /**
+     * 외부에서 전달받은 파일을 처리 파이프라인에 태웁니다.
+     * @param {File} file 
+     */
+    async handleExternalFile(file) {
+        return this._handleFile(file);
+    }
+
     async _handleFile(file) {
         // 1. 기존 메타데이터 숨기기 및 초기 로딩 UI 상태 (필요 시)
         this._hideMetadata();
