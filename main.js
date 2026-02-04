@@ -302,7 +302,10 @@ function handleSuggestionSelect(suggestion, originalWord) {
 // Generate button handler
 els.genBtn.onclick = async () => {
     const imageData = store.getState('base64');
-    if (!imageData) {
+    const dataUrl = store.getState('dataUrl');
+    
+    // 테스트 모드(Unsplash URL) 또는 실제 이미지(base64)가 있는지 확인
+    if (!imageData && !dataUrl) {
         showError(UI_MESSAGES.ERROR_NO_IMAGE);
         return;
     }
@@ -323,7 +326,8 @@ els.genBtn.onclick = async () => {
     };
 
     try {
-        const storyResult = await geminiService.generateStory(imageData, context);
+        // imageData가 없으면 dataUrl을 대용으로 사용 (GeminiService에서 처리 가능하도록)
+        const storyResult = await geminiService.generateStory(imageData || dataUrl, context);
         els.btnText.innerText = UI_MESSAGES.FINDING_SYNONYMS;
 
         const keywordsWithSuggestions = await geminiService.getSynonyms(

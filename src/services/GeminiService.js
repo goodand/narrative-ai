@@ -27,11 +27,11 @@ export class GeminiService {
 
     /**
      * Generate story caption from image via backend proxy
-     * @param {string} imageBase64 - Base64 encoded image
+     * @param {string} imageData - Base64 encoded image or Image URL
      * @param {Object} context - Context data for generation
      * @returns {Promise<Object>} Generated caption and keywords
      */
-    async generateStory(imageBase64, context) {
+    async generateStory(imageData, context) {
         let response;
         try {
             response = await fetchWithRetry(
@@ -40,7 +40,7 @@ export class GeminiService {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        image: imageBase64,
+                        image: imageData,
                         context: {
                             sns: context.sns,
                             mood: context.mood,
