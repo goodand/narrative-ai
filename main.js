@@ -213,9 +213,9 @@ supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN') {
         authModal.close();
         onboardingModal.element.classList.add('hidden');
-        // 로그인 성공 시 홈으로 전환 및 권한 모달 표시
+        // 로그인 성공 시 홈으로 전환 및 권한 필요 시에만 모달 표시
         showView('home');
-        permissionModal.open();
+        permissionModal.checkAndOpen();
     } else if (event === 'SIGNED_OUT') {
         onboardingModal.open();
     }

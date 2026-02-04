@@ -4,12 +4,35 @@
  */
 
 import { Modal } from './Modal.js';
+import { Camera } from '@capacitor/camera';
 
 export class PermissionModal extends Modal {
     constructor(element) {
         super(element);
         this.onComplete = null;
         this.contentElement = this.element.querySelector('#permission-content');
+    }
+
+    /**
+     * Check permission status and open modal only if needed
+     */
+    async checkAndOpen() {
+        try {
+            const status = await Camera.checkPermissions();
+            console.log('Current permission status:', status.photos);
+
+            if (status.photos === 'granted' || status.photos === 'limited') {
+                console.log('Permission already granted, skipping modal');
+                if (this.onComplete) this.onComplete();
+                return;
+            }
+            
+            // If not granted, show the modal
+            this.open();
+        } catch (error) {
+            console.error('Error checking permissions:', error);
+            this.open(); // Fallback
+        }
     }
 
     open() {
@@ -73,16 +96,36 @@ export class PermissionModal extends Modal {
         this._bindEvents();
     }
 
+    async _handlePermissionRequest() {
+        try {
+            console.log('Requesting native photo library permissions...');
+            const result = await Camera.requestPermissions({ permissions: ['photos'] });
+            console.log('Permission result:', result.photos);
+            
+            // iOS에서는 'granted' 또는 'limited'인 경우 성공으로 간주
+            if (result.photos === 'granted' || result.photos === 'limited') {
+                this.close();
+                if (this.onComplete) this.onComplete();
+            } else {
+                console.warn('Permission denied by user');
+                // 거부된 경우에도 일단 닫거나 안내 문구를 띄울 수 있음
+                this.close();
+                if (this.onComplete) this.onComplete();
+            }
+        } catch (error) {
+            console.error('Error requesting permissions:', error);
+            // 웹 환경일 경우 오류 발생 가능 -> 그냥 진행
+            this.close();
+            if (this.onComplete) this.onComplete();
+        }
+    }
+
     _bindEvents() {
         const allowBtn = this.element.querySelector('#permission-allow-btn');
         const skipBtn = this.element.querySelector('#permission-skip-btn');
 
         if (allowBtn) {
-            allowBtn.onclick = () => {
-                console.log('Permission Allowed');
-                this.close();
-                if (this.onComplete) this.onComplete();
-            };
+            allowBtn.onclick = () => this._handlePermissionRequest();
         }
 
         if (skipBtn) {
