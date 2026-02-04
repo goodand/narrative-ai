@@ -76,7 +76,9 @@ body {
 #suggestion-modal,
 #settings-modal,
 #edit-confirm-modal,
-#onboarding-modal {
+#onboarding-modal,
+#auth-modal,
+#permission-modal {
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(8px);
 }

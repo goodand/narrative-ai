@@ -20,6 +20,8 @@ import { SelectionGroup, DropdownGroup } from './src/components/SelectionGroup.j
 import { ResultViewer } from './src/components/ResultViewer.js';
 import { SuggestionModal, SettingsModal, ConfirmModal } from './src/components/Modal.js';
 import { OnboardingModal } from './src/components/OnboardingModal.js';
+import { AuthModal } from './src/components/AuthModal.js';
+import { PermissionModal } from './src/components/PermissionModal.js';
 
 // Initialize Core Services
 const store = new StateManager();
@@ -136,8 +138,25 @@ editConfirmModal.setup({
     }
 });
 
-// 5-1. Onboarding Modal
-const onboardingModal = new OnboardingModal('onboarding-modal');
+// 5-1. App Flow Initializations (Onboarding -> Auth -> Permission)
+
+const permissionModal = new PermissionModal('permission-modal');
+permissionModal.onComplete = () => {
+    console.log('App initialization flow complete');
+};
+
+const authModal = new AuthModal('auth-modal');
+authModal.onLoginSuccess = () => {
+    permissionModal.open();
+};
+
+const onboardingModal = new OnboardingModal('onboarding-modal', {
+    onComplete: () => {
+        authModal.open('signup');
+    }
+});
+
+// Start the app flow
 onboardingModal.open();
 
 // 6. Settings Modal Opener

@@ -5,23 +5,33 @@
 
 import { Modal } from './Modal.js';
 
-export class OnboardingModal extends Modal {
-    constructor(element) {
-        super(element);
+export class OnboardingModal {
+    constructor(elementId, options = {}) {
+        this.element = document.getElementById(elementId);
         this.currentStep = 1;
-        this.totalSteps = 4;
+        this.totalSteps = 3;
+        this.onComplete = options.onComplete || null;
         
         this.contentElement = this.element.querySelector('#onboarding-content');
-        this.setupEventListeners();
     }
 
     /**
-     * Override open to start from step 1
+     * Start onboarding from step 1
      */
     open() {
         this.currentStep = 1;
+        this.element.classList.remove('hidden');
         this.renderStep();
-        super.open();
+    }
+
+    /**
+     * Close the modal
+     */
+    close() {
+        this.element.classList.add('hidden');
+        if (this.onComplete) {
+            this.onComplete();
+        }
     }
 
     /**
@@ -40,9 +50,6 @@ export class OnboardingModal extends Modal {
                 break;
             case 3:
                 html = this._getStep3HTML();
-                break;
-            case 4:
-                html = this._getStep4HTML();
                 break;
         }
 
@@ -63,28 +70,14 @@ export class OnboardingModal extends Modal {
         this.close();
     }
 
-    /**
-     * Override to prevent closing when clicking outside (backdrop)
-     * 온보딩은 필수 과정이므로 배경 클릭 시 닫히지 않도록 설정
-     */
-    _setupCloseOnOutsideClick() {
-        // Do nothing
-    }
-
-    setupEventListeners() {
-        // Modal class handles backdrop clicks
-    }
-
     _bindStepEvents() {
         const nextBtn = this.element.querySelector('#onboarding-next');
         const skipBtn = this.element.querySelector('#onboarding-skip');
         const startBtn = this.element.querySelector('#onboarding-start');
-        const allowBtn = this.element.querySelector('#onboarding-allow');
 
         if (nextBtn) nextBtn.onclick = () => this.nextStep();
         if (skipBtn) skipBtn.onclick = () => this.skip();
         if (startBtn) startBtn.onclick = () => this.nextStep();
-        if (allowBtn) allowBtn.onclick = () => this.close();
     }
 
     _getStep1HTML() {
@@ -116,7 +109,6 @@ export class OnboardingModal extends Modal {
                 <footer class="p-8 pb-12 flex flex-col items-center gap-8">
                     <div class="flex gap-2">
                         <div class="w-2 h-2 rounded-full bg-primary"></div>
-                        <div class="w-2 h-2 rounded-full bg-white/10"></div>
                         <div class="w-2 h-2 rounded-full bg-white/10"></div>
                         <div class="w-2 h-2 rounded-full bg-white/10"></div>
                     </div>
@@ -165,7 +157,6 @@ export class OnboardingModal extends Modal {
                         <div class="w-2 h-2 rounded-full bg-white/10"></div>
                         <div class="w-2 h-2 rounded-full bg-primary"></div>
                         <div class="w-2 h-2 rounded-full bg-white/10"></div>
-                        <div class="w-2 h-2 rounded-full bg-white/10"></div>
                     </div>
                     <button id="onboarding-next" class="w-full max-w-sm py-5 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-lg active:scale-[0.98] transition-all">
                         다음
@@ -213,64 +204,9 @@ export class OnboardingModal extends Modal {
                         <div class="w-2 h-2 rounded-full bg-white/10"></div>
                         <div class="w-2 h-2 rounded-full bg-white/10"></div>
                         <div class="w-2 h-2 rounded-full bg-primary"></div>
-                        <div class="w-2 h-2 rounded-full bg-white/10"></div>
                     </div>
                     <button id="onboarding-start" class="w-full max-w-sm py-5 rounded-2xl bg-primary text-dark-bg font-bold text-lg active:scale-[0.98] transition-all">
                         시작하기
-                    </button>
-                </footer>
-            </div>
-        `;
-    }
-
-    _getStep4HTML() {
-        return `
-            <div class="flex flex-col h-full justify-between py-8 px-8 text-center">
-                <header class="p-6 h-14"></header>
-                <main class="flex-1 flex flex-col items-center justify-center px-8 text-center max-w-md mx-auto w-full">
-                    <div class="relative w-full max-w-[240px] aspect-square flex items-center justify-center mb-10">
-                        <div class="absolute inset-0 bg-primary/5 rounded-[2.5rem] glow-effect"></div>
-                        <div class="relative w-48 h-48 border-4 border-white/10 rounded-3xl overflow-hidden flex items-center justify-center bg-field-bg">
-                            <span class="material-symbols-outlined text-primary text-7xl" style="font-variation-settings: 'FILL' 1">
-                                water_lux
-                            </span>
-                            <div class="absolute -bottom-2 -right-2">
-                                <span class="material-symbols-outlined text-primary text-6xl transform -rotate-12" style="font-variation-settings: 'FILL' 1">
-                                    water_lux
-                                </span>
-                            </div>
-                        </div>
-                        <div class="absolute -top-4 -left-4 w-12 h-12 bg-primary/20 rounded-full blur-xl"></div>
-                    </div>
-                    <h1 class="text-[26px] font-bold leading-tight mb-4 whitespace-pre-line">
-                        당신의 소중한 순간들을
-마주할 수 있게 해주세요
-                    </h1>
-                    <p class="text-muted-lavender text-sm leading-relaxed whitespace-pre-line mb-8">
-                        AI가 사진을 분석하여 매일 아침
-최적의 기록 한 장을 골라드릴게요.
-                        <span class="text-white/30 block mt-1">(권한은 언제든지 설정에서 변경 가능해요)</span>
-                    </p>
-                    <div class="w-full bg-field-bg/50 rounded-lg p-5 text-left border border-white/5">
-                        <h2 class="text-white/60 text-xs font-semibold mb-3 tracking-wider">왜 접근 권한이 필요한가요?</h2>
-                        <ul class="space-y-3">
-                            <li class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-primary text-sm">check_circle</span>
-                                <span class="text-white/50 text-sm">하루 한 장 최적의 큐레이션</span>
-                            </li>
-                            <li class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-primary text-sm">check_circle</span>
-                                <span class="text-white/50 text-sm">중복 및 저화질 사진 분류</span>
-                            </li>
-                        </ul>
-                    </div>
-                </main>
-                <footer class="p-8 pb-12 flex flex-col items-center gap-4">
-                    <button id="onboarding-allow" class="w-full max-w-sm py-5 rounded-lg bg-primary text-dark-bg font-bold text-lg active:scale-[0.98] transition-all">
-                        사진첩 접근 허용하기
-                    </button>
-                    <button id="onboarding-skip" class="py-2 text-white/40 text-sm font-medium hover:text-white/60 transition-colors">
-                        나중에 설정하기
                     </button>
                 </footer>
             </div>
