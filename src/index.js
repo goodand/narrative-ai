@@ -24,6 +24,8 @@ export { Modal, SuggestionModal, SettingsModal, ConfirmModal } from './component
 export { OnboardingModal } from './components/OnboardingModal.js';
 export { AuthModal } from './components/AuthModal.js';
 export { PermissionModal } from './components/PermissionModal.js';
+export { HomeManager } from './components/HomeManager.js';
+export { MyPageManager } from './components/MyPageManager.js';
 export { SelectionGroup, DropdownGroup } from './components/SelectionGroup.js';
 export { DropZone } from './components/DropZone.js';
 export { ResultViewer } from './components/ResultViewer.js';

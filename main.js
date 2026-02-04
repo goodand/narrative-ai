@@ -23,6 +23,7 @@ import { SuggestionModal, SettingsModal, ConfirmModal } from './src/components/M
 import { OnboardingModal } from './src/components/OnboardingModal.js';
 import { AuthModal } from './src/components/AuthModal.js';
 import { PermissionModal } from './src/components/PermissionModal.js';
+import { HomeManager } from './src/components/HomeManager.js';
 import { MyPageManager } from './src/components/MyPageManager.js';
 
 // Initialize Core Services
@@ -48,10 +49,12 @@ const els = {
     navHome: document.getElementById('nav-home'),
     navReport: document.getElementById('nav-report'),
     navMypage: document.getElementById('nav-mypage'),
-    mainContent: document.querySelector('main'),
+    // Views
+    homeView: document.getElementById('home-view'),
     inputView: document.getElementById('input-view'),
     resultView: document.getElementById('result-view'),
     header: document.querySelector('header'),
+    headerTitle: document.getElementById('header-title'),
     bottomBar: document.getElementById('bottom-action-bar')
 };
 
@@ -69,7 +72,6 @@ const dropZone = new DropZone({
         gps: 'meta-gps'
     },
     onFileLoaded: (data) => {
-        // base64는 백엔드 전송용, dataUrl은 브라우저 표시용
         store.setState('base64', data.base64);
         store.setState('dataUrl', data.dataUrl);
         store.setState('metadata', data.metadata);
@@ -153,8 +155,7 @@ editConfirmModal.setup({
     }
 });
 
-// 5-1. App Flow Initializations (Onboarding -> Auth -> Permission)
-
+// 5-1. Flow Modals
 const permissionModal = new PermissionModal('permission-modal');
 const authModal = new AuthModal('auth-modal');
 const onboardingModal = new OnboardingModal('onboarding-modal', {
@@ -163,40 +164,48 @@ const onboardingModal = new OnboardingModal('onboarding-modal', {
     }
 });
 
-// 5-2. My Page Manager
+// 5-2. Page Managers
+const homeManager = new HomeManager('home-view', {
+    onPreciousClick: () => showView('input'),
+    onThanksClick: () => alert('사진 비우기(삭제) 기능은 구현 중입니다.')
+});
+
 const mypageContainer = document.createElement('div');
 mypageContainer.id = 'mypage-view';
 mypageContainer.className = 'hidden min-h-screen bg-dark-bg';
 document.body.appendChild(mypageContainer);
 
 const mypageManager = new MyPageManager('mypage-view', {
-    onLogout: () => {
-        // UI 리셋 후 온보딩 표시
-        window.location.reload();
-    }
+    onLogout: () => window.location.reload()
 });
 
 // --- View Navigation Logic ---
 
 function showView(viewName) {
     // Hide all views first
+    els.homeView.classList.add('hidden');
     els.inputView.classList.add('hidden');
     els.resultView.classList.add('hidden');
     mypageContainer.classList.add('hidden');
     
     // Hide/Show common elements
-    els.header.classList.toggle('hidden', viewName === 'mypage');
+    els.header.classList.toggle('hidden', viewName === 'mypage' || viewName === 'home');
     els.bottomBar.classList.toggle('hidden', viewName === 'mypage');
 
     // Update Nav UI
-    els.navHome.classList.toggle('text-primary', viewName === 'home');
-    els.navHome.classList.toggle('opacity-40', viewName !== 'home');
+    const isDashboard = viewName === 'home';
+    els.navHome.classList.toggle('text-primary', isDashboard);
+    els.navHome.classList.toggle('opacity-40', !isDashboard);
     els.navMypage.classList.toggle('text-primary', viewName === 'mypage');
     els.navMypage.classList.toggle('opacity-40', viewName !== 'mypage');
 
     if (viewName === 'home') {
+        els.homeView.classList.remove('hidden');
+        homeManager.render();
+    } else if (viewName === 'input') {
         els.inputView.classList.remove('hidden');
-        els.header.querySelector('h2').innerText = '리코코 상세 기록 설정';
+        els.header.classList.remove('hidden');
+        els.headerTitle.innerText = '리코코 상세 기록 설정';
     } else if (viewName === 'mypage') {
         mypageContainer.classList.remove('hidden');
         mypageManager.render();
@@ -217,7 +226,6 @@ supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN') {
         authModal.close();
         onboardingModal.element.classList.add('hidden');
-        // 로그인 성공 시 홈으로 전환 및 권한 필요 시에만 모달 표시
         showView('home');
         permissionModal.checkAndOpen();
     } else if (event === 'SIGNED_OUT') {
@@ -229,15 +237,11 @@ supabase.auth.onAuthStateChange((event, session) => {
  * App Initialization
  */
 async function initApp() {
-    // getSession() automatically handles OAuth callback tokens in the URL
     const { data: { session }, error } = await supabase.auth.getSession();
     
-    if (error) {
-        console.error('Session initialization error:', error.message);
-    }
+    if (error) console.error('Session error:', error.message);
 
     if (!session) {
-        console.log('No session found, starting onboarding');
         onboardingModal.open();
     } else {
         console.log('Active session found:', session.user.email);
@@ -249,7 +253,6 @@ async function initApp() {
 
 // --- Event Handlers ---
 
-// Handle suggestion selection
 function handleSuggestionSelect(suggestion, originalWord) {
     const currentResult = store.getState('currentResult');
     if (!currentResult) return;
@@ -276,9 +279,6 @@ els.genBtn.onclick = async () => {
 
     setLoading(true);
 
-    const inputView = document.getElementById('input-view');
-    const headerTitle = els.header.querySelector('h2');
-    
     const context = {
         sns: store.getPreference('sns') || snsGroup.getValue() || 'Instagram',
         mood: els.style.value,
@@ -302,7 +302,7 @@ els.genBtn.onclick = async () => {
         );
 
         const metadata = store.getState('metadata');
-        const displayImage = store.getState('dataUrl'); // UI 표시용
+        const displayImage = store.getState('dataUrl');
         
         const result = {
             original_caption: storyResult.original_caption,
@@ -312,19 +312,18 @@ els.genBtn.onclick = async () => {
         };
         store.setResult(result);
 
-        if (inputView) inputView.classList.add('hidden');
-        if (headerTitle) headerTitle.innerText = '리코코 기록 결과';
+        showView('result'); // Custom logic for result view visibility
+        els.inputView.classList.add('hidden');
+        els.resultView.classList.remove('hidden');
+        els.header.classList.remove('hidden');
+        els.headerTitle.innerText = '리코코 기록 결과';
         
-        // 1. Show the result view first to ensure elements are layouted
-        resultViewer.show();
-        
-        // 2. Then update Metadata UI
         const resultDate = document.getElementById('result-date');
         const resultLoc = document.getElementById('result-location');
         if (resultDate && metadata.date) resultDate.innerText = metadata.date;
         if (resultLoc && metadata.gps) resultLoc.innerText = metadata.gps.formatted;
 
-        // 3. Finally render the caption and image
+        resultViewer.show();
         resultViewer.renderCaption(result);
         resultViewer.scrollIntoView();
 
@@ -336,13 +335,10 @@ els.genBtn.onclick = async () => {
     }
 };
 
-// Utility functions
 function setLoading(isLoading) {
     els.genBtn.disabled = isLoading;
     els.loader.classList.toggle('hidden', !isLoading);
-    els.btnText.innerText = isLoading
-        ? UI_MESSAGES.LOADING
-        : UI_MESSAGES.GENERATE_BUTTON;
+    els.btnText.innerText = isLoading ? UI_MESSAGES.LOADING : UI_MESSAGES.GENERATE_BUTTON;
 }
 
 function showError(message) {
