@@ -4,6 +4,7 @@
  */
 
 import { Modal } from './Modal.js';
+import { supabase } from '../services/supabase.js';
 
 export class AuthModal extends Modal {
     constructor(element) {
@@ -43,6 +44,29 @@ export class AuthModal extends Modal {
         this._bindEvents();
     }
 
+    async _handleGoogleLogin() {
+        try {
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    queryParams: {
+                        access_type: 'offline',
+                        prompt: 'select_account',
+                    },
+                    redirectTo: window.location.origin
+                }
+            });
+
+            if (error) throw error;
+            
+            // Note: OAuth redirection will happen here. 
+            // The success logic will be handled in main.js on page load/auth state change.
+        } catch (error) {
+            console.error('Login Error:', error.message);
+            alert('로그인 중 오류가 발생했습니다: ' + error.message);
+        }
+    }
+
     _bindEvents() {
         const toggleBtn = this.element.querySelector('#auth-toggle');
         const googleBtn = this.element.querySelector('#google-auth-btn');
@@ -55,14 +79,7 @@ export class AuthModal extends Modal {
         }
 
         if (googleBtn) {
-            googleBtn.onclick = () => {
-                console.log('Google Auth Triggered');
-                // 임시로 로그인 성공 처리
-                if (this.onLoginSuccess) {
-                    this.onLoginSuccess();
-                }
-                this.close();
-            };
+            googleBtn.onclick = () => this._handleGoogleLogin();
         }
     }
 
