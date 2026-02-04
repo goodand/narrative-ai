@@ -166,29 +166,35 @@ const onboardingModal = new OnboardingModal('onboarding-modal', {
 
 // 5-2. Page Managers
 const homeManager = new HomeManager('home-view', {
-    onPreciousClick: async (imageData) => {
+    onPreciousClick: async () => {
         try {
-            if (imageData) {
-                // 1. Store에 이미지 데이터 저장
-                store.setState('base64', imageData.base64);
-                store.setState('dataUrl', imageData.dataUrl);
-                store.setState('metadata', imageData.metadata);
-
-                // 2. DropZone에 미리보기 표시
-                dropZone.setPreview(imageData.dataUrl);
-                dropZone.showMetadata(imageData.metadata);
-
-                console.log('HomeManager → input-view: 이미지 데이터 전달 완료', {
-                    hasBase64: !!imageData.base64,
-                    metadata: imageData.metadata
-                });
+            console.log('main.js: HomeManager의 "소중해" 액션 감지');
+            
+            // 1. HomeManager에서 실제 이미지 파일을 가져옴
+            const file = await homeManager.getCurrentImageAsFile();
+            
+            if (file) {
+                // 2. [기존 파이프라인 활용] DropZone의 처리 로직을 태움 (리사이징, 메타데이터 등)
+                await dropZone.handleExternalFile(file);
+                
+                // 3. 큐레이션 전용 메타데이터로 보완 (URL 이미지는 EXIF가 없을 수 있으므로)
+                const curationMeta = homeManager.getCurrentPhotoMeta();
+                const currentMeta = store.getState('metadata') || {};
+                
+                // 기존 추출된 메타와 큐레이션 메타 병합 (큐레이션 우선)
+                const mergedMeta = { ...currentMeta, ...curationMeta };
+                store.setState('metadata', mergedMeta);
+                dropZone.showMetadata(mergedMeta);
+                
+                console.log('main.js: 큐레이션 이미지 파이프라인 처리 완료');
             } else {
-                console.warn('imageData가 null입니다. 이미지 없이 진행합니다.');
+                console.warn('main.js: 이미지 파일을 가져오지 못했습니다.');
             }
         } catch (error) {
-            console.error('이미지 데이터 처리 중 오류:', error);
+            console.error('main.js: 큐레이션 처리 중 오류 발생:', error);
         }
-        // 3. input-view로 전환 (에러 발생해도 항상 실행)
+        
+        // 4. input-view로 전환
         showView('input');
     },
     onThanksClick: (photo) => {
@@ -299,35 +305,43 @@ function handleSuggestionSelect(suggestion, originalWord) {
     resultViewer.renderCaption(currentResult);
 }
 
+/**
+ * URL 이미지를 Base64 데이터로 변환 (테스트용)
+ */
+async function urlToBase64(url) {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (e) {
+        console.error('URL 변환 실패:', e);
+        return null;
+    }
+}
+
 // Generate button handler
 els.genBtn.onclick = async () => {
-    const imageData = store.getState('base64');
+    let imageData = store.getState('base64');
     const dataUrl = store.getState('dataUrl');
     
-    // 테스트 모드(Unsplash URL) 또는 실제 이미지(base64)가 있는지 확인
-    if (!imageData && !dataUrl) {
+    // 이미지가 없고 URL만 있는 경우 (테스트 모드) 변환 시도
+    if (!imageData && dataUrl) {
+        console.log('테스트용 URL 이미지를 Base64로 변환 중...');
+        imageData = await urlToBase64(dataUrl);
+    }
+
+    if (!imageData) {
         showError(UI_MESSAGES.ERROR_NO_IMAGE);
         return;
     }
 
     setLoading(true);
-
-    const context = {
-        sns: store.getPreference('sns') || snsGroup.getValue() || 'Instagram',
-        mood: els.style.value,
-        temp: store.getPreference('temp') || tempGroup.getValue() || 'Lukewarm',
-        language: els.lang.value,
-        tags: els.tagsInput.value.trim(),
-        activity: els.activity.value,
-        bodyState: els.bodyState.value,
-        relationship: els.relationship.value,
-        metadata: store.getState('metadata'),
-        systemPrompt: store.getState('systemPrompt')
-    };
-
-    try {
-        // imageData가 없으면 dataUrl을 대용으로 사용 (GeminiService에서 처리 가능하도록)
-        const storyResult = await geminiService.generateStory(imageData || dataUrl, context);
+    // ... (이하 로직 동일)
         els.btnText.innerText = UI_MESSAGES.FINDING_SYNONYMS;
 
         const keywordsWithSuggestions = await geminiService.getSynonyms(

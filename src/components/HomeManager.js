@@ -11,7 +11,6 @@ export class HomeManager {
         this.onPreciousClick = options.onPreciousClick || null;
         this.onThanksClick = options.onThanksClick || null;
         this.user = null;
-        this.isRendered = false;
 
         // 큐레이션 사진 데이터
         this.curationPhotos = [
@@ -38,15 +37,40 @@ export class HomeManager {
             }
         ];
 
-        this.currentIndex = 1; // 가운데 사진 기본 선택
-        
-        // 이벤트 위임 바인딩 (생성자에서 한 번만 실행)
+        this.currentIndex = 1; 
         this._setupEventDelegation();
     }
 
     /**
-     * 컨테이너에 이벤트 위임을 설정하여 버튼이 동적으로 생성되어도 작동하게 합니다.
+     * 현재 선택된 사진을 File 객체로 변환하여 반환합니다. (아키텍처 요구사항)
      */
+    async getCurrentImageAsFile() {
+        const photo = this.curationPhotos[this.currentIndex];
+        try {
+            console.log('HomeManager: 이미지를 파일 객체로 변환 중...', photo.imageUrl);
+            const response = await fetch(photo.imageUrl);
+            const blob = await response.blob();
+            return new File([blob], `curation_${photo.id}.jpg`, { type: blob.type });
+        } catch (error) {
+            console.error('HomeManager: 이미지 파일 변환 실패', error);
+            return null;
+        }
+    }
+
+    /**
+     * 현재 선택된 사진의 큐레이션 메타데이터를 반환합니다.
+     */
+    getCurrentPhotoMeta() {
+        const photo = this.curationPhotos[this.currentIndex];
+        return {
+            Make: "Recoco Curation",
+            Model: "Daily Moments",
+            DateTime: photo.date,
+            Location: photo.location,
+            _isCuration: true
+        };
+    }
+
     _setupEventDelegation() {
         if (!this.container) return;
         
@@ -56,14 +80,12 @@ export class HomeManager {
 
             if (preciousBtn) {
                 e.preventDefault();
-                console.log('HomeManager: "소중해" 버튼 클릭 (이벤트 위임)');
+                console.log('HomeManager: "소중해" 버튼 클릭됨');
                 if (this.onPreciousClick) {
-                    const imageData = this.getCurrentImageDataSync();
-                    await this.onPreciousClick(imageData);
+                    await this.onPreciousClick();
                 }
             } else if (thanksBtn) {
                 e.preventDefault();
-                console.log('HomeManager: "고마웠어" 버튼 클릭 (이벤트 위임)');
                 if (this.onThanksClick) {
                     this.onThanksClick(this.curationPhotos[this.currentIndex]);
                 }
@@ -71,31 +93,7 @@ export class HomeManager {
         });
     }
 
-    /**
-     * 비동기 대기 없이 즉시 데이터를 반환하는 동기 메서드
-     */
-    getCurrentImageDataSync() {
-        const photo = this.curationPhotos[this.currentIndex];
-        return {
-            base64: null,
-            dataUrl: photo.imageUrl,
-            metadata: {
-                Make: "Curation",
-                Model: "Recoco Carousel",
-                DateTime: photo.date,
-                Location: photo.location,
-                _isCuration: true
-            }
-        };
-    }
-
-    /**
-     * Render the Daily Curation View
-     */
     async render() {
-        // 이미 렌더링되었더라도 사용자 정보 갱신을 위해 innerHTML 업데이트
-        // 하지만 이벤트 리스너는 _setupEventDelegation 덕분에 유지됨
-        
         if (!this.user) {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
