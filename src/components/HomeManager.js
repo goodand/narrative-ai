@@ -1,10 +1,11 @@
 /**
  * HomeManager - Daily Curation Dashboard
- * 리코코 메인 데일리 큐레이션 화면 (실제 기기 사진 연동)
+ * 리코코 메인 데일리 큐레이션 화면 (실제 기기 사진 연동 및 역지오코딩)
  */
 
 import { supabase } from '../services/supabase.js';
 import RecocolPhotos from '../plugins/RecocolPhotos.ts';
+import { GeminiService } from '../services/GeminiService.js';
 
 export class HomeManager {
     constructor(containerId, options = {}) {
@@ -12,44 +13,68 @@ export class HomeManager {
         this.onPreciousClick = options.onPreciousClick || null;
         this.onThanksClick = options.onThanksClick || null;
         this.user = null;
+        this.geminiService = new GeminiService();
 
-        // 실제 기기에서 가져온 사진 데이터가 저장될 배열
         this.curationPhotos = [];
-        this.currentIndex = 0; 
+        this.currentIndex = 0;
+        this.isLoading = false;
+        this.error = null;
         
         this._setupEventDelegation();
     }
 
     /**
-     * 네이티브 플러그인을 통해 실제 사진 목록을 로드합니다.
+     * 네이티브 플러그인을 통해 실제 사진 목록을 로드하고 주소로 변환합니다.
      */
     async loadRealPhotos() {
+        this.isLoading = true;
+        this.error = null;
+        this.render();
+
         try {
             console.log('HomeManager: 실제 사진 목록 요청 중...');
             const { photos } = await RecocolPhotos.fetchPhotos({ limit: 10, offset: 0 });
             
             if (photos && photos.length > 0) {
-                // 각 사진의 썸네일 데이터를 비동기로 로드하여 매핑
                 this.curationPhotos = await Promise.all(photos.map(async (asset) => {
                     const { base64 } = await RecocolPhotos.loadImageData({ 
                         assetId: asset.id, 
                         quality: 'thumbnail' 
                     });
                     
+                    // 실제 주소 변환 수행 (백엔드 API 활용)
+                    let locationLabel = '위치 정보 없음';
+                    if (asset.location) {
+                        try {
+                            locationLabel = await this.geminiService.getAddress(
+                                asset.location.latitude, 
+                                asset.location.longitude
+                            );
+                        } catch (e) {
+                            console.warn('주소 변환 실패:', e);
+                            locationLabel = '위치 확인 불가';
+                        }
+                    }
+                    
                     return {
                         id: asset.id,
                         imageUrl: `data:image/jpeg;base64,${base64}`,
-                        date: asset.creationDate.split('T')[0], // YYYY-MM-DD
-                        location: asset.location ? '위치 정보 있음' : '위치 정보 없음',
+                        date: asset.creationDate.split('T')[0],
+                        location: locationLabel,
                         contextMessage: '이 순간을 기억하시나요? 당신의 소중한 기록 한 장입니다.',
                         rawAsset: asset
                     };
                 }));
-                this.currentIndex = Math.min(1, this.curationPhotos.length - 1); // 중간 사진 선택
+                this.currentIndex = Math.min(1, this.curationPhotos.length - 1);
+            } else {
+                this.error = '사진첩에 분석할 수 있는 사진이 없습니다.';
             }
         } catch (error) {
             console.error('HomeManager: 네이티브 사진 로드 실패', error);
-            // 에러 시 폴백 데이터 (필요 시 추가)
+            this.error = 'iOS 사진첩에 접근할 수 없습니다. 설정에서 권한을 확인해주세요.';
+        } finally {
+            this.isLoading = false;
+            this.render();
         }
     }
 
@@ -61,7 +86,6 @@ export class HomeManager {
         if (!photo) return null;
 
         try {
-            // 원본 퀄리티로 이미지 로드
             const { base64 } = await RecocolPhotos.loadImageData({ 
                 assetId: photo.id, 
                 quality: 'original' 
@@ -98,7 +122,8 @@ export class HomeManager {
             fileSize: asset.fileSize,
             gps: asset.location ? {
                 lat: asset.location.latitude,
-                lon: asset.location.longitude
+                lon: asset.location.longitude,
+                formatted: photo.location // 변환된 주소 주입
             } : null,
             _isNative: true
         };
@@ -109,23 +134,33 @@ export class HomeManager {
         this.container.addEventListener('click', async (e) => {
             const preciousBtn = e.target.closest('#precious-btn');
             const thanksBtn = e.target.closest('#thanks-btn');
+            const retryBtn = e.target.closest('#retry-btn');
 
             if (preciousBtn) {
                 e.preventDefault();
                 if (this.onPreciousClick) await this.onPreciousClick();
             } else if (thanksBtn) {
                 e.preventDefault();
-                if (this.onThanksClick) this.onThanksClick(this.curationPhotos[this.currentIndex]);
+                const current = this.curationPhotos[this.currentIndex];
+                if (confirm('이 사진을 사진첩에서 삭제하시겠습니까?')) {
+                    try {
+                        const { success } = await RecocolPhotos.deletePhoto({ assetId: current.id });
+                        if (success) {
+                            alert('사진이 삭제되었습니다.');
+                            this.loadRealPhotos();
+                        }
+                    } catch (err) {
+                        console.error('삭제 실패:', err);
+                        alert('사진 삭제 중 오류가 발생했습니다.');
+                    }
+                }
+            } else if (retryBtn) {
+                this.loadRealPhotos();
             }
         });
     }
 
     async render() {
-        // 실제 사진이 아직 로드되지 않았다면 로드 먼저 수행
-        if (this.curationPhotos.length === 0) {
-            await this.loadRealPhotos();
-        }
-
         if (!this.user) {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
@@ -134,9 +169,30 @@ export class HomeManager {
         }
 
         const profileName = this.user?.user_metadata?.full_name || '사용자';
+
+        if (this.error) {
+            this.container.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full px-10 text-center space-y-6">
+                    <span class="material-symbols-outlined text-6xl text-muted-lavender/30">no_photography</span>
+                    <p class="text-muted-lavender text-sm leading-relaxed">${this.error}</p>
+                    <button id="retry-btn" class="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-primary font-bold text-sm">다시 시도하기</button>
+                </div>
+            `;
+            return;
+        }
+
+        if (this.isLoading) {
+            this.container.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full space-y-4">
+                    <div class="loader"></div>
+                    <p class="text-muted-lavender text-xs">오늘의 기억을 기기에서 찾는 중...</p>
+                </div>
+            `;
+            return;
+        }
         
         if (this.curationPhotos.length === 0) {
-            this.container.innerHTML = `<div class="p-10 text-center opacity-50">사진첩에 접근하여 오늘의 기억을 찾아보세요.</div>`;
+            this.loadRealPhotos();
             return;
         }
 

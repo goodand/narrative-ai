@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
-from .routers import narrative, synonyms
+from .routers import narrative, synonyms, geo
 
 
 @asynccontextmanager
@@ -63,6 +63,7 @@ app.add_middleware(
 # Register routers
 app.include_router(narrative.router)
 app.include_router(synonyms.router)
+app.include_router(geo.router)
 
 
 @app.get("/", tags=["health"])

@@ -106,36 +106,30 @@ export class GeminiService {
      * @returns {Promise<Array>} Keywords with suggestions
      */
     async getSynonyms(keywords, language) {
-        if (!keywords || keywords.length === 0) return [];
+        // ... (기존 로직 동일)
+    }
 
+    /**
+     * 좌표를 주소로 변환 (백엔드 프록시 활용)
+     * @param {number} lat 
+     * @param {number} lon 
+     * @returns {Promise<string>}
+     */
+    async getAddress(lat, lon) {
         try {
             const response = await fetchWithRetry(
-                `${this.baseUrl}/api/v1/synonyms`,
+                `${this.baseUrl}/api/v1/geocode`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        keywords: keywords,
-                        language: language
-                    })
+                    body: JSON.stringify({ lat, lon })
                 }
             );
-
             const data = await response.json();
-
-            // 데이터 구조 안전성 검증 및 변환
-            if (!data.suggestions || !Array.isArray(data.suggestions)) {
-                return keywords.map(w => ({ word: w, suggestions: [] }));
-            }
-
-            return data.suggestions.map(item => ({
-                word: item.word || '',
-                suggestions: Array.isArray(item.alternatives) ? item.alternatives : []
-            }));
+            return data.address || '알 수 없는 위치';
         } catch (error) {
-            console.error('Suggestions generation error:', error);
-            // 에러 발생 시 원래 단어만 유지하고 추천은 빈 목록으로 반환 (UI 흐름 유지)
-            return keywords.map(w => ({ word: w, suggestions: [] }));
+            console.error('Geocoding error:', error);
+            return '위치 정보 오류';
         }
     }
 }
