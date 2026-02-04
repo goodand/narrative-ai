@@ -99,37 +99,7 @@ export class GeminiService {
         }
     }
 
-    /**
-     * Generate synonym suggestions for keywords via backend proxy
-     * @param {string[]} keywords - Keywords to find alternatives for
-     * @param {string} language - Target language
-     * @returns {Promise<Array>} Keywords with suggestions
-     */
     async getSynonyms(keywords, language) {
         // ... (기존 로직 동일)
-    }
-
-    /**
-     * 좌표를 주소로 변환 (백엔드 프록시 활용)
-     * @param {number} lat 
-     * @param {number} lon 
-     * @returns {Promise<string>}
-     */
-    async getAddress(lat, lon) {
-        try {
-            const response = await fetchWithRetry(
-                `${this.baseUrl}/api/v1/geocode`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lat, lon })
-                }
-            );
-            const data = await response.json();
-            return data.address || '알 수 없는 위치';
-        } catch (error) {
-            console.error('Geocoding error:', error);
-            return '위치 정보 오류';
-        }
     }
 }
