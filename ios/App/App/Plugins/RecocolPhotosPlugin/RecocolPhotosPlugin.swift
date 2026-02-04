@@ -7,13 +7,24 @@ public class RecocolPhotosPlugin: CAPPlugin {
     private let assetManager = PhotoAssetManager()
 
     @objc func fetchPhotos(_ call: CAPPluginCall) {
-        let limit = call.getInt("limit") ?? 20
+        let limit = call.getInt("limit") ?? 30
         let offset = call.getInt("offset") ?? 0
         
         let status = PHPhotoLibrary.authorizationStatus()
         if status != .authorized && status != .limited {
             call.reject("Photo library access not authorized")
             return
+        }
+
+        // 1. [핵심] 사용자 정의 앨범에 속한 모든 사진 ID 수집
+        let userAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: nil)
+        var assetIdsInAlbums = Set<String>()
+        
+        userAlbums.enumerateObjects { (collection, _, _) in
+            let assetsInAlbum = PHAsset.fetchAssets(in: collection, options: nil)
+            assetsInAlbum.enumerateObjects { (asset, _, _) in
+                assetIdsInAlbums.insert(asset.localIdentifier)
+            }
         }
 
         let fetchOptions = PHFetchOptions()
@@ -29,7 +40,6 @@ public class RecocolPhotosPlugin: CAPPlugin {
             for i in startIndex..<endIndex {
                 let asset = allPhotos.object(at: i)
                 
-                // Location 추출
                 var locationDict: [String: Double]? = nil
                 if let location = asset.location {
                     locationDict = [
@@ -39,9 +49,11 @@ public class RecocolPhotosPlugin: CAPPlugin {
                     ]
                 }
 
-                // [지시사항 반영] 파일 크기 추출 (비동기 리소스 접근 대신 동기적 정보 활용)
                 let resources = PHAssetResource.assetResources(for: asset)
                 let fileSize = resources.first?.value(forKey: "fileSize") as? Int64 ?? 0
+
+                // 2. 현재 사진이 앨범에 포함되어 있는지 확인
+                let isInAlbum = assetIdsInAlbums.contains(asset.localIdentifier)
 
                 let photoData: [String: Any] = [
                     "id": asset.localIdentifier,
@@ -53,7 +65,8 @@ public class RecocolPhotosPlugin: CAPPlugin {
                     "fileSize": fileSize,
                     "isFavorite": asset.isFavorite,
                     "isScreenshot": asset.mediaSubtypes.contains(.photoScreenshot),
-                    "location": locationDict as Any
+                    "location": locationDict as Any,
+                    "isInAlbum": isInAlbum // 추가된 필드
                 ]
                 photos.append(photoData)
             }

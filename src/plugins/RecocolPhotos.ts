@@ -15,6 +15,7 @@ export interface PhotoAsset {
   };
   isFavorite: boolean;
   isScreenshot: boolean;
+  isInAlbum: boolean; // 추가됨
   burstIdentifier?: string;
 }
 

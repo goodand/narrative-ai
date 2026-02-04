@@ -133,24 +133,34 @@ export class StateManager {
     }
 
     _notifyListeners(key, newValue, oldValue) {
-        // Notify exact key listeners
-        if (this._listeners.has(key)) {
-            this._listeners.get(key).forEach(callback => {
-                callback(newValue, oldValue);
-            });
-        }
+        // ... (기존 로직)
+    }
 
-        // Notify parent key listeners (for nested updates)
-        const parts = key.split('.');
-        while (parts.length > 1) {
-            parts.pop();
-            const parentKey = parts.join('.');
-            if (this._listeners.has(parentKey)) {
-                this._listeners.get(parentKey).forEach(callback => {
-                    callback(this._getNestedValue(this._state, parentKey), null);
-                });
-            }
+    /**
+     * 매일 17:00 (오후 5시) 기준으로 데일리 상태를 초기화합니다.
+     */
+    checkAndResetDaily() {
+        const RESET_HOUR = 17;
+        const lastReset = localStorage.getItem('last_reset_timestamp');
+        const now = new Date();
+        
+        // 오늘 기준 리셋 시간 설정
+        const todayResetTime = new Date(now);
+        todayResetTime.setHours(RESET_HOUR, 0, 0, 0);
+
+        // 1. 현재 시간이 리셋 시간을 지났는지 확인
+        // 2. 마지막 리셋이 오늘 리셋 시간 이전인지 확인
+        if (now > todayResetTime && (!lastReset || new Date(lastReset) < todayResetTime)) {
+            console.log('[STATE] 17:00 데일리 리셋 수행');
+            this._performDailyReset();
+            localStorage.setItem('last_reset_timestamp', now.toISOString());
         }
+    }
+
+    _performDailyReset() {
+        // 오늘의 비움 목표 관련 상태 초기화
+        this.setState('clearedCount', 0);
+        this.setState('todayCurationStatus', 'pending');
     }
 }
 

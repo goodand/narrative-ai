@@ -1,11 +1,12 @@
 /**
  * HomeManager - Daily Curation Dashboard
- * 리코코 메인 데일리 큐레이션 화면 (최적화 버전)
+ * 리코코 메인 데일리 큐레이션 화면 (필터 엔진 연동)
  */
 
 import { supabase } from '../services/supabase.js';
 import RecocolPhotos from '../plugins/RecocolPhotos.ts';
 import { geocodingService } from '../services/GeocodingService.js';
+import { CurationEngine } from '../services/CurationEngine.js';
 
 export class HomeManager {
     constructor(containerId, options = {}) {
@@ -23,7 +24,7 @@ export class HomeManager {
     }
 
     /**
-     * 실제 사진 목록 로드 및 역지오코딩 (캐싱 활용)
+     * 실제 사진 목록 로드 및 Rule-base 큐레이션 엔진 적용
      */
     async loadRealPhotos() {
         this.isLoading = true;
@@ -31,16 +32,22 @@ export class HomeManager {
         this.render();
 
         try {
-            const { photos } = await RecocolPhotos.fetchPhotos({ limit: 10, offset: 0 });
+            console.log('HomeManager: 사진 분석 및 큐레이션 시작...');
+            // 1. 분석을 위해 넉넉하게 30장을 가져옴
+            const { photos } = await RecocolPhotos.fetchPhotos({ limit: 30, offset: 0 });
             
             if (photos && photos.length > 0) {
-                this.curationPhotos = await Promise.all(photos.map(async (asset) => {
+                // 2. CurationEngine을 통한 점수 산정 및 정렬
+                const rankedAssets = CurationEngine.rankAssets(photos);
+                const targetAssets = rankedAssets.slice(0, 10); // 상위 10개만 큐레이션
+
+                // 3. 선정된 사진들의 데이터 로드
+                this.curationPhotos = await Promise.all(targetAssets.map(async (asset) => {
                     const { base64 } = await RecocolPhotos.loadImageData({ 
                         assetId: asset.id, 
                         quality: 'thumbnail' 
                     });
                     
-                    // GeocodingService 캐싱 로직 활용
                     let locationLabel = '위치 정보 없음';
                     if (asset.location) {
                         locationLabel = await geocodingService.getAddress(
@@ -54,26 +61,27 @@ export class HomeManager {
                         imageUrl: `data:image/jpeg;base64,${base64}`,
                         date: asset.creationDate.split('T')[0],
                         location: locationLabel,
-                        contextMessage: '이 순간을 기억하시나요? 당신의 소중한 기록 한 장입니다.',
-                        rawAsset: asset
+                        // 필터 사유를 메시지에 녹여냄
+                        contextMessage: asset.curationReasons.length > 0 
+                            ? `${asset.curationReasons.join(', ')}이라 비워내기 좋아요.`
+                            : '오늘의 소중한 기록 한 장입니다.',
+                        rawAsset: asset,
+                        score: asset.curationScore
                     };
                 }));
-                this.currentIndex = Math.min(1, this.curationPhotos.length - 1);
+                this.currentIndex = 0;
             } else {
                 this.error = '사진첩에 분석할 수 있는 사진이 없습니다.';
             }
         } catch (error) {
-            console.error('HomeManager: 사진 로드 실패', error);
-            this.error = 'iOS 사진첩에 접근할 수 없습니다. 권한을 확인해주세요.';
+            console.error('HomeManager: 큐레이션 실패', error);
+            this.error = '사진첩 접근 권한이 필요합니다.';
         } finally {
             this.isLoading = false;
             this.render();
         }
     }
 
-    /**
-     * 현재 선택된 사진을 File 객체로 변환 (아키텍처 준수)
-     */
     async getCurrentImageAsFile() {
         const photo = this.curationPhotos[this.currentIndex];
         if (!photo) return null;
@@ -94,7 +102,7 @@ export class HomeManager {
             
             return new File([blob], `photo_${photo.id}.jpg`, { type: 'image/jpeg' });
         } catch (error) {
-            console.error('HomeManager: 원본 파일 변환 실패', error);
+            console.error('HomeManager: 파일 변환 실패', error);
             return null;
         }
     }
@@ -114,7 +122,8 @@ export class HomeManager {
                 lon: asset.location.longitude,
                 formatted: photo.location
             } : null,
-            _isNative: true
+            _isNative: true,
+            curationScore: photo.score
         };
     }
 
@@ -137,9 +146,6 @@ export class HomeManager {
         });
     }
 
-    /**
-     * 사진 삭제 처리 (UX 최적화: 로컬 상태 우선 업데이트)
-     */
     async _handleDelete() {
         const current = this.curationPhotos[this.currentIndex];
         if (!current) return;
@@ -149,16 +155,11 @@ export class HomeManager {
         try {
             const { success } = await RecocolPhotos.deletePhoto({ assetId: current.id });
             if (success) {
-                // 1. 로컬 배열에서 즉시 제거 (전체 리로드 방지)
                 this.curationPhotos.splice(this.currentIndex, 1);
-                
-                // 2. 인덱스 조정
                 if (this.currentIndex >= this.curationPhotos.length) {
                     this.currentIndex = Math.max(0, this.curationPhotos.length - 1);
                 }
-                
-                // 3. UI 갱신 (Toast 대신 간단한 피드백 후 렌더링)
-                console.log('HomeManager: 사진 삭제 성공 및 로컬 상태 갱신');
+                console.log('HomeManager: 사진 삭제 성공');
                 this.render();
             }
         } catch (err) {
@@ -192,7 +193,7 @@ export class HomeManager {
             this.container.innerHTML = `
                 <div class="flex flex-col items-center justify-center h-full space-y-4">
                     <div class="loader"></div>
-                    <p class="text-muted-lavender text-xs">오늘의 기억을 찾는 중...</p>
+                    <p class="text-muted-lavender text-xs">AI가 정리할 사진을 고르는 중...</p>
                 </div>
             `;
             return;
@@ -227,7 +228,7 @@ export class HomeManager {
                 <div class="py-4 shrink-0 px-1">
                     <h1 class="text-white text-xl font-bold leading-tight tracking-tight">
                         좋은 아침이에요.<br/>
-                        <span class="text-muted-lavender font-normal text-sm">기기에서 찾아낸 오늘의 기억입니다.</span>
+                        <span class="text-muted-lavender font-normal text-sm">기기에서 찾아낸 비우기 좋은 기록들입니다.</span>
                     </h1>
                 </div>
 
@@ -243,6 +244,7 @@ export class HomeManager {
                                 <div class="w-full h-full bg-center bg-cover rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10" 
                                      style='background-image: url("${currentPhoto?.imageUrl || ''}");'>
                                 </div>
+                                ${currentPhoto?.score > 20 ? '<div class="absolute top-4 right-4 bg-primary/90 text-dark-bg text-[10px] font-black px-2 py-1 rounded-full shadow-lg">HIGH DETOX</div>' : ''}
                             </div>
                         </div>
                         <div class="carousel-item side opacity-40">
@@ -256,7 +258,7 @@ export class HomeManager {
                         <div class="mb-6">
                             <p class="text-white text-[14px] font-medium leading-relaxed text-center break-keep">
                                 ${currentPhoto?.date || ''} | ${currentPhoto?.location || ''}<br/>
-                                <span class="text-white/60 text-xs">${currentPhoto?.contextMessage || ''}</span>
+                                <span class="text-primary text-xs font-bold">${currentPhoto?.contextMessage || ''}</span>
                             </p>
                         </div>
 
