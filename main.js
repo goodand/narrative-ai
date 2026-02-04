@@ -169,32 +169,19 @@ const homeManager = new HomeManager('home-view', {
     onPreciousClick: async () => {
         try {
             console.log('main.js: HomeManager의 "소중해" 액션 감지');
-            
-            // 1. HomeManager에서 실제 이미지 파일을 가져옴
             const file = await homeManager.getCurrentImageAsFile();
-            
             if (file) {
-                // 2. [기존 파이프라인 활용] DropZone의 처리 로직을 태움 (리사이징, 메타데이터 등)
                 await dropZone.handleExternalFile(file);
-                
-                // 3. 큐레이션 전용 메타데이터로 보완 (URL 이미지는 EXIF가 없을 수 있으므로)
                 const curationMeta = homeManager.getCurrentPhotoMeta();
                 const currentMeta = store.getState('metadata') || {};
-                
-                // 기존 추출된 메타와 큐레이션 메타 병합 (큐레이션 우선)
                 const mergedMeta = { ...currentMeta, ...curationMeta };
                 store.setState('metadata', mergedMeta);
                 dropZone.showMetadata(mergedMeta);
-                
                 console.log('main.js: 큐레이션 이미지 파이프라인 처리 완료');
-            } else {
-                console.warn('main.js: 이미지 파일을 가져오지 못했습니다.');
             }
         } catch (error) {
             console.error('main.js: 큐레이션 처리 중 오류 발생:', error);
         }
-        
-        // 4. input-view로 전환
         showView('input');
     },
     onThanksClick: (photo) => {
@@ -215,18 +202,14 @@ const mypageManager = new MyPageManager('mypage-view', {
 // --- View Navigation Logic ---
 
 function showView(viewName) {
-    // Hide all views first
     els.homeView.classList.add('hidden');
     els.inputView.classList.add('hidden');
     els.resultView.classList.add('hidden');
     mypageContainer.classList.add('hidden');
     
-    // Hide/Show common elements
-    // Home(Curation) has its own header internal to the manager
     els.header.classList.toggle('hidden', viewName === 'mypage' || viewName === 'home');
     els.bottomBar.classList.toggle('hidden', viewName === 'mypage');
 
-    // Update Nav UI
     const isDashboard = viewName === 'home';
     els.navHome.classList.toggle('text-primary', isDashboard);
     els.navHome.classList.toggle('opacity-40', !isDashboard);
@@ -235,8 +218,6 @@ function showView(viewName) {
 
     if (viewName === 'home') {
         els.homeView.classList.remove('hidden');
-        // Add specific header for Home inside the container if needed
-        // but HomeManager already includes it
         homeManager.render();
     } else if (viewName === 'input') {
         els.inputView.classList.remove('hidden');
@@ -248,7 +229,6 @@ function showView(viewName) {
     }
 }
 
-// Bind Navigation Events
 els.navHome.onclick = () => showView('home');
 els.navMypage.onclick = () => showView('mypage');
 window.addEventListener('nav-change', (e) => showView(e.detail));
@@ -257,8 +237,6 @@ window.addEventListener('nav-change', (e) => showView(e.detail));
  * Handle Auth State Changes
  */
 supabase.auth.onAuthStateChange((event, session) => {
-    console.log('Auth State Changed:', event, session?.user?.email);
-
     if (event === 'SIGNED_IN') {
         authModal.close();
         onboardingModal.element.classList.add('hidden');
@@ -274,13 +252,11 @@ supabase.auth.onAuthStateChange((event, session) => {
  */
 async function initApp() {
     const { data: { session }, error } = await supabase.auth.getSession();
-    
     if (error) console.error('Session error:', error.message);
 
     if (!session) {
         onboardingModal.open();
     } else {
-        console.log('Active session found:', session.user.email);
         onboardingModal.element.classList.add('hidden');
         authModal.close();
         showView('home');
@@ -305,43 +281,31 @@ function handleSuggestionSelect(suggestion, originalWord) {
     resultViewer.renderCaption(currentResult);
 }
 
-/**
- * URL 이미지를 Base64 데이터로 변환 (테스트용)
- */
-async function urlToBase64(url) {
-    try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-    } catch (e) {
-        console.error('URL 변환 실패:', e);
-        return null;
-    }
-}
-
 // Generate button handler
 els.genBtn.onclick = async () => {
-    let imageData = store.getState('base64');
-    const dataUrl = store.getState('dataUrl');
-    
-    // 이미지가 없고 URL만 있는 경우 (테스트 모드) 변환 시도
-    if (!imageData && dataUrl) {
-        console.log('테스트용 URL 이미지를 Base64로 변환 중...');
-        imageData = await urlToBase64(dataUrl);
-    }
-
+    const imageData = store.getState('base64');
     if (!imageData) {
         showError(UI_MESSAGES.ERROR_NO_IMAGE);
         return;
     }
 
     setLoading(true);
-    // ... (이하 로직 동일)
+
+    const context = {
+        sns: store.getPreference('sns') || snsGroup.getValue() || 'Instagram',
+        mood: els.style.value,
+        temp: store.getPreference('temp') || tempGroup.getValue() || 'Lukewarm',
+        language: els.lang.value,
+        tags: els.tagsInput.value.trim(),
+        activity: els.activity.value,
+        bodyState: els.bodyState.value,
+        relationship: els.relationship.value,
+        metadata: store.getState('metadata'),
+        systemPrompt: store.getState('systemPrompt')
+    };
+
+    try {
+        const storyResult = await geminiService.generateStory(imageData, context);
         els.btnText.innerText = UI_MESSAGES.FINDING_SYNONYMS;
 
         const keywordsWithSuggestions = await geminiService.getSynonyms(
@@ -360,7 +324,7 @@ els.genBtn.onclick = async () => {
         };
         store.setResult(result);
 
-        showView('result'); // Custom logic for result view visibility
+        showView('result');
         els.inputView.classList.add('hidden');
         els.resultView.classList.remove('hidden');
         els.header.classList.remove('hidden');
