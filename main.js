@@ -189,6 +189,7 @@ function showView(viewName) {
     mypageContainer.classList.add('hidden');
     
     // Hide/Show common elements
+    // Home(Curation) has its own header internal to the manager
     els.header.classList.toggle('hidden', viewName === 'mypage' || viewName === 'home');
     els.bottomBar.classList.toggle('hidden', viewName === 'mypage');
 
@@ -201,6 +202,8 @@ function showView(viewName) {
 
     if (viewName === 'home') {
         els.homeView.classList.remove('hidden');
+        // Add specific header for Home inside the container if needed
+        // but HomeManager already includes it
         homeManager.render();
     } else if (viewName === 'input') {
         els.inputView.classList.remove('hidden');

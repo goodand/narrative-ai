@@ -177,3 +177,36 @@ body {
 .glow-effect {
     box-shadow: 0 0 30px rgba(178, 165, 207, 0.15);
 }
+
+/* Carousel Home View Styles */
+.carousel-container {
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    gap: 16px;
+    padding: 0 40px;
+}
+
+.carousel-container::-webkit-scrollbar {
+    display: none;
+}
+
+.carousel-item {
+    flex: 0 0 75%;
+    scroll-snap-align: center;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.carousel-item.side {
+    opacity: 0.4;
+    transform: scale(0.9);
+}
+
+#home-view {
+    height: calc(100dvh - 160px); /* Adjust based on nav height */
+    display: flex;
+    flex-direction: column;
+}

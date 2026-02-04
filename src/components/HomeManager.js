@@ -1,6 +1,6 @@
 /**
- * HomeManager - Main Dashboard Component
- * 홈 화면 대시보드 및 소중해/고마웠어 버튼 관리
+ * HomeManager - Daily Curation Dashboard
+ * 리코코 메인 데일리 큐레이션 화면 (캐러셀 뷰)
  */
 
 import { supabase } from '../services/supabase.js';
@@ -14,80 +14,98 @@ export class HomeManager {
     }
 
     /**
-     * Render the Home Dashboard
+     * Render the Daily Curation View
      */
     async render() {
         const { data: { user } } = await supabase.auth.getUser();
         this.user = user;
 
         const profileName = user?.user_metadata?.full_name || '사용자';
-        const profileImg = user?.user_metadata?.avatar_url || 'https://lh3.googleusercontent.com/a/default-user';
-
+        
+        // daily_curration_main.html 디자인 반영
         this.container.innerHTML = `
-            <!-- Top Profile Section -->
-            <div class="flex flex-col items-center py-8 gap-4">
-                <div class="relative">
-                    <div class="bg-field-bg p-1.5 rounded-full border border-primary/20 shadow-lg">
-                        <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-24 h-24 bg-[#2A2635]" 
-                             style='background-image: url("${profileImg}");'>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-center">
-                    <p class="text-xl font-bold tracking-tight text-white">${profileName}님, 반가워요!</p>
-                    <p class="text-muted-lavender text-xs mt-1">오늘의 기록을 정리해볼까요?</p>
-                </div>
-            </div>
-
-            <!-- Digital Detox Stats Card -->
-            <div class="mb-10">
-                <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.1em] mb-3 ml-1">이번 달 디지털 비움</h3>
-                <div class="bg-field-bg rounded-[24px] p-6 border border-white/5 flex items-center justify-between shadow-xl">
-                    <div class="flex flex-col gap-2">
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_delete</span>
-                            <p class="text-xl font-extrabold text-white leading-none">1.2GB 비워냈어요</p>
-                        </div>
-                        <div class="flex items-center gap-2 mt-1">
-                            <div class="h-1.5 w-32 bg-zinc-800 rounded-full overflow-hidden">
-                                <div class="h-full bg-primary w-[70%]"></div>
+            <div class="flex flex-col h-full overflow-hidden">
+                <!-- Progress Header -->
+                <div class="py-1 shrink-0">
+                    <div class="bg-field-bg rounded-2xl p-4 border border-white/5 shadow-2xl">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex flex-col">
+                                <span class="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-lavender">오늘의 목표</span>
+                                <span class="text-sm font-bold text-white">3 / 10 장 비우기</span>
                             </div>
-                            <p class="text-primary text-xs font-bold">70%</p>
+                            <span class="text-[10px] font-medium text-primary italic">거의 다 왔어요, ${profileName}님</span>
+                        </div>
+                        <div class="relative h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                            <div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-700 ease-out" style="width: 30%;"></div>
                         </div>
                     </div>
-                    <div class="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center">
-                        <span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">cloud_done</span>
-                    </div>
                 </div>
-            </div>
 
-            <!-- Main Action Buttons (Core UX) -->
-            <div class="grid grid-cols-2 gap-4 mb-12">
-                <button id="thanks-btn" class="flex flex-col items-center justify-center p-8 bg-white/5 border border-white/10 rounded-[2.5rem] hover:bg-white/10 transition-all active:scale-95 group">
-                    <div class="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-4 group-hover:bg-zinc-700 transition-colors">
-                        <span class="material-symbols-outlined text-3xl text-white/40">delete_sweep</span>
-                    </div>
-                    <span class="text-lg font-bold text-white">고마웠어</span>
-                    <span class="text-[10px] text-muted-lavender mt-1">사진 비우기</span>
-                </button>
+                <!-- Greeting -->
+                <div class="py-4 shrink-0">
+                    <h1 class="text-white text-xl font-bold leading-tight tracking-tight">
+                        좋은 아침이에요, ${profileName}님.<br/>
+                        <span class="text-muted-lavender font-normal text-sm">오늘의 기억 한 조각입니다.</span>
+                    </h1>
+                </div>
 
-                <button id="precious-btn" class="flex flex-col items-center justify-center p-8 bg-primary rounded-[2.5rem] shadow-lg shadow-primary/20 hover:brightness-110 transition-all active:scale-95 group">
-                    <div class="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mb-4 group-hover:bg-white/30 transition-colors">
-                        <span class="material-symbols-outlined text-3xl text-dark-bg" style="font-variation-settings: 'FILL' 1">auto_awesome</span>
+                <!-- Carousel Section -->
+                <div class="flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
+                    <div class="carousel-container mb-4">
+                        <div class="carousel-item side">
+                            <div class="aspect-[4/5] w-full bg-center bg-no-repeat bg-cover rounded-[24px] border border-white/10 opacity-60" 
+                                 style='background-image: url("https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=400"); filter: grayscale(50%);'>
+                            </div>
+                        </div>
+                        <div class="carousel-item">
+                            <div class="relative aspect-[4/5] w-full">
+                                <div class="w-full h-full bg-center bg-no-repeat bg-cover rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10" 
+                                     style='background-image: url("https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&q=80&w=400");'>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="carousel-item side">
+                            <div class="aspect-[4/5] w-full bg-center bg-no-repeat bg-cover rounded-[24px] border border-white/10 opacity-60" 
+                                 style='background-image: url("https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=400"); filter: grayscale(50%);'>
+                            </div>
+                        </div>
                     </div>
-                    <span class="text-lg font-bold text-dark-bg">소중해</span>
-                    <span class="text-[10px] text-dark-bg/60 mt-1">기억 기록하기</span>
-                </button>
-            </div>
 
-            <!-- Extra Settings (from my_page design) -->
-            <div class="space-y-3 opacity-60">
-                <div class="flex items-center justify-between p-5 bg-field-bg/50 rounded-2xl border border-white/5">
-                    <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-muted-lavender">notifications</span>
-                        <span class="text-sm font-medium text-white">알림 및 목표 설정</span>
+                    <!-- Paging Dots -->
+                    <div class="flex justify-center gap-1.5 mb-6">
+                        <div class="h-1.5 w-1.5 rounded-full bg-white/20"></div>
+                        <div class="h-1.5 w-4 rounded-full bg-primary"></div>
+                        <div class="h-1.5 w-1.5 rounded-full bg-white/20"></div>
+                        <div class="h-1.5 w-1.5 rounded-full bg-white/20"></div>
                     </div>
-                    <span class="material-symbols-outlined text-muted-lavender/40">chevron_right</span>
+
+                    <!-- Context Text -->
+                    <div class="px-8 shrink-0">
+                        <div class="mb-6">
+                            <p class="text-white text-[14px] font-medium leading-relaxed text-center break-keep">
+                                벌써 1년 전이네요! 이 풍경,<br/>
+                                여전히 당신을 설레게 하나요?
+                            </p>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex gap-4 w-full pb-8">
+                            <button id="thanks-btn" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-3.5 px-2 rounded-2xl border border-primary/30 bg-field-bg hover:bg-white/5 transition-all active:scale-95 group">
+                                <span class="material-symbols-outlined text-primary text-xl">delete</span>
+                                <div class="flex flex-col items-center">
+                                    <span class="text-primary font-bold text-[13px] leading-tight">고마웠어</span>
+                                    <span class="text-primary/60 text-[10px] font-medium">(삭제하기)</span>
+                                </div>
+                            </button>
+                            <button id="precious-btn" class="flex-1 flex flex-col items-center justify-center gap-1.5 py-3.5 px-2 rounded-2xl bg-primary shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all">
+                                <span class="material-symbols-outlined text-white text-xl" style="font-variation-settings: 'FILL' 1">auto_awesome</span>
+                                <div class="flex flex-col items-center">
+                                    <span class="text-white font-bold text-[13px] leading-tight">소중해</span>
+                                    <span class="text-white/80 text-[10px] font-medium">(공유하기)</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
