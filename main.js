@@ -166,8 +166,29 @@ const onboardingModal = new OnboardingModal('onboarding-modal', {
 
 // 5-2. Page Managers
 const homeManager = new HomeManager('home-view', {
-    onPreciousClick: () => showView('input'),
-    onThanksClick: () => alert('사진 비우기(삭제) 기능은 구현 중입니다.')
+    onPreciousClick: async (imageData) => {
+        if (imageData) {
+            // 1. Store에 이미지 데이터 저장
+            store.setState('base64', imageData.base64);
+            store.setState('dataUrl', imageData.dataUrl);
+            store.setState('metadata', imageData.metadata);
+
+            // 2. DropZone에 미리보기 표시
+            dropZone.setPreview(imageData.dataUrl);
+            dropZone.showMetadata(imageData.metadata);
+
+            console.log('HomeManager → input-view: 이미지 데이터 전달 완료', {
+                hasBase64: !!imageData.base64,
+                metadata: imageData.metadata
+            });
+        }
+        // 3. input-view로 전환
+        showView('input');
+    },
+    onThanksClick: (photo) => {
+        console.log('삭제 대상 사진:', photo);
+        alert('사진 비우기(삭제) 기능은 구현 중입니다.');
+    }
 });
 
 const mypageContainer = document.createElement('div');

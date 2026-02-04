@@ -11,6 +11,76 @@ export class HomeManager {
         this.onPreciousClick = options.onPreciousClick || null;
         this.onThanksClick = options.onThanksClick || null;
         this.user = null;
+
+        // 큐레이션 사진 데이터 (추후 실제 기기 사진으로 교체)
+        this.curationPhotos = [
+            {
+                id: 1,
+                imageUrl: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=800',
+                date: '2025-01-15',
+                location: '제주도 서귀포시',
+                contextMessage: '벌써 1년 전이네요! 이 풍경, 여전히 당신을 설레게 하나요?'
+            },
+            {
+                id: 2,
+                imageUrl: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&q=80&w=800',
+                date: '2024-08-22',
+                location: '강원도 속초시',
+                contextMessage: '이 순간을 기억하시나요? 그때의 감정이 떠오르나요?'
+            },
+            {
+                id: 3,
+                imageUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&q=80&w=800',
+                date: '2024-05-10',
+                location: '서울 북한산',
+                contextMessage: '자연 속에서의 시간, 소중하게 간직하고 싶은 순간이네요.'
+            }
+        ];
+
+        this.currentIndex = 1; // 가운데 사진이 기본 선택
+    }
+
+    /**
+     * 현재 선택된 사진 정보 반환
+     */
+    getCurrentPhoto() {
+        return this.curationPhotos[this.currentIndex];
+    }
+
+    /**
+     * 이미지 URL을 base64로 변환하여 데이터 반환
+     */
+    async getCurrentImageData() {
+        const photo = this.getCurrentPhoto();
+        if (!photo) return null;
+
+        try {
+            const response = await fetch(photo.imageUrl);
+            const blob = await response.blob();
+
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const dataUrl = reader.result;
+                    const base64 = dataUrl.split(',')[1];
+
+                    resolve({
+                        base64,
+                        dataUrl,
+                        metadata: {
+                            date: photo.date,
+                            gps: { formatted: photo.location }
+                        },
+                        contextMessage: photo.contextMessage
+                    });
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.error('HomeManager: 이미지 로드 실패', error);
+            return null;
+        }
     }
 
     /**
@@ -118,14 +188,19 @@ export class HomeManager {
         const thanksBtn = document.getElementById('thanks-btn');
 
         if (preciousBtn) {
-            preciousBtn.onclick = () => {
-                if (this.onPreciousClick) this.onPreciousClick();
+            preciousBtn.onclick = async () => {
+                if (this.onPreciousClick) {
+                    // 이미지 데이터를 함께 전달
+                    const imageData = await this.getCurrentImageData();
+                    this.onPreciousClick(imageData);
+                }
             };
         }
 
         if (thanksBtn) {
             thanksBtn.onclick = () => {
-                if (this.onThanksClick) this.onThanksClick();
+                const photo = this.getCurrentPhoto();
+                if (this.onThanksClick) this.onThanksClick(photo);
             };
         }
     }
