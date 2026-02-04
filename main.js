@@ -310,13 +310,16 @@ els.genBtn.onclick = async () => {
         if (inputView) inputView.classList.add('hidden');
         if (headerTitle) headerTitle.innerText = '리코코 기록 결과';
         
-        // Update Metadata UI in result view
+        // 1. Show the result view first to ensure elements are layouted
+        resultViewer.show();
+        
+        // 2. Then update Metadata UI
         const resultDate = document.getElementById('result-date');
         const resultLoc = document.getElementById('result-location');
         if (resultDate && metadata.date) resultDate.innerText = metadata.date;
         if (resultLoc && metadata.gps) resultLoc.innerText = metadata.gps.formatted;
 
-        resultViewer.show();
+        // 3. Finally render the caption and image
         resultViewer.renderCaption(result);
         resultViewer.scrollIntoView();
 

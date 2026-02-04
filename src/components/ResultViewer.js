@@ -76,7 +76,11 @@ export class ResultViewer {
      * @param {Object} data - Caption data with keywords and image
      */
     renderCaption(data) {
-        console.log('ResultViewer: Starting renderCaption with data:', data);
+        console.log('ResultViewer: renderCaption invoked', { 
+            hasImage: !!data.image, 
+            captionLength: data.original_caption?.length 
+        });
+
         if (!data || !data.original_caption) {
             console.error('ResultViewer: Invalid caption data provided');
             return;
@@ -87,7 +91,21 @@ export class ResultViewer {
 
         // Update image if provided
         if (data.image && this.resultImage) {
-            this.resultImage.src = data.image;
+            const img = this.resultImage;
+            
+            // 이미지 로딩 완료 후 처리 (안전장치)
+            img.onload = () => {
+                console.log('ResultViewer: Image successfully loaded in UI');
+                img.classList.remove('opacity-0');
+                img.parentElement.classList.remove('bg-dark-bg');
+            };
+            
+            img.onerror = () => {
+                console.error('ResultViewer: Failed to load image source');
+            };
+
+            img.src = data.image;
+            console.log('ResultViewer: Image src assigned');
         }
 
         try {
