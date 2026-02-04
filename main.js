@@ -167,22 +167,28 @@ const onboardingModal = new OnboardingModal('onboarding-modal', {
 // 5-2. Page Managers
 const homeManager = new HomeManager('home-view', {
     onPreciousClick: async (imageData) => {
-        if (imageData) {
-            // 1. Store에 이미지 데이터 저장
-            store.setState('base64', imageData.base64);
-            store.setState('dataUrl', imageData.dataUrl);
-            store.setState('metadata', imageData.metadata);
+        try {
+            if (imageData) {
+                // 1. Store에 이미지 데이터 저장
+                store.setState('base64', imageData.base64);
+                store.setState('dataUrl', imageData.dataUrl);
+                store.setState('metadata', imageData.metadata);
 
-            // 2. DropZone에 미리보기 표시
-            dropZone.setPreview(imageData.dataUrl);
-            dropZone.showMetadata(imageData.metadata);
+                // 2. DropZone에 미리보기 표시
+                dropZone.setPreview(imageData.dataUrl);
+                dropZone.showMetadata(imageData.metadata);
 
-            console.log('HomeManager → input-view: 이미지 데이터 전달 완료', {
-                hasBase64: !!imageData.base64,
-                metadata: imageData.metadata
-            });
+                console.log('HomeManager → input-view: 이미지 데이터 전달 완료', {
+                    hasBase64: !!imageData.base64,
+                    metadata: imageData.metadata
+                });
+            } else {
+                console.warn('imageData가 null입니다. 이미지 없이 진행합니다.');
+            }
+        } catch (error) {
+            console.error('이미지 데이터 처리 중 오류:', error);
         }
-        // 3. input-view로 전환
+        // 3. input-view로 전환 (에러 발생해도 항상 실행)
         showView('input');
     },
     onThanksClick: (photo) => {

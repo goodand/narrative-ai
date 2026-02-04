@@ -56,3 +56,17 @@ depsolve-package/
 depsolve_ext
 
 deposlve_extensions
+
+PROJECT_ARCHITECTURE.md
+
+# 빌드 결과물 (빌드 결과물을 Git에 올리지 않으려면 추가)
+dist/
+
+# 임시 분석 결과 파일
+raw_architecture.json
+raw_architecture_new.json
+depsolve_report.txt
+
+# iOS 개인 설정 파일
+**/xcuserdata/
+**/DerivedData/

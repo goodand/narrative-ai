@@ -190,9 +190,14 @@ export class HomeManager {
         if (preciousBtn) {
             preciousBtn.onclick = async () => {
                 if (this.onPreciousClick) {
-                    // 이미지 데이터를 함께 전달
-                    const imageData = await this.getCurrentImageData();
-                    this.onPreciousClick(imageData);
+                    try {
+                        // 이미지 데이터를 함께 전달
+                        const imageData = await this.getCurrentImageData();
+                        this.onPreciousClick(imageData);
+                    } catch (error) {
+                        console.error('HomeManager: 이미지 로드 실패, 데이터 없이 진행', error);
+                        this.onPreciousClick(null);
+                    }
                 }
             };
         }
