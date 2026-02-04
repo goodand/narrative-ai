@@ -213,10 +213,9 @@ supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN') {
         authModal.close();
         onboardingModal.element.classList.add('hidden');
-        // 세션 정보 확인 후 신규 가입자 여부 판단 (임시로 항상 권한 모달 표시)
-        if (event === 'SIGNED_IN') {
-            permissionModal.open();
-        }
+        // 로그인 성공 시 홈으로 전환 및 권한 모달 표시
+        showView('home');
+        permissionModal.open();
     } else if (event === 'SIGNED_OUT') {
         onboardingModal.open();
     }
@@ -226,12 +225,20 @@ supabase.auth.onAuthStateChange((event, session) => {
  * App Initialization
  */
 async function initApp() {
-    const { data: { session } } = await supabase.auth.getSession();
+    // getSession() automatically handles OAuth callback tokens in the URL
+    const { data: { session }, error } = await supabase.auth.getSession();
     
+    if (error) {
+        console.error('Session initialization error:', error.message);
+    }
+
     if (!session) {
+        console.log('No session found, starting onboarding');
         onboardingModal.open();
     } else {
         console.log('Active session found:', session.user.email);
+        onboardingModal.element.classList.add('hidden');
+        authModal.close();
         showView('home');
     }
 }

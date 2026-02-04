@@ -46,6 +46,12 @@ export class AuthModal extends Modal {
 
     async _handleGoogleLogin() {
         try {
+            // Determine redirect URL based on environment
+            // Capacitor(iOS) 환경이면 커스텀 스킴을 고려해야 할 수 있으나, 일단 표준 웹 리디렉션 사용
+            const redirectUrl = window.location.origin;
+            
+            console.log('Starting Google Login, redirecting to:', redirectUrl);
+
             const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
@@ -53,14 +59,14 @@ export class AuthModal extends Modal {
                         access_type: 'offline',
                         prompt: 'select_account',
                     },
-                    redirectTo: window.location.origin
+                    redirectTo: redirectUrl
                 }
             });
 
             if (error) throw error;
             
-            // Note: OAuth redirection will happen here. 
-            // The success logic will be handled in main.js on page load/auth state change.
+            // Web environment will redirect automatically.
+            // For Capacitor, additional listeners might be needed, but Supabase standard handles most cases.
         } catch (error) {
             console.error('Login Error:', error.message);
             alert('로그인 중 오류가 발생했습니다: ' + error.message);
