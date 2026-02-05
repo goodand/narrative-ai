@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        case_sensitive = False  # 대소문자 구분 없이 환경변수 읽기
 
 
 @lru_cache()
