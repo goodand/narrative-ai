@@ -138,8 +138,12 @@ const homeManager = new HomeManager('home-view', {
                 previewContainer?.classList.remove('hidden');
                 uploadPlaceholder?.classList.add('hidden');
 
-                // Store에 데이터 저장
-                store.setState('dataUrl', currentPhoto.imageUrl);
+                // Store에 데이터 저장 (dataUrl에서 base64 추출)
+                const dataUrl = currentPhoto.imageUrl;
+                const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
+
+                store.setState('dataUrl', dataUrl);
+                store.setState('base64', base64);
                 store.setState('metadata', homeManager.getCurrentPhotoMeta());
             }
         }

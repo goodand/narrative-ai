@@ -99,7 +99,36 @@ export class GeminiService {
         }
     }
 
+    /**
+     * Get synonyms for keywords via backend proxy
+     * @param {string[]} keywords - Keywords to get synonyms for
+     * @param {string} language - Language for synonyms
+     * @returns {Promise<Object[]>} Synonyms suggestions
+     */
     async getSynonyms(keywords, language) {
-        // ... (기존 로직 동일)
+        try {
+            const response = await fetchWithRetry(
+                `${this.baseUrl}/api/v1/synonyms`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        keywords: keywords,
+                        language: language || 'Korean'
+                    })
+                }
+            );
+
+            if (!response.ok) {
+                console.warn('Synonyms API error, returning empty suggestions');
+                return keywords.map(w => ({ word: w, alternatives: [] }));
+            }
+
+            const data = await response.json();
+            return data.suggestions || keywords.map(w => ({ word: w, alternatives: [] }));
+        } catch (error) {
+            console.error('Synonyms fetch error:', error);
+            return keywords.map(w => ({ word: w, alternatives: [] }));
+        }
     }
 }
