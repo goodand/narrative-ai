@@ -41,37 +41,19 @@ export class HomeManager {
                 const rankedAssets = CurationEngine.rankAssets(photos);
                 const targetAssets = rankedAssets.slice(0, 10);
 
-                this.curationPhotos = await Promise.all(targetAssets.map(async (asset) => {
-                    const { base64 } = await RecocolPhotos.loadImageData({ 
-                        assetId: asset.id, 
-                        quality: 'thumbnail' 
-                    });
-                    
-                    let locationLabel = '위치 정보 없음';
-                    if (asset.location) {
-                        try {
-                            locationLabel = await geocodingService.getAddress(
-                                asset.location.latitude, 
-                                asset.location.longitude
-                            );
-                        } catch (e) {
-                            console.warn('주소 변환 실패:', e);
-                            locationLabel = '위치 확인 불가';
-                        }
-                    }
-                    
-                    return {
-                        id: asset.id,
-                        imageUrl: `data:image/jpeg;base64,${base64}`,
-                        date: asset.creationDate.split('T')[0],
-                        location: locationLabel,
-                        contextMessage: asset.curationReasons.length > 0 
-                            ? `${asset.curationReasons.join(', ')}이라 비워내기 좋아요.`
-                            : '오늘의 소중한 기록 한 장입니다.',
-                        rawAsset: asset,
-                        score: asset.curationScore
-                    };
+                // 메타데이터만 먼저 구성 (이미지 로딩 지연)
+                this.curationPhotos = targetAssets.map(asset => ({
+                    id: asset.id,
+                    imageUrl: null, // 초기에는 null
+                    date: asset.creationDate.split('T')[0],
+                    location: '위치 확인 중...',
+                    contextMessage: asset.curationReasons.length > 0 
+                        ? `${asset.curationReasons.join(', ')}이라 비워내기 좋아요.`
+                        : '오늘의 소중한 기록 한 장입니다.',
+                    rawAsset: asset,
+                    score: asset.curationScore
                 }));
+                
                 this.currentIndex = 0;
             } else {
                 this.error = '사진첩에 분석할 수 있는 사진이 없습니다.';
@@ -82,6 +64,44 @@ export class HomeManager {
         } finally {
             this.isLoading = false;
             this.render();
+        }
+    }
+
+    /**
+     * 특정 인덱스의 이미지 데이터를 로드합니다.
+     */
+    async _loadImageForIndex(index) {
+        if (index < 0 || index >= this.curationPhotos.length) return;
+        const photo = this.curationPhotos[index];
+        
+        // 이미 로드되었으면 스킵
+        if (photo.imageUrl) return;
+
+        try {
+            // 이미지 데이터 로드
+            const { base64 } = await RecocolPhotos.loadImageData({ 
+                assetId: photo.id, 
+                quality: 'thumbnail' 
+            });
+            photo.imageUrl = `data:image/jpeg;base64,${base64}`;
+
+            // 위치 정보 변환 (비동기)
+            if (photo.rawAsset.location) {
+                try {
+                    const address = await geocodingService.getAddress(
+                        photo.rawAsset.location.latitude, 
+                        photo.rawAsset.location.longitude
+                    );
+                    photo.location = address;
+                } catch (e) {
+                    console.warn('주소 변환 실패:', e);
+                    photo.location = '위치 정보 없음';
+                }
+            } else {
+                photo.location = '위치 정보 없음';
+            }
+        } catch (error) {
+            console.error(`이미지 로드 실패 (ID: ${photo.id}):`, error);
         }
     }
 
@@ -215,9 +235,19 @@ export class HomeManager {
             return;
         }
 
-        const currentPhoto = this.curationPhotos[this.currentIndex];
+        // Lazy Loading: 현재, 이전, 다음 이미지만 로드
         const prevIdx = (this.currentIndex - 1 + this.curationPhotos.length) % this.curationPhotos.length;
         const nextIdx = (this.currentIndex + 1) % this.curationPhotos.length;
+
+        await Promise.all([
+            this._loadImageForIndex(this.currentIndex),
+            this._loadImageForIndex(prevIdx),
+            this._loadImageForIndex(nextIdx)
+        ]);
+
+        const currentPhoto = this.curationPhotos[this.currentIndex];
+        const prevPhoto = this.curationPhotos[prevIdx];
+        const nextPhoto = this.curationPhotos[nextIdx];
 
         this.container.innerHTML = `
             <div class="flex flex-col h-full overflow-hidden">
@@ -246,21 +276,21 @@ export class HomeManager {
                 <div class="flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
                     <div class="carousel-container mb-4">
                         <div class="carousel-item side opacity-40">
-                            <div class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10" 
-                                 style='background-image: url("${this.curationPhotos[prevIdx]?.imageUrl || ''}"); filter: grayscale(50%);'>
+                            <div class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg" 
+                                 style='${prevPhoto?.imageUrl ? `background-image: url("${prevPhoto.imageUrl}");` : ""} filter: grayscale(50%);'>
                             </div>
                         </div>
                         <div class="carousel-item">
                             <div class="relative aspect-[4/5] w-full">
-                                <div class="w-full h-full bg-center bg-cover rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10" 
-                                     style='background-image: url("${currentPhoto?.imageUrl || ''}");'>
+                                <div class="w-full h-full bg-center bg-cover rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 bg-field-bg" 
+                                     style='${currentPhoto?.imageUrl ? `background-image: url("${currentPhoto.imageUrl}");` : ""}'>
                                 </div>
                                 ${currentPhoto?.score > 20 ? '<div class="absolute top-4 right-4 bg-primary/90 text-dark-bg text-[10px] font-black px-2 py-1 rounded-full shadow-lg">HIGH DETOX</div>' : ''}
                             </div>
                         </div>
                         <div class="carousel-item side opacity-40">
-                            <div class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10" 
-                                 style='background-image: url("${this.curationPhotos[nextIdx]?.imageUrl || ''}"); filter: grayscale(50%);'>
+                            <div class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg" 
+                                 style='${nextPhoto?.imageUrl ? `background-image: url("${nextPhoto.imageUrl}");` : ""} filter: grayscale(50%);'>
                             </div>
                         </div>
                     </div>
