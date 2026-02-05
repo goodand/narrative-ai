@@ -7,4 +7,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.error('Supabase URL or Anon Key is missing in .env file');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// 싱글톤 패턴 보장
+if (!window.supabaseInstance) {
+    window.supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: true
+        }
+    });
+}
+
+export const supabase = window.supabaseInstance;

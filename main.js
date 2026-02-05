@@ -33,41 +33,80 @@ import { ReportManager } from './src/components/ReportManager.js';
 // Initialize Core Services
 const geminiService = new GeminiService();
 
+// --- Visual Debug Logger ---
+const debugEl = document.createElement('div');
+debugEl.id = 'debug-console';
+// CSS 문법 오류 수정
+debugEl.style.position = 'fixed';
+debugEl.style.bottom = '120px';
+debugEl.style.left = '10px';
+debugEl.style.right = '10px';
+debugEl.style.zIndex = '9999';
+debugEl.style.background = 'rgba(0, 0, 0, 0.8)';
+debugEl.style.color = '#4ade80';
+debugEl.style.padding = '8px';
+debugEl.style.borderRadius = '8px';
+debugEl.style.fontSize = '10px';
+debugEl.style.fontFamily = 'monospace';
+debugEl.style.maxHeight = '120px';
+debugEl.style.overflowY = 'auto';
+debugEl.style.border = '1px solid rgba(74, 222, 128, 0.3)';
+debugEl.style.pointerEvents = 'none';
+document.body.appendChild(debugEl);
+
+function logDebug(msg) {
+    console.log(`[DEBUG] ${msg}`);
+    const line = document.createElement('div');
+    line.style.marginBottom = '2px';
+    line.innerText = `> ${new Date().toLocaleTimeString()}: ${msg}`;
+    debugEl.prepend(line);
+    if (debugEl.children.length > 20) {
+        debugEl.removeChild(debugEl.lastChild);
+    }
+}
+
 // Handle Deep Links (OAuth Callback)
-App.addListener('appUrlOpen', async (data) => {
-    console.log('App opened with URL:', data.url);
-    
-    // Check if it's the auth callback
-    if (data.url.includes('login-callback')) {
-        const url = new URL(data.url);
-        const hash = url.hash.substring(1); 
-        const params = new URLSearchParams(hash);
-        
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
+const handleUrl = async (urlStr) => {
+    logDebug(`DeepLink 수신: ${urlStr}`);
+    if (!urlStr) return;
+
+    try {
+        let accessToken = null;
+        let refreshToken = null;
+        let code = null;
+
+        const parts = urlStr.split(/[#?&]/);
+        parts.forEach(part => {
+            if (part.startsWith('access_token=')) accessToken = part.split('=')[1];
+            if (part.startsWith('refresh_token=')) refreshToken = part.split('=')[1];
+            if (part.startsWith('code=')) code = part.split('=')[1];
+        });
 
         if (accessToken && refreshToken) {
-            const { error } = await supabase.auth.setSession({
+            logDebug('토큰 발견, 세션 설정 중...');
+            const { data, error } = await supabase.auth.setSession({
                 access_token: accessToken,
                 refresh_token: refreshToken
             });
-
-            if (error) {
-                console.error('Error setting session from deep link:', error);
-                alert('로그인 세션 설정 실패: ' + error.message);
-            } else {
-                console.log('Session successfully set from deep link');
-            }
-        } else {
-            console.warn('[AUTH] Deep link에서 토큰을 찾을 수 없음:', data.url);
+            if (error) throw error;
+            logDebug(`세션 설정 완료: ${data.user?.email}`);
+        } else if (code) {
+            logDebug('코드 발견, 교환 시도...');
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            if (error) throw error;
+            logDebug('코드 교환 성공');
         }
+    } catch (err) {
+        logDebug(`에러: ${err.message}`);
+        alert('인증 오류: ' + err.message);
     }
+};
+
+App.addListener('appUrlOpen', (data) => {
+    handleUrl(data.url);
 });
 
-// Log initialization status
-console.log('RECOCO - Vite project loaded successfully');
-
-// DOM Elements for UI controls
+// DOM Elements
 const els = {
     genBtn: document.getElementById('generate-btn'),
     btnText: document.getElementById('btn-text'),
@@ -79,11 +118,9 @@ const els = {
     activity: document.getElementById('activity-select'),
     bodyState: document.getElementById('body-state-select'),
     relationship: document.getElementById('relationship-select'),
-    // Navigation
     navHome: document.getElementById('nav-home'),
     navReport: document.getElementById('nav-report'),
     navMypage: document.getElementById('nav-mypage'),
-    // Views
     homeView: document.getElementById('home-view'),
     reportView: document.getElementById('report-view'),
     inputView: document.getElementById('input-view'),
@@ -93,323 +130,95 @@ const els = {
     bottomBar: document.getElementById('bottom-action-bar')
 };
 
-// --- Component Initializations ---
-
-// 1. Drop Zone for image upload
+// Components Initializations
 const dropZone = new DropZone({
-    dropZone: 'drop-zone',
-    input: 'image-input',
-    preview: 'image-preview',
-    container: 'preview-container',
-    placeholder: 'upload-placeholder',
-    metaElements: {
-        date: 'meta-date',
-        gps: 'meta-gps'
-    },
+    dropZone: 'drop-zone', input: 'image-input', preview: 'image-preview', container: 'preview-container', placeholder: 'upload-placeholder',
+    metaElements: { date: 'meta-date', gps: 'meta-gps' },
     onFileLoaded: (data) => {
         store.setState('base64', data.base64);
         store.setState('dataUrl', data.dataUrl);
         store.setState('metadata', data.metadata);
-    },
-    onError: (error) => {
-        showError(UI_MESSAGES.ERROR_IMAGE_PROCESS);
-        console.error('Image upload error:', error);
     }
 });
 
-// 2. SNS Platform Selection
-const snsGroup = new SelectionGroup({
-    container: '.sns-grid',
-    itemSelector: '.sns-item',
-    activeClass: 'bg-primary text-white rounded-xl text-xs font-semibold sns-item active',
-    inactiveClass: 'bg-field-bg text-muted-lavender rounded-xl text-xs font-semibold sns-item',
-    onChange: (value) => {
-        store.setPreference('sns', value);
-    }
-});
+const snsGroup = new SelectionGroup({ container: '.sns-grid', itemSelector: '.sns-item', activeClass: 'bg-primary text-white rounded-xl text-xs font-semibold sns-item active', inactiveClass: 'bg-field-bg text-muted-lavender rounded-xl text-xs font-semibold sns-item' });
+const tempGroup = new SelectionGroup({ container: '#temp-toggle-group', itemSelector: 'button', activeClass: 'bg-white/10 shadow-sm', inactiveClass: 'hover:bg-white/5' });
+const resultViewer = new ResultViewer({ resultArea: 'result-view', interactiveCaption: 'caption-interactive', editCaption: 'caption-edit', editBtn: 'edit-btn', saveBtn: 'save-btn', copyBtn: 'copy-btn', shareBtn: 'share-btn', resultImage: 'result-image' });
 
-// 3. Emotion Temperature Toggle
-const tempGroup = new SelectionGroup({
-    container: '#temp-toggle-group',
-    itemSelector: 'button',
-    activeClass: 'bg-white/10 shadow-sm',
-    inactiveClass: 'hover:bg-white/5',
-    onChange: (value) => {
-        store.setPreference('temp', value);
-    }
-});
-
-// 4. Result Viewer
-const resultViewer = new ResultViewer({
-    resultArea: 'result-view',
-    interactiveCaption: 'caption-interactive',
-    editCaption: 'caption-edit',
-    editBtn: 'edit-btn',
-    saveBtn: 'save-btn',
-    copyBtn: 'copy-btn',
-    shareBtn: 'share-btn',
-    resultImage: 'result-image',
-    onKeywordClick: (wordData) => {
-        suggestionModal.renderSuggestions(wordData, handleSuggestionSelect);
-    },
-    onSave: (newText) => {
-        const currentResult = store.getState('currentResult');
-        if (currentResult) {
-            currentResult.original_caption = newText;
-            store.setResult(currentResult);
-        }
-    },
-    onShare: async (captionText) => {
-        const { shareWithImage, shareCaption } = await import('./src/services/ShareService.js');
-        const imageBase64 = store.getState('base64');
-        if (imageBase64) {
-            await shareWithImage({ imageBase64, caption: captionText });
-        } else {
-            await shareCaption(captionText);
-        }
-    }
-});
-
-// 5. Modals
 const suggestionModal = new SuggestionModal('suggestion-modal', 'suggestion-list');
-suggestionModal.setCloseButton('close-modal');
-
 const settingsModal = new SettingsModal('settings-modal', 'system-prompt-input');
-settingsModal.setCloseButton('close-settings');
-settingsModal.setSaveButton('save-settings', (value) => {
-    store.setState('systemPrompt', value);
-});
-settingsModal.setValue(DEFAULT_SYSTEM_PROMPT);
-
 const editConfirmModal = new ConfirmModal('edit-confirm-modal');
-editConfirmModal.setup({
-    confirmBtn: 'confirm-edit-btn',
-    cancelBtn: 'cancel-edit-btn',
-    onConfirm: () => {
-        resultViewer.enterEditMode();
-    }
-});
 
-// 5-1. Flow Modals
 const permissionModal = new PermissionModal('permission-modal');
 const authModal = new AuthModal('auth-modal');
 const onboardingModal = new OnboardingModal('onboarding-modal', {
-    onComplete: () => {
-        authModal.open('signup');
-    }
+    onComplete: () => authModal.open('signup')
 });
 
-// 5-2. Page Managers
 const homeManager = new HomeManager('home-view', {
-    onPreciousClick: async () => {
-        try {
-            console.log('main.js: HomeManager의 "소중해" 액션 감지');
-            const file = await homeManager.getCurrentImageAsFile();
-            if (file) {
-                await dropZone.handleExternalFile(file);
-                const curationMeta = homeManager.getCurrentPhotoMeta();
-                const currentMeta = store.getState('metadata') || {};
-                const mergedMeta = { ...currentMeta, ...curationMeta };
-                store.setState('metadata', mergedMeta);
-                dropZone.showMetadata(mergedMeta);
-                console.log('main.js: 큐레이션 이미지 파이프라인 처리 완료');
-            }
-        } catch (error) {
-            console.error('main.js: 큐레이션 처리 중 오류 발생:', error);
-        }
-        showView('input');
-    },
-    onThanksClick: (photo) => {
-        console.log('삭제 대상 사진:', photo);
-        alert('사진 비우기(삭제) 기능은 구현 중입니다.');
-    }
+    onPreciousClick: async () => { showView('input'); }
 });
-
 const reportManager = new ReportManager('report-view');
-
 const mypageContainer = document.createElement('div');
 mypageContainer.id = 'mypage-view';
 mypageContainer.className = 'hidden min-h-screen bg-dark-bg';
 document.body.appendChild(mypageContainer);
-
-const mypageManager = new MyPageManager('mypage-view', {
-    onLogout: () => window.location.reload()
-});
-
-// --- View Navigation Logic ---
+const mypageManager = new MyPageManager('mypage-view', { onLogout: () => window.location.reload() });
 
 function showView(viewName) {
+    logDebug(`View: ${viewName}`);
     els.homeView.classList.add('hidden');
     els.reportView.classList.add('hidden');
     els.inputView.classList.add('hidden');
     els.resultView.classList.add('hidden');
     mypageContainer.classList.add('hidden');
     
+    if (viewName === 'home') {
+        authModal.close();
+        onboardingModal.element.classList.add('hidden');
+        permissionModal.element.classList.add('hidden');
+    }
+
     els.header.classList.toggle('hidden', viewName === 'mypage' || viewName === 'home' || viewName === 'report');
     els.bottomBar.classList.toggle('hidden', viewName === 'mypage');
 
-    const isDashboard = viewName === 'home';
-    els.navHome.classList.toggle('text-primary', isDashboard);
-    els.navHome.classList.toggle('opacity-40', !isDashboard);
-    
-    els.navReport.classList.toggle('text-primary', viewName === 'report');
-    els.navReport.classList.toggle('opacity-40', viewName !== 'report');
-
-    els.navMypage.classList.toggle('text-primary', viewName === 'mypage');
-    els.navMypage.classList.toggle('opacity-40', viewName !== 'mypage');
-
-    if (viewName === 'home') {
-        els.homeView.classList.remove('hidden');
-        homeManager.render();
-    } else if (viewName === 'report') {
-        els.reportView.classList.remove('hidden');
-        reportManager.render();
-    } else if (viewName === 'input') {
-        els.inputView.classList.remove('hidden');
-        els.header.classList.remove('hidden');
-        els.headerTitle.innerText = '리코코 상세 기록 설정';
-    } else if (viewName === 'mypage') {
-        mypageContainer.classList.remove('hidden');
-        mypageManager.render();
-    }
+    if (viewName === 'home') { els.homeView.classList.remove('hidden'); homeManager.render(); }
+    else if (viewName === 'report') { els.reportView.classList.remove('hidden'); reportManager.render(); }
+    else if (viewName === 'input') { els.inputView.classList.remove('hidden'); }
+    else if (viewName === 'mypage') { mypageContainer.classList.remove('hidden'); mypageManager.render(); }
 }
 
-// Bind Navigation Events
 els.navHome.onclick = () => showView('home');
 els.navReport.onclick = () => showView('report');
 els.navMypage.onclick = () => showView('mypage');
-window.addEventListener('nav-change', (e) => showView(e.detail));
 
-/**
- * Handle Auth State Changes
- */
 supabase.auth.onAuthStateChange((event, session) => {
+    logDebug(`Auth: ${event}`);
     if (event === 'SIGNED_IN') {
         authModal.close();
         onboardingModal.element.classList.add('hidden');
-        showView('home');
+        permissionModal.onComplete = () => showView('home');
         permissionModal.checkAndOpen();
     } else if (event === 'SIGNED_OUT') {
         onboardingModal.open();
     }
 });
 
-/**
- * App Initialization
- */
 async function initApp() {
-    // 17:00 데일리 리셋 체크
-    store.checkAndResetDaily();
+    logDebug('Init App');
+    const launchUrl = await App.getLaunchUrl();
+    if (launchUrl?.url) await handleUrl(launchUrl.url);
 
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) console.error('Session error:', error.message);
-
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
         onboardingModal.open();
     } else {
-        console.log('Active session found:', session.user.email);
+        logDebug('세션 존재');
         onboardingModal.element.classList.add('hidden');
         authModal.close();
-        showView('home');
-        console.log('initApp: App initialized and Home view shown');
+        permissionModal.onComplete = () => showView('home');
+        permissionModal.checkAndOpen();
     }
 }
 
-// --- Event Handlers ---
-
-function handleSuggestionSelect(suggestion, originalWord) {
-    const currentResult = store.getState('currentResult');
-    if (!currentResult) return;
-
-    const newCaption = currentResult.original_caption.replace(originalWord, suggestion);
-    currentResult.original_caption = newCaption;
-
-    const keyword = currentResult.keywords.find(k => k.word === originalWord);
-    if (keyword) {
-        keyword.word = suggestion;
-    }
-
-    store.setResult(currentResult);
-    resultViewer.renderCaption(currentResult);
-}
-
-// Generate button handler
-els.genBtn.onclick = async () => {
-    const imageData = store.getState('base64');
-    if (!imageData) {
-        showError(UI_MESSAGES.ERROR_NO_IMAGE);
-        return;
-    }
-
-    setLoading(true);
-
-    const context = {
-        sns: store.getPreference('sns') || snsGroup.getValue() || 'Instagram',
-        mood: els.style.value,
-        temp: store.getPreference('temp') || tempGroup.getValue() || 'Lukewarm',
-        language: els.lang.value,
-        tags: els.tagsInput.value.trim(),
-        activity: els.activity.value,
-        bodyState: els.bodyState.value,
-        relationship: els.relationship.value,
-        metadata: store.getState('metadata'),
-        systemPrompt: store.getState('systemPrompt')
-    };
-
-    try {
-        const storyResult = await geminiService.generateStory(imageData, context);
-        els.btnText.innerText = UI_MESSAGES.FINDING_SYNONYMS;
-
-        const keywordsWithSuggestions = await geminiService.getSynonyms(
-            storyResult.keywords,
-            context.language
-        );
-
-        const metadata = store.getState('metadata');
-        const displayImage = store.getState('dataUrl');
-        
-        const result = {
-            original_caption: storyResult.original_caption,
-            keywords: keywordsWithSuggestions,
-            image: displayImage,
-            metadata: metadata
-        };
-        store.setResult(result);
-
-        showView('result');
-        els.inputView.classList.add('hidden');
-        els.resultView.classList.remove('hidden');
-        els.header.classList.remove('hidden');
-        els.headerTitle.innerText = '리코코 기록 결과';
-        
-        const resultDate = document.getElementById('result-date');
-        const resultLoc = document.getElementById('result-location');
-        if (resultDate && metadata.date) resultDate.innerText = metadata.date;
-        if (resultLoc && metadata.gps) resultLoc.innerText = metadata.gps.formatted;
-
-        resultViewer.show();
-        resultViewer.renderCaption(result);
-        resultViewer.scrollIntoView();
-
-    } catch (error) {
-        showError('AI 생성 중 오류 발생: ' + error.message);
-        console.error('Generation error:', error);
-    } finally {
-        setLoading(false);
-    }
-};
-
-function setLoading(isLoading) {
-    els.genBtn.disabled = isLoading;
-    els.loader.classList.toggle('hidden', !isLoading);
-    els.btnText.innerText = isLoading ? UI_MESSAGES.LOADING : UI_MESSAGES.GENERATE_BUTTON;
-}
-
-function showError(message) {
-    els.error.innerText = message;
-    els.error.classList.remove('hidden');
-    setTimeout(() => els.error.classList.add('hidden'), 5000);
-}
-
-// Start the app
 initApp();

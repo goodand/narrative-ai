@@ -72,3 +72,5 @@ depsolve_report.txt
 **/DerivedData/
 
 project.xcworkspace/* 
+
+IOS_STABILIZATION_REPORT.md

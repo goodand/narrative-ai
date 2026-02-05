@@ -214,18 +214,27 @@ export class HomeManager {
     }
 
     async render() {
-        if (!this.user) {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
+        // 사용자 정보가 없으면 배경에서 가져오기 (렌더링을 차단하지 않음)
+        if (!this.user && !this._isFetchingUser) {
+            this._isFetchingUser = true;
+            supabase.auth.getUser().then(({ data: { user } }) => {
                 this.user = user;
-            } catch (e) {}
+                this._isFetchingUser = false;
+                // 사용자 이름을 표시하기 위해 재렌더링 (필요한 경우에만)
+                const nameEl = document.getElementById('profile-name-display');
+                if (nameEl && user) {
+                    nameEl.innerText = `${user.user_metadata?.full_name || '사용자'}님, 함께 정리해요`;
+                }
+            }).catch(() => {
+                this._isFetchingUser = false;
+            });
         }
 
         const profileName = this.user?.user_metadata?.full_name || '사용자';
 
         if (this.error) {
             this.container.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full px-10 text-center space-y-6">
+                <div class="flex flex-col items-center justify-center h-full px-10 text-center space-y-6 bg-dark-bg">
                     <span class="material-symbols-outlined text-6xl text-muted-lavender/30">no_photography</span>
                     <p class="text-muted-lavender text-sm leading-relaxed">${this.error}</p>
                     <button id="retry-btn" class="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-primary font-bold text-sm">다시 시도하기</button>
@@ -236,15 +245,22 @@ export class HomeManager {
 
         if (this.isLoading) {
             this.container.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full space-y-4">
+                <div class="flex flex-col items-center justify-center min-h-[70dvh] space-y-4 bg-dark-bg">
                     <div class="loader"></div>
-                    <p class="text-muted-lavender text-xs">AI가 정리할 사진을 고르는 중...</p>
+                    <p class="text-primary font-bold text-sm">사진첩 분석 중...</p>
+                    <p class="text-muted-lavender text-xs">당신만을 위한 기록을 고르고 있어요.</p>
                 </div>
             `;
             return;
         }
         
         if (this.curationPhotos.length === 0) {
+            this.container.innerHTML = `
+                <div class="flex flex-col items-center justify-center min-h-[70dvh] space-y-4 bg-dark-bg">
+                    <div class="loader"></div>
+                    <p class="text-muted-lavender text-xs">사진 데이터를 분석하고 있습니다...</p>
+                </div>
+            `;
             this.loadRealPhotos();
             return;
         }

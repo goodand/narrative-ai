@@ -19,14 +19,7 @@ public class RecocolPhotosPlugin: CAPPlugin {
             print("📸 [RecocolPhotos] Requesting authorization...")
             PHPhotoLibrary.requestAuthorization { newStatus in
                 DispatchQueue.main.async {
-                    var isAuthorized = newStatus == .authorized
-                    if #available(iOS 14, *) {
-                        if newStatus == .limited {
-                            isAuthorized = true
-                        }
-                    }
-                    
-                    if isAuthorized {
+                    if newStatus == .authorized || newStatus == .limited {
                         self.performFetchPhotos(call: call, limit: limit, offset: offset)
                     } else {
                         call.reject("Photo library access denied")
@@ -36,14 +29,7 @@ public class RecocolPhotosPlugin: CAPPlugin {
             return
         }
 
-        var isAuthorized = status == .authorized
-        if #available(iOS 14, *) {
-            if status == .limited {
-                isAuthorized = true
-            }
-        }
-
-        if !isAuthorized {
+        if status != .authorized && status != .limited {
             call.reject("Photo library access not authorized")
             return
         }

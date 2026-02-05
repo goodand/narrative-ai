@@ -47,32 +47,47 @@ export class AuthModal extends Modal {
 
     async _handleGoogleLogin() {
         try {
-            // Capacitor 환경 감지
+            console.log('[AUTH] Google 로그인 시작...');
             const isCapacitor = window.Capacitor !== undefined;
 
-            // 환경별 redirect URL 설정
+            // 1. Supabase 대시보드와 100% 일치하는 주소 사용
             const redirectUrl = isCapacitor
-                ? 'com.narrativeai.app-v://login-callback'
+                ? 'com.narrativeai.appv://login-callback'
                 : window.location.origin;
+            
+            console.log('[AUTH] Final Redirect URL:', redirectUrl);
 
             const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
                     redirectTo: redirectUrl,
-                    skipBrowserRedirect: isCapacitor  // Capacitor에서는 수동 처리
+                    skipBrowserRedirect: isCapacitor
                 }
             });
 
             if (error) throw error;
 
-            // Capacitor 환경: 외부 브라우저로 OAuth URL 열기
             if (isCapacitor && data?.url) {
-                await Browser.open({ url: data.url });
+                console.log('[AUTH] OAuth URL generated:', data.url);
+                
+                await Browser.open({ 
+                    url: data.url,
+                    presentationStyle: 'popover' // iOS에서 딥링크 인식이 더 잘 되는 경향이 있음
+                });
+            } else if (!isCapacitor) {
+                console.log('[AUTH] Web environment');
+            }
+        } catch (error) {
+            console.error('[AUTH] 상세 에러:', error);
+            alert(`로그인 오류: ${error.message}`);
+        }
+    } else if (!isCapacitor) {
+                console.log('[AUTH] Web environment handling');
             }
 
         } catch (error) {
-            console.error('[AUTH] Google 로그인 실패:', error);
-            alert('로그인 중 오류가 발생했습니다.');
+            console.error('[AUTH] 상세 에러 정보:', error);
+            alert(`로그인 오류: ${error.message || '알 수 없는 오류'}`);
         }
     }
 
