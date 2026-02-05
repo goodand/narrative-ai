@@ -92,16 +92,26 @@ export class SuggestionModal extends Modal {
 
         this.listElement.innerHTML = '';
 
-        wordData.suggestions.forEach(suggestion => {
-            const button = document.createElement('button');
-            button.className = "w-full text-left p-4 hover:bg-[#B2A5CF] hover:text-white rounded-xl font-bold border border-slate-100 mb-2 transition-colors";
-            button.innerText = suggestion;
-            button.onclick = () => {
-                onSelect(suggestion, wordData.word);
-                this.close();
-            };
-            this.listElement.appendChild(button);
-        });
+        // API 응답 구조: { word: "단어", alternatives: ["유의어1", ...] }
+        const suggestions = wordData.alternatives || wordData.suggestions || [];
+
+        if (suggestions.length === 0) {
+            const noResult = document.createElement('p');
+            noResult.className = "text-muted-lavender text-center py-4";
+            noResult.innerText = "추천 유의어가 없습니다.";
+            this.listElement.appendChild(noResult);
+        } else {
+            suggestions.forEach(suggestion => {
+                const button = document.createElement('button');
+                button.className = "w-full text-left p-4 hover:bg-primary hover:text-white rounded-xl font-bold border border-white/10 bg-field-bg text-white mb-2 transition-colors";
+                button.innerText = suggestion;
+                button.onclick = () => {
+                    onSelect(suggestion, wordData.word);
+                    this.close();
+                };
+                this.listElement.appendChild(button);
+            });
+        }
 
         this.open();
     }

@@ -95,8 +95,13 @@ const els = {
     resultView: document.getElementById('result-view'),
     header: document.querySelector('header'),
     headerTitle: document.getElementById('header-title'),
-    bottomBar: document.getElementById('bottom-action-bar')
+    bottomBar: document.getElementById('bottom-action-bar'),
+    backBtn: document.getElementById('back-btn')
 };
+
+// 뷰 히스토리 관리 (뒤로가기 기능용)
+const viewHistory = ['home'];
+let currentView = 'home';
 
 // Components Initializations
 const dropZone = new DropZone({
@@ -208,51 +213,75 @@ mypageContainer.className = 'hidden min-h-screen bg-dark-bg';
 document.body.appendChild(mypageContainer);
 const mypageManager = new MyPageManager('mypage-view', { onLogout: () => window.location.reload() });
 
-function showView(viewName) {
+function showView(viewName, addToHistory = true) {
     console.log(`[VIEW] Switching to: ${viewName}`);
-    
-    // 1. 모든 메인 뷰 숨기기
+
+    // 히스토리 관리 (뒤로가기용)
+    if (addToHistory && viewName !== currentView) {
+        viewHistory.push(viewName);
+    }
+    currentView = viewName;
+
+    // 1. 모든 메인 뷰 숨기기 (클래스와 인라인 스타일 모두 적용)
     [els.homeView, els.reportView, els.inputView, els.resultView, mypageContainer].forEach(el => {
-        if (el) el.classList.add('hidden');
+        if (el) {
+            el.classList.add('hidden');
+            el.style.display = 'none';
+        }
     });
-    
-    // 2. 하단 생성 버튼 영역 제어 (input 뷰에서만 표시)
-    // bottomBar의 첫 번째 자식인 버튼 컨테이너를 제어
+
+    // 2. 하단 생성 버튼 영역 제어
     const genBtnContainer = els.bottomBar.querySelector('div:first-child');
     if (genBtnContainer) {
-        genBtnContainer.classList.toggle('hidden', viewName !== 'input');
+        genBtnContainer.style.display = (viewName === 'input') ? 'block' : 'none';
     }
 
-    // 3. 헤더 가시성 제어 (탭 메뉴가 있는 메인 뷰들은 헤더 숨김 처리)
+    // 3. 헤더 가시성 제어 (input, result 뷰에서만 표시)
     const isMainTab = ['home', 'report', 'mypage'].includes(viewName);
-    els.header.classList.toggle('hidden', isMainTab);
-    
-    // 4. 바텀바(탭바 포함) 전체 가시성 제어
-    els.bottomBar.classList.toggle('hidden', viewName === 'mypage');
+    els.header.style.display = isMainTab ? 'none' : 'flex';
 
-    // 5. 각 뷰별 특화 로직 및 타이틀 업데이트
-    if (viewName === 'home') {
-        els.homeView.classList.remove('hidden');
-        homeManager.render();
-    } else if (viewName === 'input') {
-        els.inputView.classList.remove('hidden');
-        els.headerTitle.innerText = '리코코 상세 기록 설정';
-    } else if (viewName === 'report') {
-        els.reportView.classList.remove('hidden');
-        reportManager.render();
-    } else if (viewName === 'mypage') {
-        mypageContainer.classList.remove('hidden');
-        mypageManager.render();
-    } else if (viewName === 'result') {
-        els.resultView.classList.remove('hidden');
-        els.header.classList.remove('hidden');
-        els.headerTitle.innerText = '리코코 기록 결과';
-        // 결과 화면에서도 생성 버튼은 숨김 (공유 버튼이 따로 있음)
-        if (genBtnContainer) genBtnContainer.classList.add('hidden');
+    // 4. 바텀바 전체 가시성 제어
+    els.bottomBar.style.display = (viewName === 'mypage') ? 'none' : 'block';
+
+    // 5. 대상 뷰 활성화
+    let targetEl = null;
+    if (viewName === 'home') targetEl = els.homeView;
+    else if (viewName === 'input') targetEl = els.inputView;
+    else if (viewName === 'report') targetEl = els.reportView;
+    else if (viewName === 'mypage') targetEl = mypageContainer;
+    else if (viewName === 'result') targetEl = els.resultView;
+
+    if (targetEl) {
+        targetEl.classList.remove('hidden');
+        targetEl.style.display = 'block';
+
+        // 뷰별 렌더링/타이틀 업데이트
+        if (viewName === 'home') homeManager.render();
+        else if (viewName === 'input') els.headerTitle.innerText = '리코코 상세 기록 설정';
+        else if (viewName === 'report') reportManager.render();
+        else if (viewName === 'mypage') mypageManager.render();
+        else if (viewName === 'result') els.headerTitle.innerText = '리코코 기록 결과';
     }
 
-    // 페이지 전환 시 상단으로 이동하여 독립된 페이지 느낌 부여
     window.scrollTo(0, 0);
+}
+
+// 뒤로가기 버튼 핸들러
+function goBack() {
+    // 현재 뷰를 히스토리에서 제거
+    if (viewHistory.length > 1) {
+        viewHistory.pop();
+        const previousView = viewHistory[viewHistory.length - 1];
+        showView(previousView, false); // 히스토리에 추가하지 않음
+    } else {
+        // 히스토리가 없으면 홈으로
+        showView('home', false);
+    }
+}
+
+// 뒤로가기 버튼 이벤트 연결
+if (els.backBtn) {
+    els.backBtn.onclick = goBack;
 }
 
 els.navHome.onclick = () => showView('home');
