@@ -65,12 +65,27 @@ export class ReportManager {
      */
     _analyzeWeeklyTrends(logs) {
         const now = new Date();
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(now.getDate() - 7);
+        
+        // 이번 주 월요일 계산 (월요일 시작 기준)
+        const getMonday = (d) => {
+            const date = new Date(d);
+            const day = date.getDay(); // 0(일) ~ 6(토)
+            const diff = date.getDate() - day + (day === 0 ? -6 : 1); 
+            const monday = new Date(date.setDate(diff));
+            monday.setHours(0, 0, 0, 0);
+            return monday;
+        };
 
-        // 주차별 그룹화
-        const currentWeekLogs = logs.filter(log => new Date(log.cleared_at) >= sevenDaysAgo);
-        const previousWeekLogs = logs.filter(log => new Date(log.cleared_at) < sevenDaysAgo);
+        const thisMonday = getMonday(now);
+        const lastMonday = new Date(thisMonday);
+        lastMonday.setDate(lastMonday.getDate() - 7);
+
+        // 주차별 그룹화 (Calendar Week 기준)
+        const currentWeekLogs = logs.filter(log => new Date(log.cleared_at) >= thisMonday);
+        const previousWeekLogs = logs.filter(log => {
+            const logDate = new Date(log.cleared_at);
+            return logDate >= lastMonday && logDate < thisMonday;
+        });
 
         // 1. 이번 주 카운트 및 그래프 데이터
         this.stats.weeklyCount = currentWeekLogs.length;
