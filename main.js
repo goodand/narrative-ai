@@ -20,7 +20,7 @@ import { App } from '@capacitor/app';
 
 // Components
 import { DropZone } from './src/components/DropZone.js';
-import { SelectionGroup, DropdownGroup } from './src/components/SelectionGroup.js';
+import { SelectionGroup } from './src/components/SelectionGroup.js';
 import { ResultViewer } from './src/components/ResultViewer.js';
 import { SuggestionModal, SettingsModal, ConfirmModal } from './src/components/Modal.js';
 import { OnboardingModal } from './src/components/OnboardingModal.js';
@@ -33,41 +33,11 @@ import { ReportManager } from './src/components/ReportManager.js';
 // Initialize Core Services
 const geminiService = new GeminiService();
 
-// --- Visual Debug Logger ---
-const debugEl = document.createElement('div');
-debugEl.id = 'debug-console';
-// CSS 문법 오류 수정
-debugEl.style.position = 'fixed';
-debugEl.style.bottom = '120px';
-debugEl.style.left = '10px';
-debugEl.style.right = '10px';
-debugEl.style.zIndex = '9999';
-debugEl.style.background = 'rgba(0, 0, 0, 0.8)';
-debugEl.style.color = '#4ade80';
-debugEl.style.padding = '8px';
-debugEl.style.borderRadius = '8px';
-debugEl.style.fontSize = '10px';
-debugEl.style.fontFamily = 'monospace';
-debugEl.style.maxHeight = '120px';
-debugEl.style.overflowY = 'auto';
-debugEl.style.border = '1px solid rgba(74, 222, 128, 0.3)';
-debugEl.style.pointerEvents = 'none';
-document.body.appendChild(debugEl);
-
-function logDebug(msg) {
-    console.log(`[DEBUG] ${msg}`);
-    const line = document.createElement('div');
-    line.style.marginBottom = '2px';
-    line.innerText = `> ${new Date().toLocaleTimeString()}: ${msg}`;
-    debugEl.prepend(line);
-    if (debugEl.children.length > 20) {
-        debugEl.removeChild(debugEl.lastChild);
-    }
-}
-
-// Handle Deep Links (OAuth Callback)
+/**
+ * Handle Deep Links (OAuth Callback)
+ */
 const handleUrl = async (urlStr) => {
-    logDebug(`DeepLink 수신: ${urlStr}`);
+    console.log('[DEEPLINK] Incoming URL:', urlStr);
     if (!urlStr) return;
 
     try {
@@ -75,6 +45,7 @@ const handleUrl = async (urlStr) => {
         let refreshToken = null;
         let code = null;
 
+        // URL에서 토큰 및 코드 파싱
         const parts = urlStr.split(/[#?&]/);
         parts.forEach(part => {
             if (part.startsWith('access_token=')) accessToken = part.split('=')[1];
@@ -83,22 +54,19 @@ const handleUrl = async (urlStr) => {
         });
 
         if (accessToken && refreshToken) {
-            logDebug('토큰 발견, 세션 설정 중...');
-            const { data, error } = await supabase.auth.setSession({
+            const { error } = await supabase.auth.setSession({
                 access_token: accessToken,
                 refresh_token: refreshToken
             });
             if (error) throw error;
-            logDebug(`세션 설정 완료: ${data.user?.email}`);
+            console.log('[DEEPLINK] Session set successfully');
         } else if (code) {
-            logDebug('코드 발견, 교환 시도...');
             const { error } = await supabase.auth.exchangeCodeForSession(code);
             if (error) throw error;
-            logDebug('코드 교환 성공');
+            console.log('[DEEPLINK] Code exchange successful');
         }
     } catch (err) {
-        logDebug(`에러: ${err.message}`);
-        alert('인증 오류: ' + err.message);
+        console.error('[DEEPLINK] Error:', err);
     }
 };
 
@@ -156,7 +124,27 @@ const onboardingModal = new OnboardingModal('onboarding-modal', {
 });
 
 const homeManager = new HomeManager('home-view', {
-    onPreciousClick: async () => { showView('input'); }
+    onPreciousClick: async () => {
+        // 선택된 사진을 input-view에 표시
+        const currentPhoto = homeManager.curationPhotos[homeManager.currentIndex];
+        if (currentPhoto) {
+            // 이미지 프리뷰에 직접 표시
+            const previewImg = document.getElementById('image-preview');
+            const previewContainer = document.getElementById('preview-container');
+            const uploadPlaceholder = document.getElementById('upload-placeholder');
+
+            if (previewImg && currentPhoto.imageUrl) {
+                previewImg.src = currentPhoto.imageUrl;
+                previewContainer?.classList.remove('hidden');
+                uploadPlaceholder?.classList.add('hidden');
+
+                // Store에 데이터 저장
+                store.setState('dataUrl', currentPhoto.imageUrl);
+                store.setState('metadata', homeManager.getCurrentPhotoMeta());
+            }
+        }
+        showView('input');
+    }
 });
 const reportManager = new ReportManager('report-view');
 const mypageContainer = document.createElement('div');
@@ -166,7 +154,6 @@ document.body.appendChild(mypageContainer);
 const mypageManager = new MyPageManager('mypage-view', { onLogout: () => window.location.reload() });
 
 function showView(viewName) {
-    logDebug(`View: ${viewName}`);
     els.homeView.classList.add('hidden');
     els.reportView.classList.add('hidden');
     els.inputView.classList.add('hidden');
@@ -192,8 +179,11 @@ els.navHome.onclick = () => showView('home');
 els.navReport.onclick = () => showView('report');
 els.navMypage.onclick = () => showView('mypage');
 
+/**
+ * Handle Auth State Changes
+ */
 supabase.auth.onAuthStateChange((event, session) => {
-    logDebug(`Auth: ${event}`);
+    console.log(`[AUTH] Event: ${event}`);
     if (event === 'SIGNED_IN') {
         authModal.close();
         onboardingModal.element.classList.add('hidden');
@@ -204,8 +194,11 @@ supabase.auth.onAuthStateChange((event, session) => {
     }
 });
 
+/**
+ * App Initialization
+ */
 async function initApp() {
-    logDebug('Init App');
+    store.checkAndResetDaily();
     const launchUrl = await App.getLaunchUrl();
     if (launchUrl?.url) await handleUrl(launchUrl.url);
 
@@ -213,7 +206,6 @@ async function initApp() {
     if (!session) {
         onboardingModal.open();
     } else {
-        logDebug('세션 존재');
         onboardingModal.element.classList.add('hidden');
         authModal.close();
         permissionModal.onComplete = () => showView('home');

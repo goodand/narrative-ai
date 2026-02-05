@@ -168,6 +168,8 @@ export class HomeManager {
             const preciousBtn = e.target.closest('#precious-btn');
             const thanksBtn = e.target.closest('#thanks-btn');
             const retryBtn = e.target.closest('#retry-btn');
+            const prevImg = e.target.closest('#img-prev');
+            const nextImg = e.target.closest('#img-next');
 
             if (preciousBtn) {
                 e.preventDefault();
@@ -179,6 +181,16 @@ export class HomeManager {
                 console.log('HomeManager: Retry button clicked');
                 e.preventDefault();
                 this.loadRealPhotos();
+            } else if (prevImg) {
+                // 이전 사진으로 전환
+                e.preventDefault();
+                this.currentIndex = (this.currentIndex - 1 + this.curationPhotos.length) % this.curationPhotos.length;
+                this.render();
+            } else if (nextImg) {
+                // 다음 사진으로 전환
+                e.preventDefault();
+                this.currentIndex = (this.currentIndex + 1) % this.curationPhotos.length;
+                this.render();
             }
         });
     }
@@ -299,7 +311,7 @@ export class HomeManager {
                 <div class="flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
                     <div class="carousel-container mb-4">
                         <div class="carousel-item side opacity-40">
-                            <div id="img-prev" class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300" 
+                            <div id="img-prev" class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60"
                                  style='${prevPhoto?.imageUrl ? `background-image: url("${prevPhoto.imageUrl}");` : ""} filter: grayscale(50%);'>
                             </div>
                         </div>
@@ -312,7 +324,7 @@ export class HomeManager {
                             </div>
                         </div>
                         <div class="carousel-item side opacity-40">
-                            <div id="img-next" class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300" 
+                            <div id="img-next" class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60"
                                  style='${nextPhoto?.imageUrl ? `background-image: url("${nextPhoto.imageUrl}");` : ""} filter: grayscale(50%);'>
                             </div>
                         </div>
