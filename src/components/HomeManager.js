@@ -29,15 +29,26 @@ export class HomeManager {
      * 실제 사진 목록 로드 및 Rule-base 큐레이션 엔진 적용
      */
     async loadRealPhotos() {
+        console.log('HomeManager: Starting loadRealPhotos...');
         this.isLoading = true;
         this.error = null;
         this.render();
 
         try {
-            console.log('HomeManager: 사진 분석 및 큐레이션 시작...');
-            const { photos } = await RecocolPhotos.fetchPhotos({ limit: 30, offset: 0 });
+            console.log('HomeManager: Fetching photos from native plugin...');
+            const result = await RecocolPhotos.fetchPhotos({ limit: 30, offset: 0 });
+            console.log('HomeManager: Fetch result received:', result);
             
+            // 시뮬레이터 디버깅용 alert
+            if (!result || !result.photos) {
+                alert('Native Plugin 응답 오류: 데이터가 없습니다.');
+            } else {
+                alert(`사진 조회 성공: 총 ${result.totalCount}장 중 ${result.photos.length}장 수신`);
+            }
+            
+            const photos = result.photos;
             if (photos && photos.length > 0) {
+                console.log(`HomeManager: Found ${photos.length} photos. Ranking...`);
                 const rankedAssets = CurationEngine.rankAssets(photos);
                 const targetAssets = rankedAssets.slice(0, 10);
 
@@ -60,6 +71,7 @@ export class HomeManager {
             }
         } catch (error) {
             console.error('HomeManager: 큐레이션 실패', error);
+            alert('에러 발생: ' + error.message);
             this.error = '사진첩 접근 권한이 필요합니다.';
         } finally {
             this.isLoading = false;
@@ -164,6 +176,8 @@ export class HomeManager {
                 e.preventDefault();
                 await this._handleDelete();
             } else if (retryBtn) {
+                console.log('HomeManager: Retry button clicked');
+                e.preventDefault();
                 this.loadRealPhotos();
             }
         });

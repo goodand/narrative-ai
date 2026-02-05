@@ -10,41 +10,19 @@ public class RecocolPhotosPlugin: CAPPlugin {
         let limit = call.getInt("limit") ?? 30
         let offset = call.getInt("offset") ?? 0
 
-        // iOS 14+ 호환 권한 체크
-        var status: PHAuthorizationStatus
-        if #available(iOS 14, *) {
-            status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-        } else {
-            status = PHPhotoLibrary.authorizationStatus()
-        }
+        // 시뮬레이터 호환성을 위해 표준 권한 체크 사용
+        let status = PHPhotoLibrary.authorizationStatus()
         
-        // 디버깅용 로그
         print("📸 [RecocolPhotos] PHAuthorizationStatus: \(status.rawValue)")
-        // 0: notDetermined, 1: restricted, 2: denied, 3: authorized, 4: limited
 
-        // 권한이 아직 결정되지 않은 경우 요청
         if status == .notDetermined {
             print("📸 [RecocolPhotos] Requesting authorization...")
-            if #available(iOS 14, *) {
-                PHPhotoLibrary.requestAuthorization(for: .readWrite) { newStatus in
-                    DispatchQueue.main.async {
-                        print("📸 [RecocolPhotos] New Authorization Status: \(newStatus.rawValue)")
-                        if newStatus == .authorized || newStatus == .limited {
-                            self.performFetchPhotos(call: call, limit: limit, offset: offset)
-                        } else {
-                            call.reject("Photo library access denied")
-                        }
-                    }
-                }
-            } else {
-                PHPhotoLibrary.requestAuthorization { newStatus in
-                    DispatchQueue.main.async {
-                        print("📸 [RecocolPhotos] New Authorization Status: \(newStatus.rawValue)")
-                        if newStatus == .authorized {
-                            self.performFetchPhotos(call: call, limit: limit, offset: offset)
-                        } else {
-                            call.reject("Photo library access denied")
-                        }
+            PHPhotoLibrary.requestAuthorization { newStatus in
+                DispatchQueue.main.async {
+                    if newStatus == .authorized || newStatus == .limited {
+                        self.performFetchPhotos(call: call, limit: limit, offset: offset)
+                    } else {
+                        call.reject("Photo library access denied")
                     }
                 }
             }
@@ -52,7 +30,6 @@ public class RecocolPhotosPlugin: CAPPlugin {
         }
 
         if status != .authorized && status != .limited {
-            print("📸 [RecocolPhotos] REJECTED - status is not authorized/limited")
             call.reject("Photo library access not authorized")
             return
         }

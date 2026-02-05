@@ -311,6 +311,7 @@ async function initApp() {
         onboardingModal.element.classList.add('hidden');
         authModal.close();
         showView('home');
+        console.log('initApp: App initialized and Home view shown');
     }
 }
 
