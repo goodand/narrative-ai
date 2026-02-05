@@ -235,15 +235,16 @@ export class HomeManager {
             return;
         }
 
-        // Lazy Loading: 현재, 이전, 다음 이미지만 로드
+        // Lazy Loading: 현재, 이전, 다음 이미지만 로드 (순차 실행으로 피크 메모리 감소)
         const prevIdx = (this.currentIndex - 1 + this.curationPhotos.length) % this.curationPhotos.length;
         const nextIdx = (this.currentIndex + 1) % this.curationPhotos.length;
 
-        await Promise.all([
-            this._loadImageForIndex(this.currentIndex),
-            this._loadImageForIndex(prevIdx),
-            this._loadImageForIndex(nextIdx)
-        ]);
+        // 순차 로딩 + 약간의 딜레이
+        await this._loadImageForIndex(this.currentIndex);
+        await new Promise(r => setTimeout(r, 50));
+        await this._loadImageForIndex(nextIdx);
+        await new Promise(r => setTimeout(r, 50));
+        await this._loadImageForIndex(prevIdx);
 
         const currentPhoto = this.curationPhotos[this.currentIndex];
         const prevPhoto = this.curationPhotos[prevIdx];

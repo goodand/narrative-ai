@@ -11,9 +11,12 @@ class PhotoAssetManager {
         options.deliveryMode = .highQualityFormat
         
         var targetSize: CGSize
+        var compression: CGFloat = 0.8
+        
         if quality == "thumbnail" {
-            targetSize = CGSize(width: 300, height: 300)
+            targetSize = CGSize(width: 250, height: 250) // Reduced from 300
             options.resizeMode = .exact
+            compression = 0.6 // Lower quality for thumbnails to save memory
         } else {
             targetSize = PHImageManagerMaximumSize
             options.resizeMode = .none
@@ -25,7 +28,7 @@ class PhotoAssetManager {
                 return
             }
             
-            let imageData = image.jpegData(compressionQuality: 0.8)
+            let imageData = image.jpegData(compressionQuality: compression)
             let base64String = imageData?.base64EncodedString()
             completion(base64String)
         }
