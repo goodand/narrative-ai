@@ -33,6 +33,10 @@ import { ReportManager } from './src/components/ReportManager.js';
 // Initialize Core Services
 const geminiService = new GeminiService();
 
+// View History Management
+const viewHistory = ['home'];
+let currentView = 'home';
+
 /**
  * Handle Deep Links (OAuth Callback)
  */
@@ -95,15 +99,11 @@ const els = {
     resultView: document.getElementById('result-view'),
     header: document.querySelector('header'),
     headerTitle: document.getElementById('header-title'),
-    bottomBar: document.getElementById('bottom-action-bar'),
-    backBtn: document.getElementById('back-btn')
+    backBtn: document.getElementById('back-btn'),
+    bottomBar: document.getElementById('bottom-action-bar')
 };
 
-// 뷰 히스토리 관리 (뒤로가기 기능용)
-const viewHistory = ['home'];
-let currentView = 'home';
-
-// Components Initializations
+// --- Component Initializations ---
 const dropZone = new DropZone({
     dropZone: 'drop-zone', input: 'image-input', preview: 'image-preview', container: 'preview-container', placeholder: 'upload-placeholder',
     metaElements: { date: 'meta-date', gps: 'meta-gps' },
@@ -243,6 +243,28 @@ function showView(viewName, addToHistory = true) {
     // 4. 바텀바 전체 가시성 제어
     els.bottomBar.style.display = (viewName === 'mypage') ? 'none' : 'block';
 
+    // 4.5 네비게이션 탭 활성 상태 업데이트
+    [els.navHome, els.navReport, els.navMypage].forEach(nav => {
+        if (nav) {
+            nav.classList.remove('text-primary');
+            nav.classList.add('opacity-40');
+            const icon = nav.querySelector('.material-symbols-outlined');
+            if (icon) icon.style.fontVariationSettings = "'FILL' 0";
+        }
+    });
+
+    let activeNav = null;
+    if (viewName === 'home' || viewName === 'input' || viewName === 'result') activeNav = els.navHome;
+    else if (viewName === 'report') activeNav = els.navReport;
+    else if (viewName === 'mypage') activeNav = els.navMypage;
+
+    if (activeNav) {
+        activeNav.classList.add('text-primary');
+        activeNav.classList.remove('opacity-40');
+        const icon = activeNav.querySelector('.material-symbols-outlined');
+        if (icon) icon.style.fontVariationSettings = "'FILL' 1";
+    }
+
     // 5. 대상 뷰 활성화
     let targetEl = null;
     if (viewName === 'home') targetEl = els.homeView;
@@ -287,6 +309,11 @@ if (els.backBtn) {
 els.navHome.onclick = () => showView('home');
 els.navReport.onclick = () => showView('report');
 els.navMypage.onclick = () => showView('mypage');
+
+// MyPageManager의 뒤로가기 이벤트 처리
+window.addEventListener('nav-change', (e) => {
+    if (e.detail) showView(e.detail);
+});
 
 /**
  * Handle Auth State Changes

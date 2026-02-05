@@ -246,10 +246,20 @@ export class HomeManager {
 
         if (this.error) {
             this.container.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full px-10 text-center space-y-6 bg-dark-bg">
-                    <span class="material-symbols-outlined text-6xl text-muted-lavender/30">no_photography</span>
-                    <p class="text-muted-lavender text-sm leading-relaxed">${this.error}</p>
-                    <button id="retry-btn" class="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-primary font-bold text-sm">다시 시도하기</button>
+                <div class="flex flex-col min-h-screen px-6">
+                    <!-- RECOCO Header -->
+                    <header class="flex items-center bg-transparent py-3 shrink-0">
+                        <div class="text-primary flex size-8 shrink-0 items-center justify-center">
+                            <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
+                        </div>
+                        <h2 class="text-white text-base font-bold leading-tight tracking-tight flex-1 text-center uppercase">recoco</h2>
+                        <div class="w-8"></div>
+                    </header>
+                    <div class="flex-1 flex flex-col items-center justify-center text-center space-y-6 pb-32">
+                        <span class="material-symbols-outlined text-6xl text-muted-lavender/30">no_photography</span>
+                        <p class="text-muted-lavender text-sm leading-relaxed">${this.error}</p>
+                        <button id="retry-btn" class="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-primary font-bold text-sm">다시 시도하기</button>
+                    </div>
                 </div>
             `;
             return;
@@ -257,20 +267,40 @@ export class HomeManager {
 
         if (this.isLoading) {
             this.container.innerHTML = `
-                <div class="flex flex-col items-center justify-center min-h-[70dvh] space-y-4 bg-dark-bg">
-                    <div class="loader"></div>
-                    <p class="text-primary font-bold text-sm">사진첩 분석 중...</p>
-                    <p class="text-muted-lavender text-xs">당신만을 위한 기록을 고르고 있어요.</p>
+                <div class="flex flex-col min-h-screen px-6">
+                    <!-- RECOCO Header -->
+                    <header class="flex items-center bg-transparent py-3 shrink-0">
+                        <div class="text-primary flex size-8 shrink-0 items-center justify-center">
+                            <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
+                        </div>
+                        <h2 class="text-white text-base font-bold leading-tight tracking-tight flex-1 text-center uppercase">recoco</h2>
+                        <div class="w-8"></div>
+                    </header>
+                    <div class="flex-1 flex flex-col items-center justify-center space-y-4 pb-32">
+                        <div class="loader"></div>
+                        <p class="text-primary font-bold text-sm">사진첩 분석 중...</p>
+                        <p class="text-muted-lavender text-xs">당신만을 위한 기록을 고르고 있어요.</p>
+                    </div>
                 </div>
             `;
             return;
         }
-        
+
         if (this.curationPhotos.length === 0) {
             this.container.innerHTML = `
-                <div class="flex flex-col items-center justify-center min-h-[70dvh] space-y-4 bg-dark-bg">
-                    <div class="loader"></div>
-                    <p class="text-muted-lavender text-xs">사진 데이터를 분석하고 있습니다...</p>
+                <div class="flex flex-col min-h-screen px-6">
+                    <!-- RECOCO Header -->
+                    <header class="flex items-center bg-transparent py-3 shrink-0">
+                        <div class="text-primary flex size-8 shrink-0 items-center justify-center">
+                            <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
+                        </div>
+                        <h2 class="text-white text-base font-bold leading-tight tracking-tight flex-1 text-center uppercase">recoco</h2>
+                        <div class="w-8"></div>
+                    </header>
+                    <div class="flex-1 flex flex-col items-center justify-center space-y-4 pb-32">
+                        <div class="loader"></div>
+                        <p class="text-muted-lavender text-xs">사진 데이터를 분석하고 있습니다...</p>
+                    </div>
                 </div>
             `;
             this.loadRealPhotos();
@@ -285,7 +315,20 @@ export class HomeManager {
 
         // 1. 기본 UI 즉시 렌더링 (이미지는 있는 경우만 표시, 없으면 배경색)
         this.container.innerHTML = `
-            <div class="flex flex-col h-full overflow-hidden">
+            <div class="flex flex-col min-h-screen overflow-hidden px-6">
+                <!-- RECOCO Header -->
+                <header class="flex items-center bg-transparent py-3 shrink-0">
+                    <div class="text-primary flex size-8 shrink-0 items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
+                    </div>
+                    <h2 class="text-white text-base font-bold leading-tight tracking-tight flex-1 text-center uppercase">recoco</h2>
+                    <div class="flex w-8 items-center justify-end">
+                        <button class="flex cursor-pointer items-center justify-center rounded-lg h-8 bg-transparent text-muted-lavender p-0">
+                            <span class="material-symbols-outlined text-xl">settings</span>
+                        </button>
+                    </div>
+                </header>
+
                 <div class="py-1 shrink-0">
                     <div class="bg-field-bg rounded-2xl p-4 border border-white/5 shadow-2xl">
                         <div class="flex justify-between items-center mb-2">
