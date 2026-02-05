@@ -30,6 +30,46 @@ import { ReportManager } from './src/components/ReportManager.js';
 // Initialize Core Services
 const geminiService = new GeminiService();
 
+// Import Capacitor App plugin for Deep Links
+import { App } from '@capacitor/app';
+
+// Handle Deep Links (OAuth Callback)
+App.addListener('appUrlOpen', async (data) => {
+    console.log('App opened with URL:', data.url);
+    
+    // Check if it's the auth callback
+    if (data.url.includes('login-callback')) {
+        // Parse the URL fragment (hash)
+        const url = new URL(data.url);
+        // Sometimes the fragment is in the hash, sometimes query params depending on provider
+        // Supabase sends tokens in the hash: #access_token=...&refresh_token=...
+        const hash = url.hash.substring(1); // remove '#'
+        const params = new URLSearchParams(hash);
+        
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+            const { error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+            });
+
+            if (error) {
+                console.error('Error setting session from deep link:', error);
+                alert('로그인 세션 설정 실패: ' + error.message);
+            } else {
+                console.log('Session successfully set from deep link');
+                // The onAuthStateChange listener will handle the UI update
+                
+                // Close the browser if it's still open (optional, but good practice)
+                // Note: @capacitor/browser usually closes automatically on deep link return in some cases,
+                // but we can ensure it if needed. For now rely on OS behavior.
+            }
+        }
+    }
+});
+
 // Log initialization status
 console.log('RECOCO - Vite project loaded successfully');
 
