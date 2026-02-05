@@ -15,6 +15,13 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		A9A29D5C2F345FAF009182F5 /* RecocolPhotosPlugin.m in Sources */ = {isa = PBXBuildFile; fileRef = A9A29D542F345FAF009182F5 /* RecocolPhotosPlugin.m */; };
+		A9A29D5D2F345FAF009182F5 /* MetadataExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A29D552F345FAF009182F5 /* MetadataExtractor.swift */; };
+		A9A29D5E2F345FAF009182F5 /* PhotoMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A29D572F345FAF009182F5 /* PhotoMetadata.swift */; };
+		A9A29D5F2F345FAF009182F5 /* PhotoAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A29D582F345FAF009182F5 /* PhotoAsset.swift */; };
+		A9A29D602F345FAF009182F5 /* PhotoAssetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A29D592F345FAF009182F5 /* PhotoAssetManager.swift */; };
+		A9A29D612F345FAF009182F5 /* RecocolPhotosPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A29D5A2F345FAF009182F5 /* RecocolPhotosPlugin.swift */; };
+		A9A29D622F345FAF009182F5 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A29D5B2F345FAF009182F5 /* Date+Extensions.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +35,13 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		A9A29D542F345FAF009182F5 /* RecocolPhotosPlugin.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RecocolPhotosPlugin.m; sourceTree = "<group>"; };
+		A9A29D552F345FAF009182F5 /* MetadataExtractor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MetadataExtractor.swift; sourceTree = "<group>"; };
+		A9A29D572F345FAF009182F5 /* PhotoMetadata.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PhotoMetadata.swift; sourceTree = "<group>"; };
+		A9A29D582F345FAF009182F5 /* PhotoAsset.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PhotoAsset.swift; sourceTree = "<group>"; };
+		A9A29D592F345FAF009182F5 /* PhotoAssetManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PhotoAssetManager.swift; sourceTree = "<group>"; };
+		A9A29D5A2F345FAF009182F5 /* RecocolPhotosPlugin.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RecocolPhotosPlugin.swift; sourceTree = "<group>"; };
+		A9A29D5B2F345FAF009182F5 /* Date+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -62,6 +76,7 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
+				A9A29D522F345FAF009182F5 /* Plugins */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -72,6 +87,36 @@
 				50B271D01FEDC1A000F3C39B /* public */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		A9A29D522F345FAF009182F5 /* Plugins */ = {
+			isa = PBXGroup;
+			children = (
+				A9A29D532F345FAF009182F5 /* RecocolPhotosPlugin */,
+			);
+			path = Plugins;
+			sourceTree = "<group>";
+		};
+		A9A29D532F345FAF009182F5 /* RecocolPhotosPlugin */ = {
+			isa = PBXGroup;
+			children = (
+				A9A29D542F345FAF009182F5 /* RecocolPhotosPlugin.m */,
+				A9A29D552F345FAF009182F5 /* MetadataExtractor.swift */,
+				A9A29D562F345FAF009182F5 /* Models */,
+				A9A29D592F345FAF009182F5 /* PhotoAssetManager.swift */,
+				A9A29D5A2F345FAF009182F5 /* RecocolPhotosPlugin.swift */,
+				A9A29D5B2F345FAF009182F5 /* Date+Extensions.swift */,
+			);
+			path = RecocolPhotosPlugin;
+			sourceTree = "<group>";
+		};
+		A9A29D562F345FAF009182F5 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A9A29D572F345FAF009182F5 /* PhotoMetadata.swift */,
+				A9A29D582F345FAF009182F5 /* PhotoAsset.swift */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -157,7 +202,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A9A29D612F345FAF009182F5 /* RecocolPhotosPlugin.swift in Sources */,
+				A9A29D622F345FAF009182F5 /* Date+Extensions.swift in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
+				A9A29D5E2F345FAF009182F5 /* PhotoMetadata.swift in Sources */,
+				A9A29D5D2F345FAF009182F5 /* MetadataExtractor.swift in Sources */,
+				A9A29D5F2F345FAF009182F5 /* PhotoAsset.swift in Sources */,
+				A9A29D5C2F345FAF009182F5 /* RecocolPhotosPlugin.m in Sources */,
+				A9A29D602F345FAF009182F5 /* PhotoAssetManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
