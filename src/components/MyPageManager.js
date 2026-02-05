@@ -365,13 +365,31 @@ export class MyPageManager {
                 delete window.supabaseInstance;
             }
 
-            // 4. Clear all storage
+            // 4. Clear all storage (localStorage, sessionStorage)
             localStorage.clear();
             sessionStorage.clear();
 
+            // 5. Clear IndexedDB (Supabase might use this)
+            try {
+                const databases = await indexedDB.databases();
+                for (const db of databases) {
+                    if (db.name) {
+                        indexedDB.deleteDatabase(db.name);
+                        console.log('[WITHDRAW] Deleted IndexedDB:', db.name);
+                    }
+                }
+            } catch (idbErr) {
+                console.warn('[WITHDRAW] IndexedDB clear failed:', idbErr);
+            }
+
+            // 6. Clear cookies
+            document.cookie.split(";").forEach(c => {
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            });
+
             console.log('[WITHDRAW] All cleanup completed');
 
-            // Show farewell screen
+            // Show farewell screen then force reload
             this._showFarewellView();
 
         } catch (err) {
