@@ -26,6 +26,6 @@ export interface RecocolPhotosPlugin {
   deletePhoto(options: { assetId: string }): Promise<{ success: boolean }>;
 }
 
-const RecocolPhotos = registerPlugin<RecocolPhotosPlugin>('RecocolPhotosPlugin');
+const RecocolPhotos = registerPlugin<RecocolPhotosPlugin>('RecocolPhotos');
 
 export default RecocolPhotos;

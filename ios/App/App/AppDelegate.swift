@@ -8,12 +8,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
-        NotificationCenter.default.addObserver(forName: CAPBridge.capacitorDidLoadNotification, object: nil, queue: .main) { notification in
-            if let bridge = notification.object as? CAPBridge {
-                bridge.registerPlugin(RecocolPhotosPlugin.self)
-                print("📸 [RecocolPhotos] Plugin manually registered via NotificationCenter using registerPlugin")
-            }
-        }
         return true
     }
 
