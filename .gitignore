@@ -70,3 +70,5 @@ depsolve_report.txt
 # iOS 개인 설정 파일
 **/xcuserdata/
 **/DerivedData/
+
+project.xcworkspace/* 
