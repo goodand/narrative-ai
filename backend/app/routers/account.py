@@ -43,7 +43,7 @@ async def delete_account(body: DeleteAccountRequest):
     settings = get_settings()
 
     # Supabase 설정 확인
-    if not settings.supabase_url or not settings.supabase_service_role_key:
+    if not settings.vite_supabase_url or not settings.service_role_key:
         logger.warning("Supabase credentials not configured")
         # 설정이 없어도 성공으로 반환 (프론트엔드에서 로그아웃은 완료됨)
         return DeleteAccountResponse(
@@ -57,10 +57,10 @@ async def delete_account(body: DeleteAccountRequest):
         # Supabase Admin API를 통한 사용자 삭제
         async with httpx.AsyncClient() as client:
             response = await client.delete(
-                f"{settings.supabase_url}/auth/v1/admin/users/{body.user_id}",
+                f"{settings.vite_supabase_url}/auth/v1/admin/users/{body.user_id}",
                 headers={
-                    "apikey": settings.supabase_service_role_key,
-                    "Authorization": f"Bearer {settings.supabase_service_role_key}",
+                    "apikey": settings.service_role_key,
+                    "Authorization": f"Bearer {settings.service_role_key}",
                     "Content-Type": "application/json"
                 }
             )

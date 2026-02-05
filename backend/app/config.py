@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     google_cloud_api_key: str = ""
 
     # Supabase Configuration (for admin operations)
-    supabase_url: str = ""
-    supabase_service_role_key: str = ""
+    vite_supabase_url: str = ""
+    service_role_key: str = ""
 
     # Gemini API Configuration
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/models"
