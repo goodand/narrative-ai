@@ -22,7 +22,6 @@
 		A9A29D602F345FAF009182F5 /* PhotoAssetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A29D592F345FAF009182F5 /* PhotoAssetManager.swift */; };
 		A9A29D612F345FAF009182F5 /* RecocolPhotosPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A29D5A2F345FAF009182F5 /* RecocolPhotosPlugin.swift */; };
 		A9A29D622F345FAF009182F5 /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A29D5B2F345FAF009182F5 /* Date+Extensions.swift */; };
-		A9A29D792F346FD3009182F5 /* MyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A29D782F346FD2009182F5 /* MyViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,7 +42,6 @@
 		A9A29D592F345FAF009182F5 /* PhotoAssetManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PhotoAssetManager.swift; sourceTree = "<group>"; };
 		A9A29D5A2F345FAF009182F5 /* RecocolPhotosPlugin.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RecocolPhotosPlugin.swift; sourceTree = "<group>"; };
 		A9A29D5B2F345FAF009182F5 /* Date+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
-		A9A29D782F346FD2009182F5 /* MyViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MyViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,7 +76,6 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
-				A9A29D782F346FD2009182F5 /* MyViewController.swift */,
 				A9A29D522F345FAF009182F5 /* Plugins */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
@@ -209,7 +206,6 @@
 				A9A29D622F345FAF009182F5 /* Date+Extensions.swift in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				A9A29D5E2F345FAF009182F5 /* PhotoMetadata.swift in Sources */,
-				A9A29D792F346FD3009182F5 /* MyViewController.swift in Sources */,
 				A9A29D5D2F345FAF009182F5 /* MetadataExtractor.swift in Sources */,
 				A9A29D5F2F345FAF009182F5 /* PhotoAsset.swift in Sources */,
 				A9A29D5C2F345FAF009182F5 /* RecocolPhotosPlugin.m in Sources */,
