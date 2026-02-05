@@ -235,21 +235,13 @@ export class HomeManager {
             return;
         }
 
-        // Lazy Loading: 현재, 이전, 다음 이미지만 로드 (순차 실행으로 피크 메모리 감소)
+        const currentPhoto = this.curationPhotos[this.currentIndex];
         const prevIdx = (this.currentIndex - 1 + this.curationPhotos.length) % this.curationPhotos.length;
         const nextIdx = (this.currentIndex + 1) % this.curationPhotos.length;
-
-        // 순차 로딩 + 약간의 딜레이
-        await this._loadImageForIndex(this.currentIndex);
-        await new Promise(r => setTimeout(r, 50));
-        await this._loadImageForIndex(nextIdx);
-        await new Promise(r => setTimeout(r, 50));
-        await this._loadImageForIndex(prevIdx);
-
-        const currentPhoto = this.curationPhotos[this.currentIndex];
         const prevPhoto = this.curationPhotos[prevIdx];
         const nextPhoto = this.curationPhotos[nextIdx];
 
+        // 1. 기본 UI 즉시 렌더링 (이미지는 있는 경우만 표시, 없으면 배경색)
         this.container.innerHTML = `
             <div class="flex flex-col h-full overflow-hidden">
                 <div class="py-1 shrink-0">
@@ -277,20 +269,20 @@ export class HomeManager {
                 <div class="flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
                     <div class="carousel-container mb-4">
                         <div class="carousel-item side opacity-40">
-                            <div class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg" 
+                            <div id="img-prev" class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300" 
                                  style='${prevPhoto?.imageUrl ? `background-image: url("${prevPhoto.imageUrl}");` : ""} filter: grayscale(50%);'>
                             </div>
                         </div>
                         <div class="carousel-item">
                             <div class="relative aspect-[4/5] w-full">
-                                <div class="w-full h-full bg-center bg-cover rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 bg-field-bg" 
+                                <div id="img-curr" class="w-full h-full bg-center bg-cover rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 bg-field-bg transition-all duration-300" 
                                      style='${currentPhoto?.imageUrl ? `background-image: url("${currentPhoto.imageUrl}");` : ""}'>
                                 </div>
                                 ${currentPhoto?.score > 20 ? '<div class="absolute top-4 right-4 bg-primary/90 text-dark-bg text-[10px] font-black px-2 py-1 rounded-full shadow-lg">HIGH DETOX</div>' : ''}
                             </div>
                         </div>
                         <div class="carousel-item side opacity-40">
-                            <div class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg" 
+                            <div id="img-next" class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300" 
                                  style='${nextPhoto?.imageUrl ? `background-image: url("${nextPhoto.imageUrl}");` : ""} filter: grayscale(50%);'>
                             </div>
                         </div>
@@ -299,7 +291,7 @@ export class HomeManager {
                     <div class="px-8 shrink-0">
                         <div class="mb-6">
                             <p class="text-white text-[14px] font-medium leading-relaxed text-center break-keep">
-                                ${currentPhoto?.date || ''} | ${currentPhoto?.location || ''}<br/>
+                                ${currentPhoto?.date || ''} | <span id="txt-location">${currentPhoto?.location || ''}</span><br/>
                                 <span class="text-primary text-xs font-bold">${currentPhoto?.contextMessage || ''}</span>
                             </p>
                         </div>
@@ -318,5 +310,39 @@ export class HomeManager {
                 </div>
             </div>
         `;
+
+        // 2. 비동기 백그라운드 로딩 및 개별 DOM 업데이트
+        this._loadAndReflectImages(this.currentIndex, prevIdx, nextIdx);
+    }
+
+    async _loadAndReflectImages(currIdx, prevIdx, nextIdx) {
+        // 순차 로딩: 현재 -> 다음 -> 이전
+        await this._loadSingleImageAndUpdate(currIdx, 'img-curr');
+        await new Promise(r => setTimeout(r, 50));
+        await this._loadSingleImageAndUpdate(nextIdx, 'img-next');
+        await new Promise(r => setTimeout(r, 50));
+        await this._loadSingleImageAndUpdate(prevIdx, 'img-prev');
+    }
+
+    async _loadSingleImageAndUpdate(index, elementId) {
+        if (index < 0 || index >= this.curationPhotos.length) return;
+        const photo = this.curationPhotos[index];
+
+        // 이미지가 아직 로드되지 않은 경우에만 로드
+        if (!photo.imageUrl) {
+             await this._loadImageForIndex(index);
+        }
+
+        // DOM 요소 업데이트 (Re-render 방지)
+        const el = document.getElementById(elementId);
+        if (el && photo.imageUrl) {
+            el.style.backgroundImage = `url("${photo.imageUrl}")`;
+            
+            // 현재 이미지인 경우 위치 텍스트도 업데이트
+            if (elementId === 'img-curr') {
+                const locEl = document.getElementById('txt-location');
+                if (locEl) locEl.innerText = photo.location || '위치 정보 없음';
+            }
+        }
     }
 }
