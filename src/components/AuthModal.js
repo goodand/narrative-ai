@@ -81,14 +81,6 @@ export class AuthModal extends Modal {
             console.error('[AUTH] 상세 에러:', error);
             alert(`로그인 오류: ${error.message}`);
         }
-    } else if (!isCapacitor) {
-                console.log('[AUTH] Web environment handling');
-            }
-
-        } catch (error) {
-            console.error('[AUTH] 상세 에러 정보:', error);
-            alert(`로그인 오류: ${error.message || '알 수 없는 오류'}`);
-        }
     }
 
     _bindEvents() {
