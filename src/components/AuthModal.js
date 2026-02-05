@@ -5,6 +5,7 @@
 
 import { Modal } from './Modal.js';
 import { supabase } from '../services/supabase.js';
+import { Browser } from '@capacitor/browser';
 
 export class AuthModal extends Modal {
     constructor(element) {
@@ -46,30 +47,32 @@ export class AuthModal extends Modal {
 
     async _handleGoogleLogin() {
         try {
-            // Determine redirect URL based on environment
-            // Capacitor(iOS) 환경이면 커스텀 스킴을 고려해야 할 수 있으나, 일단 표준 웹 리디렉션 사용
-            const redirectUrl = window.location.origin;
-            
-            console.log('Starting Google Login, redirecting to:', redirectUrl);
+            // Capacitor 환경 감지
+            const isCapacitor = window.Capacitor !== undefined;
+
+            // 환경별 redirect URL 설정
+            const redirectUrl = isCapacitor
+                ? 'com.narrativeai.app-v://login-callback'
+                : window.location.origin;
 
             const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    queryParams: {
-                        access_type: 'offline',
-                        prompt: 'select_account',
-                    },
-                    redirectTo: redirectUrl
+                    redirectTo: redirectUrl,
+                    skipBrowserRedirect: isCapacitor  // Capacitor에서는 수동 처리
                 }
             });
 
             if (error) throw error;
-            
-            // Web environment will redirect automatically.
-            // For Capacitor, additional listeners might be needed, but Supabase standard handles most cases.
+
+            // Capacitor 환경: 외부 브라우저로 OAuth URL 열기
+            if (isCapacitor && data?.url) {
+                await Browser.open({ url: data.url });
+            }
+
         } catch (error) {
-            console.error('Login Error:', error.message);
-            alert('로그인 중 오류가 발생했습니다: ' + error.message);
+            console.error('[AUTH] Google 로그인 실패:', error);
+            alert('로그인 중 오류가 발생했습니다.');
         }
     }
 

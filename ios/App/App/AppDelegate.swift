@@ -34,6 +34,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        // Supabase OAuth 콜백 처리
+        if url.scheme == "com.narrativeai.app-v" {
+            // Capacitor에 URL 전달
+            return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+        }
+        
         // Called when the app was launched with a url. Feel free to add additional processing here,
         // but if you want the App API to support tracking app url opens, make sure to keep this call
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
