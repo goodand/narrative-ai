@@ -111,9 +111,60 @@ const dropZone = new DropZone({
 
 const snsGroup = new SelectionGroup({ container: '.sns-grid', itemSelector: '.sns-item', activeClass: 'bg-primary text-white rounded-xl text-xs font-semibold sns-item active', inactiveClass: 'bg-field-bg text-muted-lavender rounded-xl text-xs font-semibold sns-item' });
 const tempGroup = new SelectionGroup({ container: '#temp-toggle-group', itemSelector: 'button', activeClass: 'bg-white/10 shadow-sm', inactiveClass: 'hover:bg-white/5' });
-const resultViewer = new ResultViewer({ resultArea: 'result-view', interactiveCaption: 'caption-interactive', editCaption: 'caption-edit', editBtn: 'edit-btn', saveBtn: 'save-btn', copyBtn: 'copy-btn', shareBtn: 'share-btn', resultImage: 'result-image' });
 
 const suggestionModal = new SuggestionModal('suggestion-modal', 'suggestion-list');
+
+// 유의어 선택 핸들러
+function handleSuggestionSelect(suggestion, originalWord) {
+    const currentResult = store.getState('currentResult');
+    if (!currentResult) return;
+
+    const newCaption = currentResult.original_caption.replace(originalWord, suggestion);
+    currentResult.original_caption = newCaption;
+
+    const keyword = currentResult.keywords.find(k => k.word === originalWord);
+    if (keyword) {
+        keyword.word = suggestion;
+    }
+
+    store.setResult(currentResult);
+    resultViewer.renderCaption(currentResult);
+}
+
+const resultViewer = new ResultViewer({
+    resultArea: 'result-view',
+    interactiveCaption: 'caption-interactive',
+    editCaption: 'caption-edit',
+    editBtn: 'edit-btn',
+    saveBtn: 'save-btn',
+    copyBtn: 'copy-btn',
+    shareBtn: 'share-btn',
+    resultImage: 'result-image',
+    onKeywordClick: (wordData) => {
+        suggestionModal.renderSuggestions(wordData, handleSuggestionSelect);
+    },
+    onSave: (newText) => {
+        const currentResult = store.getState('currentResult');
+        if (currentResult) {
+            currentResult.original_caption = newText;
+            store.setResult(currentResult);
+        }
+    },
+    onShare: async (captionText) => {
+        try {
+            const { shareWithImage, shareCaption } = await import('./src/services/ShareService.js');
+            const imageBase64 = store.getState('base64');
+            if (imageBase64) {
+                await shareWithImage({ imageBase64, caption: captionText });
+            } else {
+                await shareCaption(captionText);
+            }
+        } catch (err) {
+            console.error('Share error:', err);
+            alert('공유 중 오류가 발생했습니다.');
+        }
+    }
+});
 const settingsModal = new SettingsModal('settings-modal', 'system-prompt-input');
 const editConfirmModal = new ConfirmModal('edit-confirm-modal');
 
@@ -158,25 +209,50 @@ document.body.appendChild(mypageContainer);
 const mypageManager = new MyPageManager('mypage-view', { onLogout: () => window.location.reload() });
 
 function showView(viewName) {
-    els.homeView.classList.add('hidden');
-    els.reportView.classList.add('hidden');
-    els.inputView.classList.add('hidden');
-    els.resultView.classList.add('hidden');
-    mypageContainer.classList.add('hidden');
+    console.log(`[VIEW] Switching to: ${viewName}`);
     
-    if (viewName === 'home') {
-        authModal.close();
-        onboardingModal.element.classList.add('hidden');
-        permissionModal.element.classList.add('hidden');
+    // 1. 모든 메인 뷰 숨기기
+    [els.homeView, els.reportView, els.inputView, els.resultView, mypageContainer].forEach(el => {
+        if (el) el.classList.add('hidden');
+    });
+    
+    // 2. 하단 생성 버튼 영역 제어 (input 뷰에서만 표시)
+    // bottomBar의 첫 번째 자식인 버튼 컨테이너를 제어
+    const genBtnContainer = els.bottomBar.querySelector('div:first-child');
+    if (genBtnContainer) {
+        genBtnContainer.classList.toggle('hidden', viewName !== 'input');
     }
 
-    els.header.classList.toggle('hidden', viewName === 'mypage' || viewName === 'home' || viewName === 'report');
+    // 3. 헤더 가시성 제어 (탭 메뉴가 있는 메인 뷰들은 헤더 숨김 처리)
+    const isMainTab = ['home', 'report', 'mypage'].includes(viewName);
+    els.header.classList.toggle('hidden', isMainTab);
+    
+    // 4. 바텀바(탭바 포함) 전체 가시성 제어
     els.bottomBar.classList.toggle('hidden', viewName === 'mypage');
 
-    if (viewName === 'home') { els.homeView.classList.remove('hidden'); homeManager.render(); }
-    else if (viewName === 'report') { els.reportView.classList.remove('hidden'); reportManager.render(); }
-    else if (viewName === 'input') { els.inputView.classList.remove('hidden'); }
-    else if (viewName === 'mypage') { mypageContainer.classList.remove('hidden'); mypageManager.render(); }
+    // 5. 각 뷰별 특화 로직 및 타이틀 업데이트
+    if (viewName === 'home') {
+        els.homeView.classList.remove('hidden');
+        homeManager.render();
+    } else if (viewName === 'input') {
+        els.inputView.classList.remove('hidden');
+        els.headerTitle.innerText = '리코코 상세 기록 설정';
+    } else if (viewName === 'report') {
+        els.reportView.classList.remove('hidden');
+        reportManager.render();
+    } else if (viewName === 'mypage') {
+        mypageContainer.classList.remove('hidden');
+        mypageManager.render();
+    } else if (viewName === 'result') {
+        els.resultView.classList.remove('hidden');
+        els.header.classList.remove('hidden');
+        els.headerTitle.innerText = '리코코 기록 결과';
+        // 결과 화면에서도 생성 버튼은 숨김 (공유 버튼이 따로 있음)
+        if (genBtnContainer) genBtnContainer.classList.add('hidden');
+    }
+
+    // 페이지 전환 시 상단으로 이동하여 독립된 페이지 느낌 부여
+    window.scrollTo(0, 0);
 }
 
 els.navHome.onclick = () => showView('home');

@@ -258,9 +258,22 @@ export class ResultViewer {
     }
 
     _init() {
+        // Edit 버튼 클릭 → 편집 모드 진입
+        if (this.editBtn) {
+            this.editBtn.addEventListener('click', () => this.enterEditMode());
+        }
+
+        // Save 버튼 클릭 → 편집 모드 종료 및 저장
+        if (this.saveBtn) {
+            this.saveBtn.addEventListener('click', () => this.exitEditMode());
+        }
+
+        // Copy 버튼 클릭 → 클립보드 복사
         if (this.copyBtn) {
             this.copyBtn.addEventListener('click', () => this.copyToClipboard());
         }
+
+        // Share 버튼 클릭 → 공유
         if (this.shareBtn) {
             this.shareBtn.addEventListener('click', () => {
                 if (this.onShare) {
