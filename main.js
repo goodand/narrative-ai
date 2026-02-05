@@ -15,6 +15,9 @@ import { StateManager, store } from './src/state/StateManager.js';
 import { GeminiService } from './src/services/GeminiService.js';
 import { supabase } from './src/services/supabase.js';
 
+// Capacitor Plugins
+import { App } from '@capacitor/app';
+
 // Components
 import { DropZone } from './src/components/DropZone.js';
 import { SelectionGroup, DropdownGroup } from './src/components/SelectionGroup.js';
@@ -30,20 +33,14 @@ import { ReportManager } from './src/components/ReportManager.js';
 // Initialize Core Services
 const geminiService = new GeminiService();
 
-// Import Capacitor App plugin for Deep Links
-import { App } from '@capacitor/app';
-
 // Handle Deep Links (OAuth Callback)
 App.addListener('appUrlOpen', async (data) => {
     console.log('App opened with URL:', data.url);
     
     // Check if it's the auth callback
     if (data.url.includes('login-callback')) {
-        // Parse the URL fragment (hash)
         const url = new URL(data.url);
-        // Sometimes the fragment is in the hash, sometimes query params depending on provider
-        // Supabase sends tokens in the hash: #access_token=...&refresh_token=...
-        const hash = url.hash.substring(1); // remove '#'
+        const hash = url.hash.substring(1); 
         const params = new URLSearchParams(hash);
         
         const accessToken = params.get('access_token');
@@ -60,12 +57,9 @@ App.addListener('appUrlOpen', async (data) => {
                 alert('로그인 세션 설정 실패: ' + error.message);
             } else {
                 console.log('Session successfully set from deep link');
-                // The onAuthStateChange listener will handle the UI update
-                
-                // Close the browser if it's still open (optional, but good practice)
-                // Note: @capacitor/browser usually closes automatically on deep link return in some cases,
-                // but we can ensure it if needed. For now rely on OS behavior.
             }
+        } else {
+            console.warn('[AUTH] Deep link에서 토큰을 찾을 수 없음:', data.url);
         }
     }
 });
