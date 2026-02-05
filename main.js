@@ -195,6 +195,86 @@ supabase.auth.onAuthStateChange((event, session) => {
 });
 
 /**
+ * Generate Button Click Handler
+ */
+els.genBtn.onclick = async () => {
+    const imageData = store.getState('base64') || store.getState('dataUrl');
+    if (!imageData) {
+        showError(UI_MESSAGES.ERROR_NO_IMAGE);
+        return;
+    }
+
+    setLoading(true);
+
+    const context = {
+        sns: store.getPreference('sns') || snsGroup.getValue() || 'Instagram',
+        mood: els.style?.value || 'casual',
+        temp: store.getPreference('temp') || tempGroup.getValue() || 'Lukewarm',
+        language: els.lang?.value || 'Korean',
+        tags: els.tagsInput?.value?.trim() || '',
+        activity: els.activity?.value || '',
+        bodyState: els.bodyState?.value || '',
+        relationship: els.relationship?.value || '',
+        metadata: store.getState('metadata'),
+        systemPrompt: store.getState('systemPrompt')
+    };
+
+    try {
+        const storyResult = await geminiService.generateStory(imageData, context);
+        els.btnText.innerText = UI_MESSAGES.FINDING_SYNONYMS;
+
+        const keywordsWithSuggestions = await geminiService.getSynonyms(
+            storyResult.keywords,
+            context.language
+        );
+
+        const metadata = store.getState('metadata');
+        const displayImage = store.getState('dataUrl');
+
+        const result = {
+            original_caption: storyResult.original_caption,
+            keywords: keywordsWithSuggestions,
+            image: displayImage,
+            metadata: metadata
+        };
+        store.setResult(result);
+
+        showView('result');
+        els.inputView.classList.add('hidden');
+        els.resultView.classList.remove('hidden');
+        els.header.classList.remove('hidden');
+        els.headerTitle.innerText = '리코코 기록 결과';
+
+        const resultDate = document.getElementById('result-date');
+        const resultLoc = document.getElementById('result-location');
+        if (resultDate && metadata?.date) resultDate.innerText = metadata.date;
+        if (resultLoc && metadata?.gps) resultLoc.innerText = metadata.gps.formatted;
+
+        resultViewer.show();
+        resultViewer.renderCaption(result);
+        resultViewer.scrollIntoView();
+
+    } catch (error) {
+        showError('AI 생성 중 오류 발생: ' + error.message);
+        console.error('Generation error:', error);
+    } finally {
+        setLoading(false);
+    }
+};
+
+function setLoading(isLoading) {
+    els.genBtn.disabled = isLoading;
+    els.loader?.classList.toggle('hidden', !isLoading);
+    els.btnText.innerText = isLoading ? UI_MESSAGES.LOADING : UI_MESSAGES.GENERATE_BUTTON;
+}
+
+function showError(message) {
+    els.error.innerText = message;
+    els.error.classList.remove('hidden');
+    setTimeout(() => els.error.classList.add('hidden'), 5000);
+}
+
+/**
  * App Initialization
  */
 async function initApp() {
