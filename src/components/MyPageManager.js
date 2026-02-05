@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../services/supabase.js';
+import { API_CONFIG } from '../constants/config.js';
 
 export class MyPageManager {
     constructor(containerId, options = {}) {
@@ -35,7 +36,7 @@ export class MyPageManager {
                 </div>
             </div>
             <main class="max-w-md mx-auto pb-16">
-                <div class="flex flex-col items-center py-8 gap-4">
+                <div class="flex flex-col items-center pt-2 pb-6 gap-3">
                     <div class="relative">
                         <div class="bg-field-bg p-1.5 rounded-full border border-primary/20 shadow-lg">
                             <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-28 h-28 bg-[#2A2635]" 
@@ -323,48 +324,52 @@ export class MyPageManager {
                 modalConfirm.disabled = true;
             }
 
-            // Log withdrawal reason (could be sent to analytics)
+            // Log withdrawal reason
             console.log('[WITHDRAW] Reason:', reason);
 
-            // Sign out from all devices (global scope)
+            // 1. 서버에 계정 삭제 요청 (실제 Supabase 계정 삭제)
+            const userId = this.user?.id;
+            if (userId) {
+                try {
+                    const baseUrl = (API_CONFIG.BASE_URL || '').replace(/\/$/, '');
+                    const response = await fetch(`${baseUrl}/api/v1/delete-account`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: userId,
+                            reason: reason
+                        })
+                    });
+
+                    if (response.ok) {
+                        console.log('[WITHDRAW] Account deleted from server');
+                    } else {
+                        console.warn('[WITHDRAW] Server deletion failed, continuing with local cleanup');
+                    }
+                } catch (serverErr) {
+                    console.warn('[WITHDRAW] Server request failed:', serverErr);
+                    // 서버 에러가 있어도 로컬 정리는 계속 진행
+                }
+            }
+
+            // 2. Sign out from all devices
             try {
                 await supabase.auth.signOut({ scope: 'global' });
                 console.log('[WITHDRAW] Global signOut completed');
             } catch (signOutErr) {
-                console.error('[WITHDRAW] SignOut error (continuing anyway):', signOutErr);
+                console.error('[WITHDRAW] SignOut error:', signOutErr);
             }
 
-            // Also try local signout
-            try {
-                await supabase.auth.signOut({ scope: 'local' });
-                console.log('[WITHDRAW] Local signOut completed');
-            } catch (localErr) {
-                console.error('[WITHDRAW] Local signOut error:', localErr);
-            }
-
-            // Clear window cached supabase instance
+            // 3. Clear window cached supabase instance
             if (window.supabaseInstance) {
                 delete window.supabaseInstance;
-                console.log('[WITHDRAW] Cleared window.supabaseInstance');
             }
 
-            // Clear all storage thoroughly
-            // 1. Clear all Supabase related keys from localStorage
-            const localStorageKeys = Object.keys(localStorage);
-            localStorageKeys.forEach(key => {
-                if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
-                    localStorage.removeItem(key);
-                    console.log('[WITHDRAW] Removed localStorage key:', key);
-                }
-            });
-
-            // 2. Clear sessionStorage
+            // 4. Clear all storage
+            localStorage.clear();
             sessionStorage.clear();
 
-            // 3. Clear all localStorage as final step
-            localStorage.clear();
-
-            console.log('[WITHDRAW] All storage cleared');
+            console.log('[WITHDRAW] All cleanup completed');
 
             // Show farewell screen
             this._showFarewellView();
