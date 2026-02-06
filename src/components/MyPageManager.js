@@ -191,12 +191,12 @@ export class MyPageManager {
                         </label>
                     </div>
                 </div>
-                <div class="flex items-start gap-3 px-1 mb-10">
+                <div class="flex items-start gap-3 px-1 mb-6">
                     <input class="mt-0.5 w-5 h-5 rounded border-2 border-zinc-700 bg-transparent text-primary focus:ring-0 focus:ring-offset-0" id="withdraw-confirm-checkbox" type="checkbox"/>
                     <label class="text-sm text-gray-400 font-medium leading-snug" for="withdraw-confirm-checkbox">모든 데이터가 삭제됨을 확인했으며 이에 동의합니다.</label>
                 </div>
             </div>
-            <div class="fixed bottom-0 left-0 right-0 bg-dark-bg/95 backdrop-blur-xl border-t border-white/5 px-6 pb-10 pt-4 z-50">
+            <div class="fixed bottom-0 left-0 right-0 bg-dark-bg/95 backdrop-blur-xl border-t border-white/5 px-6 pt-6 z-50" style="padding-bottom: calc(env(safe-area-inset-bottom) + 20px);">
                 <div class="max-w-md mx-auto flex flex-col gap-3">
                     <button id="withdraw-keep-btn" class="w-full py-4 bg-primary text-dark-bg font-bold rounded-[20px] text-base active:scale-[0.97] transition-all">
                         계정 유지하기
