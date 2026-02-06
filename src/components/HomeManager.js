@@ -308,6 +308,21 @@ export class HomeManager {
             this._loadSingleImageAndUpdate(prevIdx, 'img-prev'),
             this._loadSingleImageAndUpdate(nextIdx, 'img-next'),
         ]);
+        // 나머지 사진 백그라운드 프리페치 (UI 블로킹 없음)
+        this._prefetchRemaining(new Set([currIdx, prevIdx, nextIdx]));
+    }
+
+    /**
+     * 캐러셀에 표시되지 않는 나머지 사진들을 백그라운드로 미리 로드.
+     * 스와이프 시 캐시 히트로 즉시 표시된다.
+     */
+    _prefetchRemaining(loadedSet) {
+        const photos = photoService.getPhotos();
+        for (let i = 0; i < photos.length; i++) {
+            if (!loadedSet.has(i)) {
+                photoService.loadPhotoDetails(i);
+            }
+        }
     }
 
     async _loadSingleImageAndUpdate(index, elementId) {
