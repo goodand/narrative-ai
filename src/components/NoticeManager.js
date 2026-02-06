@@ -2,13 +2,12 @@
  * NoticeManager - Handles Notification Settings UI and Scheduling
  */
 
-import { supabase } from '../services/supabase.js';
-import { LocalNotifications } from '@capacitor/local-notifications';
+import { requestPermission, scheduleDailyNotification, cancelAll } from '../services/NotificationService.js';
 
 export class NoticeManager {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
-        this.storageKey = 'recoco_notice_enabled';
+        this.storageKey = 'notificationEnabled'; // Align with existing storage key if any
         this.isNoticeEnabled = localStorage.getItem(this.storageKey) === 'true';
     }
 
@@ -95,6 +94,19 @@ export class NoticeManager {
         if (toggle) {
             toggle.onchange = async (e) => {
                 const enabled = e.target.checked;
+                
+                if (enabled) {
+                    const granted = await requestPermission();
+                    if (!granted) {
+                        alert('알림 권한이 필요합니다. 설정에서 권한을 허용해주세요.');
+                        toggle.checked = false;
+                        return;
+                    }
+                    await scheduleDailyNotification();
+                } else {
+                    await cancelAll();
+                }
+
                 this.isNoticeEnabled = enabled;
                 localStorage.setItem(this.storageKey, enabled);
 
@@ -106,57 +118,7 @@ export class NoticeManager {
                         ${enabled ? '현재 알림이 활성화되어 있습니다' : '알림이 꺼져 있습니다'}
                     `;
                 }
-
-                // Notification Logic
-                if (enabled) {
-                    await this._scheduleNotification();
-                } else {
-                    await this._cancelNotification();
-                }
             };
-        }
-    }
-
-    async _scheduleNotification() {
-        try {
-            // Request permission
-            const perm = await LocalNotifications.requestPermissions();
-            if (perm.display !== 'granted') {
-                alert('알림 권한이 필요합니다. 설정에서 권한을 허용해주세요.');
-                return;
-            }
-
-            // Cancel any existing first to avoid duplicates
-            await this._cancelNotification();
-
-            // Schedule daily 6 AM
-            await LocalNotifications.schedule({
-                notifications: [
-                    {
-                        id: 600,
-                        title: "좋은 아침이에요, 리코코입니다.",
-                        body: "오늘의 새로운 기억들을 선명하게 남겨볼까요? ✨",
-                        schedule: {
-                            on: { hour: 6, minute: 0 },
-                            repeats: true,
-                            allowMessages: true
-                        },
-                        sound: 'default'
-                    }
-                ]
-            });
-            console.log('[NOTICE] Scheduled daily 6 AM notification');
-        } catch (err) {
-            console.error('[NOTICE] Failed to schedule:', err);
-        }
-    }
-
-    async _cancelNotification() {
-        try {
-            await LocalNotifications.cancel({ notifications: [{ id: 600 }] });
-            console.log('[NOTICE] Canceled notification');
-        } catch (err) {
-            console.error('[NOTICE] Failed to cancel:', err);
         }
     }
 }
