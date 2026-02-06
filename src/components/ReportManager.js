@@ -140,7 +140,7 @@ export class ReportManager {
                     </div>
                 </header>
 
-                <main class="px-6 pt-2 pb-32">
+                <div class="px-6 pt-2 pb-10">
                     <div class="mb-8">
                         <h1 class="text-white text-[24px] font-bold leading-tight">이번 주 비움 리포트</h1>
                         <p class="text-white/40 text-[14px] mt-1.5 font-medium">${profileName}님의 공간이 더 가벼워지고 있어요.</p>

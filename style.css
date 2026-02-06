@@ -10,21 +10,26 @@
 }
 
 
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Prevent body scroll */
+}
+
 body {
     font-family: 'Plus Jakarta Sans', 'Noto Sans KR', sans-serif;
     -webkit-tap-highlight-color: transparent;
-    min-height: 100dvh;
     background-color: #121212;
     color: white;
+    display: flex;
+    flex-direction: column;
 }
 
-/* iOS Safe Area Utilities */
-.pt-safe {
-    padding-top: env(safe-area-inset-top, 20px);
-}
-
-.header-safe-padding {
-    padding-top: calc(env(safe-area-inset-top, 20px) + 0.75rem);
+main {
+    flex: 1;
+    overflow-y: auto; /* Enable scroll only here */
+    -webkit-overflow-scrolling: touch;
 }
 
 .ios-tab-bar {

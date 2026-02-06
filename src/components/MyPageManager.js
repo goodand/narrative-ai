@@ -35,7 +35,7 @@ export class MyPageManager {
                     <h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10">마이페이지</h2>
                 </div>
             </div>
-            <main class="max-w-md mx-auto pb-16">
+            <div class="max-w-md mx-auto pb-10">
                 <div class="flex flex-col items-center pt-6 pb-6 gap-3">
                     <div class="relative">
                         <div class="bg-field-bg p-1.5 rounded-full border border-primary/20 shadow-lg">
@@ -141,7 +141,7 @@ export class MyPageManager {
      */
     _showWithdrawView() {
         this.container.innerHTML = `
-            <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-md">
+            <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-md" style="padding-top: env(safe-area-inset-top);">
                 <div class="flex items-center p-4 justify-between max-w-md mx-auto">
                     <div id="withdraw-back" class="flex size-10 items-center justify-center cursor-pointer hover:bg-white/5 rounded-full transition-colors">
                         <span class="material-symbols-outlined text-2xl text-white">arrow_back_ios</span>

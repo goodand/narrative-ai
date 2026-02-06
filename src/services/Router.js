@@ -46,8 +46,8 @@ export class Router {
         const isMainTab = ['home', 'report', 'mypage'].includes(viewName);
         this.els.header.style.display = isMainTab ? 'none' : 'flex';
 
-        // 4. Control Bottom Bar Visibility
-        this.els.bottomBar.style.display = (viewName === 'mypage') ? 'none' : 'block';
+        // 4. Control Bottom Bar Visibility - Always visible for stability
+        this.els.bottomBar.style.display = 'block';
 
         // 5. Update Navigation Tabs
         this._updateTabState(viewName);

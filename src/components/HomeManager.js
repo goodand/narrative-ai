@@ -152,7 +152,7 @@ export class HomeManager {
 
         if (this.error) {
             this.container.innerHTML = `
-                <div class="flex flex-col min-h-screen px-6">
+                <div class="flex flex-col px-6">
                     <header class="flex items-center bg-transparent py-3 shrink-0" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
                         <div class="text-primary flex size-8 shrink-0 items-center justify-center">
                             <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
@@ -172,7 +172,7 @@ export class HomeManager {
 
         if (this.isLoading) {
             this.container.innerHTML = `
-                <div class="flex flex-col min-h-screen px-6">
+                <div class="flex flex-col px-6">
                     <header class="flex items-center bg-transparent py-3 shrink-0" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
                         <div class="text-primary flex size-8 shrink-0 items-center justify-center">
                             <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
@@ -194,7 +194,7 @@ export class HomeManager {
 
         if (photos.length === 0) {
             this.container.innerHTML = `
-                <div class="flex flex-col min-h-screen px-6">
+                <div class="flex flex-col px-6">
                     <header class="flex items-center bg-transparent py-3 shrink-0" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
                         <div class="text-primary flex size-8 shrink-0 items-center justify-center">
                             <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
@@ -219,7 +219,7 @@ export class HomeManager {
         const nextPhoto = photos[nextIdx];
 
         this.container.innerHTML = `
-            <div class="flex flex-col min-h-screen overflow-hidden px-6">
+            <div class="flex flex-col px-6">
                 <header class="flex items-center bg-transparent pb-3 shrink-0" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
                     <div class="text-primary flex size-8 shrink-0 items-center justify-center">
                         <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
