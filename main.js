@@ -34,6 +34,7 @@ import { PermissionModal } from './src/components/PermissionModal.js';
 import { HomeManager } from './src/components/HomeManager.js';
 import { MyPageManager } from './src/components/MyPageManager.js';
 import { ReportManager } from './src/components/ReportManager.js';
+import { NoticeManager } from './src/components/NoticeManager.js';
 
 // Initialize Core Services
 const geminiService = new GeminiService();
@@ -104,7 +105,8 @@ const els = {
     headerTitle: document.getElementById('header-title'),
     backBtn: document.getElementById('back-btn'),
     bottomBar: document.getElementById('bottom-action-bar'),
-    mypageView: document.getElementById('mypage-view')
+    mypageView: document.getElementById('mypage-view'),
+    noticeView: document.getElementById('notice-view')
 };
 
 // Initialize Router
@@ -217,11 +219,13 @@ const homeManager = new HomeManager('home-view', {
 });
 const reportManager = new ReportManager('report-view');
 const mypageManager = new MyPageManager('mypage-view', { onLogout: () => window.location.reload() });
+const noticeManager = new NoticeManager('notice-view');
 
 // Register Managers to Router
 router.registerManager('home', homeManager);
 router.registerManager('report', reportManager);
 router.registerManager('mypage', mypageManager);
+router.registerManager('notice', noticeManager);
 
 // 뒤로가기 버튼 이벤트 연결
 if (els.backBtn) {

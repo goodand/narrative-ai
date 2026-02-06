@@ -78,15 +78,14 @@ export class MyPageManager {
                 </div>
 
                 <div class="px-6 space-y-px bg-field-bg rounded-[24px] border border-white/5 overflow-hidden mx-6">
-                    <div class="flex items-center gap-4 px-5 min-h-[64px]">
+                    <div id="notice-settings-btn" class="flex items-center gap-4 px-5 min-h-[64px] cursor-pointer active:bg-zinc-800 transition-colors">
                         <div class="text-primary flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-[24px]">notifications</span>
                         </div>
                         <p class="text-white text-base font-semibold flex-1">알림 설정</p>
-                        <label id="notification-toggle" class="relative inline-flex items-center cursor-pointer shrink-0">
-                            <input type="checkbox" class="sr-only peer" ${localStorage.getItem('notificationEnabled') === 'true' ? 'checked' : ''}>
-                            <div class="w-11 h-6 bg-zinc-700 rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
-                        </label>
+                        <div class="shrink-0 text-zinc-600">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </div>
                     </div>
                 </div>
 
@@ -119,10 +118,17 @@ export class MyPageManager {
         const backBtn = document.getElementById('mypage-back');
         const logoutBtn = document.getElementById('logout-btn');
         const withdrawBtn = document.getElementById('withdraw-btn');
+        const noticeBtn = document.getElementById('notice-settings-btn');
 
         if (backBtn) {
             backBtn.onclick = () => {
                 window.dispatchEvent(new CustomEvent('nav-change', { detail: 'home' }));
+            };
+        }
+
+        if (noticeBtn) {
+            noticeBtn.onclick = () => {
+                window.dispatchEvent(new CustomEvent('nav-change', { detail: 'notice' }));
             };
         }
 
@@ -136,24 +142,6 @@ export class MyPageManager {
 
         if (withdrawBtn) {
             withdrawBtn.onclick = () => this._showWithdrawView();
-        }
-
-        const notifToggle = document.querySelector('#notification-toggle input');
-        if (notifToggle) {
-            notifToggle.onchange = async () => {
-                if (notifToggle.checked) {
-                    const granted = await requestPermission();
-                    if (granted) {
-                        await scheduleDailyNotification();
-                        localStorage.setItem('notificationEnabled', 'true');
-                    } else {
-                        notifToggle.checked = false;
-                    }
-                } else {
-                    await cancelAll();
-                    localStorage.setItem('notificationEnabled', 'false');
-                }
-            };
         }
     }
 

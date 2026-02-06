@@ -22,17 +22,11 @@ export class Router {
         }
         this.currentView = viewName;
 
-        // 1. Hide all views
-        [
-            this.els.homeView, 
-            this.els.reportView, 
-            this.els.inputView, 
-            this.els.resultView, 
-            this.els.mypageView
-        ].forEach(el => {
-            if (el) {
-                el.classList.add('hidden');
-                el.style.display = 'none';
+        // 1. Hide all views (Automated for all elements ending with 'View')
+        Object.keys(this.els).forEach(key => {
+            if (key.endsWith('View') && this.els[key]) {
+                this.els[key].classList.add('hidden');
+                this.els[key].style.display = 'none';
             }
         });
 
@@ -43,7 +37,7 @@ export class Router {
         }
 
         // 3. Control Header Visibility
-        const isMainTab = ['home', 'report', 'mypage'].includes(viewName);
+        const isMainTab = ['home', 'report', 'mypage', 'notice'].includes(viewName);
         this.els.header.style.display = isMainTab ? 'none' : 'flex';
 
         // 4. Control Bottom Bar Visibility - Always visible for stability
@@ -97,6 +91,7 @@ export class Router {
         else if (viewName === 'input') targetEl = this.els.inputView;
         else if (viewName === 'report') targetEl = this.els.reportView;
         else if (viewName === 'mypage') targetEl = this.els.mypageView;
+        else if (viewName === 'notice') targetEl = this.els.noticeView;
         else if (viewName === 'result') targetEl = this.els.resultView;
 
         if (targetEl) {
