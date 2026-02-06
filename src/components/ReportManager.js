@@ -140,27 +140,27 @@ export class ReportManager {
                     </div>
                 </header>
 
-                <div class="px-6 pt-2 pb-10">
+                <div class="px-8 pt-2 pb-10">
                     <div class="mb-8">
-                        <h1 class="text-white text-[24px] font-bold leading-tight">이번 주 비움 리포트</h1>
-                        <p class="text-white/40 text-[14px] mt-1.5 font-medium">${profileName}님의 공간이 더 가벼워지고 있어요.</p>
+                        <h1 class="text-white text-[22px] font-bold leading-tight">이번 주 비움 리포트</h1>
+                        <p class="text-white/40 text-[13px] mt-1.5 font-medium">${profileName}님의 공간이 더 가벼워지고 있어요.</p>
                     </div>
 
                     <div class="bg-field-bg rounded-[28px] p-6 mb-4 border border-white/5 shadow-2xl">
-                        <div class="flex justify-between items-start mb-10">
+                        <div class="flex justify-between items-start mb-8">
                             <div>
-                                <h3 class="text-[13px] font-medium text-white/40 mb-1">지난 7일간 비운 사진</h3>
+                                <h3 class="text-[12px] font-medium text-white/40 mb-1">지난 7일간 비운 사진</h3>
                                 <div class="flex items-baseline gap-1">
-                                    <span class="text-3xl font-bold text-white tracking-tight">${this.stats.weeklyCount}</span>
-                                    <span class="text-sm font-semibold text-primary">장</span>
+                                    <span class="text-2xl font-bold text-white tracking-tight">${this.stats.weeklyCount}</span>
+                                    <span class="text-xs font-semibold text-primary">장</span>
                                 </div>
                             </div>
-                            <div class="px-3 py-1 rounded-full text-[12px] font-bold bg-primary/10 text-primary">
+                            <div class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary">
                                 ${this.stats.weeklyChange}
                             </div>
                         </div>
 
-                        <div class="relative w-full h-36 mb-6">
+                        <div class="relative w-full h-32 mb-4">
                             <svg class="w-full h-full" preserveAspectRatio="none" viewBox="0 0 300 100">
                                 <line class="text-white/5" stroke="currentColor" stroke-width="1" x1="0" x2="300" y1="80" y2="80"></line>
                                 ${this._generateSVGPath()}
@@ -173,42 +173,41 @@ export class ReportManager {
                             </svg>
                             <div class="flex justify-between mt-4 px-1">
                                 ${['월', '화', '수', '목', '금', '토', '일'].map((d, i) => `
-                                    <span class="text-[11px] ${this._isCurrentDay(i) ? 'font-bold text-primary' : 'text-white/20 font-medium'}">${d}</span>
+                                    <span class="text-[10px] ${this._isCurrentDay(i) ? 'font-bold text-primary' : 'text-white/20 font-medium'}">${d}</span>
                                 `).join('')}
                             </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div class="bg-field-bg p-5 rounded-[28px] border border-white/5">
-                            <div class="size-10 flex items-center justify-center rounded-2xl mb-4 bg-primary/10 text-primary">
-                                <span class="material-symbols-outlined">database</span>
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="bg-field-bg p-5 rounded-[24px] border border-white/5">
+                            <div class="size-9 flex items-center justify-center rounded-xl mb-3 bg-primary/10 text-primary">
+                                <span class="material-symbols-outlined text-xl">database</span>
                             </div>
-                            <h4 class="text-[13px] text-white/40 font-medium">확보한 저장 공간</h4>
-                            <p class="text-[22px] font-bold mt-1 text-white leading-tight">
+                            <h4 class="text-[12px] text-white/40 font-medium">확보한 공간</h4>
+                            <p class="text-[18px] font-bold mt-0.5 text-white leading-tight">
                                 ${this.stats.totalBytesGB} <span class="text-xs font-semibold text-primary">GB</span>
                             </p>
                         </div>
-                        <div class="bg-field-bg p-5 rounded-[28px] border border-white/5">
-                            <div class="size-10 flex items-center justify-center rounded-2xl mb-4 bg-primary/10 text-primary">
-                                <span class="material-symbols-outlined">auto_awesome</span>
+                        <div class="bg-field-bg p-5 rounded-[24px] border border-white/5">
+                            <div class="size-9 flex items-center justify-center rounded-xl mb-3 bg-primary/10 text-primary">
+                                <span class="material-symbols-outlined text-xl">auto_awesome</span>
                             </div>
-                            <h4 class="text-[13px] text-white/40 font-medium">정리한 추억</h4>
-                            <p class="text-[22px] font-bold mt-1 text-white leading-tight">
+                            <h4 class="text-[12px] text-white/40 font-medium">정리한 추억</h4>
+                            <p class="text-[18px] font-bold mt-0.5 text-white leading-tight">
                                 ${this.stats.totalCount} <span class="text-xs font-semibold text-primary">개</span>
                             </p>
                         </div>
                     </div>
 
-                    <div class="p-5 bg-field-bg rounded-[28px] border border-white/5 flex items-center gap-4">
-                        <div class="size-12 rounded-full flex items-center justify-center shrink-0 bg-primary/10 text-primary">
-                            <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1">lightbulb</span>
+                    <div class="p-5 bg-field-bg rounded-[24px] border border-white/5 flex items-center gap-4">
+                        <div class="size-10 rounded-full flex items-center justify-center shrink-0 bg-primary/10 text-primary">
+                            <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1">lightbulb</span>
                         </div>
                         <div class="flex-1">
-                            <p class="text-[13px] font-bold mb-0.5 text-primary">비움 팁</p>
-                            <p class="text-[14px] text-white/70 leading-snug font-medium">${this.stats.tips}</p>
+                            <p class="text-[12px] font-bold mb-0.5 text-primary">비움 팁</p>
+                            <p class="text-[13px] text-white/70 leading-snug font-medium">${this.stats.tips}</p>
                         </div>
-                        <span class="material-symbols-outlined text-white/20">chevron_right</span>
                     </div>
                 </main>
             </div>
