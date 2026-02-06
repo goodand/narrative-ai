@@ -122,28 +122,34 @@ export class MyPageManager {
     }
 
     _bindEvents() {
-        const backBtn = document.getElementById('mypage-back');
-        const logoutBtn = document.getElementById('logout-btn');
-        const withdrawBtn = document.getElementById('withdraw-btn');
+        // Remove existing listeners to prevent duplicates if any
+        if (this._clickHandler) {
+            this.container.removeEventListener('click', this._clickHandler);
+        }
 
-        if (backBtn) {
-            backBtn.onclick = () => {
-                // 홈으로 돌아가는 이벤트 발생
+        this._clickHandler = (e) => {
+            const backBtn = e.target.closest('#mypage-back');
+            const logoutBtn = e.target.closest('#logout-btn');
+            const withdrawBtn = e.target.closest('#withdraw-btn');
+
+            if (backBtn) {
                 window.dispatchEvent(new CustomEvent('nav-change', { detail: 'home' }));
-            };
-        }
+            }
 
-        if (logoutBtn) {
-            logoutBtn.onclick = async () => {
-                const { error } = await supabase.auth.signOut();
-                if (error) console.error('Logout error:', error.message);
-                if (this.onLogout) this.onLogout();
-            };
-        }
+            if (logoutBtn) {
+                (async () => {
+                    const { error } = await supabase.auth.signOut();
+                    if (error) console.error('Logout error:', error.message);
+                    if (this.onLogout) this.onLogout();
+                })();
+            }
 
-        if (withdrawBtn) {
-            withdrawBtn.onclick = () => this._showWithdrawView();
-        }
+            if (withdrawBtn) {
+                this._showWithdrawView();
+            }
+        };
+
+        this.container.addEventListener('click', this._clickHandler);
     }
 
     /**
@@ -242,67 +248,86 @@ export class MyPageManager {
     }
 
     /**
-     * Bind events for withdrawal view
+     * Bind events for withdrawal view using delegation
      */
     _bindWithdrawEvents() {
-        const backBtn = document.getElementById('withdraw-back');
-        const keepBtn = document.getElementById('withdraw-keep-btn');
-        const proceedBtn = document.getElementById('withdraw-proceed-btn');
-        const confirmCheckbox = document.getElementById('withdraw-confirm-checkbox');
-        const modal = document.getElementById('withdraw-modal');
-        const modalCancel = document.getElementById('withdraw-modal-cancel');
-        const modalConfirm = document.getElementById('withdraw-modal-confirm');
-
-        // Back button - return to mypage
-        if (backBtn) {
-            backBtn.onclick = () => this.render();
+        // Re-use the same container listener approach, but we need to handle specific IDs for this view
+        // Since we overwrite innerHTML, the previous listener is still attached to the container, 
+        // but the targets inside have changed. We can just use a single listener for the whole class if we want,
+        // but for now let's just replace the handler or rely on the fact that we're in a specific view state.
+        
+        // Simpler approach: Remove old listener and attach new one specific to this view
+        if (this._clickHandler) {
+            this.container.removeEventListener('click', this._clickHandler);
         }
 
-        // Keep account button - return to mypage
-        if (keepBtn) {
-            keepBtn.onclick = () => this.render();
-        }
+        this._clickHandler = (e) => {
+            const target = e.target;
+            const backBtn = target.closest('#withdraw-back');
+            const keepBtn = target.closest('#withdraw-keep-btn');
+            const proceedBtn = target.closest('#withdraw-proceed-btn');
+            const confirmCheckbox = target.closest('#withdraw-confirm-checkbox');
+            const modalCancel = target.closest('#withdraw-modal-cancel');
+            const modalConfirm = target.closest('#withdraw-modal-confirm');
+            const modal = document.getElementById('withdraw-modal'); // Modal is usually overlay
 
-        // Enable/disable proceed button based on checkbox
-        if (confirmCheckbox && proceedBtn) {
-            confirmCheckbox.onchange = () => {
-                proceedBtn.disabled = !confirmCheckbox.checked;
-                if (confirmCheckbox.checked) {
-                    proceedBtn.classList.remove('text-gray-400');
-                    proceedBtn.classList.add('text-red-400');
-                } else {
-                    proceedBtn.classList.add('text-gray-400');
-                    proceedBtn.classList.remove('text-red-400');
+            if (backBtn || keepBtn) {
+                this.render();
+                return;
+            }
+
+            // Checkbox logic is usually 'change' event, not click on container for logic
+            // But we can handle it here if we target the input
+            if (target.id === 'withdraw-confirm-checkbox') {
+                const btn = document.getElementById('withdraw-proceed-btn');
+                if (btn) {
+                    btn.disabled = !target.checked;
+                    if (target.checked) {
+                        btn.classList.remove('text-gray-400');
+                        btn.classList.add('text-red-400');
+                    } else {
+                        btn.classList.add('text-gray-400');
+                        btn.classList.remove('text-red-400');
+                    }
                 }
-            };
-        }
+            }
 
-        // Proceed button - show confirmation modal
-        if (proceedBtn && modal) {
-            proceedBtn.onclick = () => {
-                if (!proceedBtn.disabled) {
-                    modal.classList.remove('hidden');
+            if (proceedBtn && !proceedBtn.disabled) {
+                if (modal) modal.classList.remove('hidden');
+            }
+
+            if (modalCancel) {
+                if (modal) modal.classList.add('hidden');
+            }
+
+            if (modalConfirm) {
+                this._performWithdrawal();
+            }
+
+            // Close modal on outside click
+            if (target === modal) {
+                modal.classList.add('hidden');
+            }
+        };
+
+        this.container.addEventListener('click', this._clickHandler);
+        
+        // Checkbox needs 'change' event specifically for keyboard/accessibility reliability
+        const checkbox = document.getElementById('withdraw-confirm-checkbox');
+        if (checkbox) {
+            checkbox.addEventListener('change', (e) => {
+                const btn = document.getElementById('withdraw-proceed-btn');
+                if (btn) {
+                    btn.disabled = !e.target.checked;
+                    if (e.target.checked) {
+                        btn.classList.remove('text-gray-400');
+                        btn.classList.add('text-red-400');
+                    } else {
+                        btn.classList.add('text-gray-400');
+                        btn.classList.remove('text-red-400');
+                    }
                 }
-            };
-        }
-
-        // Modal cancel button
-        if (modalCancel && modal) {
-            modalCancel.onclick = () => modal.classList.add('hidden');
-        }
-
-        // Modal confirm button - actual withdrawal
-        if (modalConfirm) {
-            modalConfirm.onclick = () => this._performWithdrawal();
-        }
-
-        // Close modal on outside click
-        if (modal) {
-            modal.onclick = (e) => {
-                if (e.target === modal) {
-                    modal.classList.add('hidden');
-                }
-            };
+            });
         }
     }
 
