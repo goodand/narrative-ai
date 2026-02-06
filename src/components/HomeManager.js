@@ -236,7 +236,7 @@ export class HomeManager {
                     <div class="bg-field-bg rounded-2xl p-4 border border-white/5 shadow-2xl">
                         <div class="flex justify-between items-center mb-2">
                             <div class="flex flex-col">
-                                <span class="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-lavender">오늘의 비움 목표</span>
+                                <span class="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-lavender">이번 주 비움 목표</span>
                                 <span class="text-sm font-bold text-white">${10 - photos.length} / 10 장</span>
                             </div>
                             <span class="text-[10px] font-medium text-primary italic">${profileName}님, 함께 정리해요</span>
