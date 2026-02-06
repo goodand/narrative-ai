@@ -96,4 +96,5 @@ const USER_MESSAGES = {
     Share: '공유 중 오류가 발생했습니다.',
     AI: 'AI 생성 중 오류가 발생했습니다.',
     Auth: '인증 처리 중 오류가 발생했습니다.',
+    Notification: '알림 설정 중 오류가 발생했습니다.',
 };

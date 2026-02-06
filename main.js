@@ -21,6 +21,7 @@ import { Router } from './src/services/Router.js';
 
 // Capacitor Plugins
 import { App } from '@capacitor/app';
+import { scheduleDailyNotification, setupActionListener } from './src/services/NotificationService.js';
 
 // Components
 import { DropZone } from './src/components/DropZone.js';
@@ -78,12 +79,18 @@ App.addListener('appUrlOpen', (data) => {
     handleUrl(data.url);
 });
 
+// Re-register notifications when app returns to foreground (iOS reboot recovery)
+App.addListener('appStateChange', ({ isActive }) => {
+    if (isActive && localStorage.getItem('notificationEnabled') === 'true') {
+        scheduleDailyNotification();
+    }
+});
+
 // DOM Elements
 const els = {
     genBtn: document.getElementById('generate-btn'),
     btnText: document.getElementById('btn-text'),
     loader: document.getElementById('btn-loader'),
-    error: document.getElementById('error-msg'),
     meaningInput: document.getElementById('meaning-input'),
     tagsInput: document.getElementById('tags-input'),
     navHome: document.getElementById('nav-home'),
@@ -238,7 +245,12 @@ supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN') {
         authModal.close();
         onboardingModal.element.classList.add('hidden');
-        permissionModal.onComplete = () => router.navigate('home');
+        permissionModal.onComplete = () => {
+            router.navigate('home');
+            if (localStorage.getItem('notificationEnabled') === 'true') {
+                scheduleDailyNotification();
+            }
+        };
         permissionModal.checkAndOpen();
     } else if (event === 'SIGNED_OUT') {
         onboardingModal.open();
@@ -325,6 +337,8 @@ function setLoading(isLoading) {
  */
 async function initApp() {
     store.checkAndResetDaily();
+    setupActionListener(router);
+
     const launchUrl = await App.getLaunchUrl();
     if (launchUrl?.url) await handleUrl(launchUrl.url);
 
@@ -334,7 +348,12 @@ async function initApp() {
     } else {
         onboardingModal.element.classList.add('hidden');
         authModal.close();
-        permissionModal.onComplete = () => router.navigate('home');
+        permissionModal.onComplete = () => {
+            router.navigate('home');
+            if (localStorage.getItem('notificationEnabled') === 'true') {
+                scheduleDailyNotification();
+            }
+        };
         permissionModal.checkAndOpen();
     }
 }
