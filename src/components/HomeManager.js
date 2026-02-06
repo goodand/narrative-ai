@@ -285,13 +285,15 @@ export class HomeManager {
                         </div>
 
                         <div class="flex gap-4 w-full pb-8">
-                            <button id="thanks-btn" class="flex-1 flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl border border-primary/30 bg-field-bg active:scale-95 transition-all">
+                            <button id="thanks-btn" class="flex-1 flex flex-col items-center justify-center gap-0.5 py-3 px-2 rounded-2xl border border-primary/30 bg-field-bg active:scale-95 transition-all">
                                 <span class="material-symbols-outlined text-primary text-xl">delete</span>
-                                <span class="text-primary font-bold text-[13px]">고마웠어</span>
+                                <span class="text-primary font-bold text-[13px] leading-tight">고마웠어</span>
+                                <span class="text-primary/60 text-[10px] font-medium">(삭제하기)</span>
                             </button>
-                            <button id="precious-btn" class="flex-1 flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl bg-primary shadow-lg shadow-primary/20 active:scale-95 transition-all">
+                            <button id="precious-btn" class="flex-1 flex flex-col items-center justify-center gap-0.5 py-3 px-2 rounded-2xl bg-primary shadow-lg shadow-primary/20 active:scale-95 transition-all">
                                 <span class="material-symbols-outlined text-white text-xl" style="font-variation-settings: 'FILL' 1">auto_awesome</span>
-                                <span class="text-white font-bold text-[13px]">소중해</span>
+                                <span class="text-white font-bold text-[13px] leading-tight">소중해</span>
+                                <span class="text-white/70 text-[10px] font-medium">(기록하기)</span>
                             </button>
                         </div>
                     </div>
