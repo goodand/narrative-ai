@@ -14,7 +14,9 @@ html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden; /* Prevent body scroll */
+    overflow: hidden;
+    position: fixed; /* Prevent iOS elastic scroll on body */
+    width: 100%;
 }
 
 body {
@@ -28,8 +30,16 @@ body {
 
 main {
     flex: 1;
-    overflow-y: auto; /* Enable scroll only here */
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    position: relative;
+    z-index: 1;
+}
+
+#bottom-action-bar {
+    position: relative;
+    z-index: 50;
+    background-color: #121212; /* Ensure it covers content during bounce */
 }
 
 .ios-tab-bar {
