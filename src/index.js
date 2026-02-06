@@ -9,6 +9,7 @@ export * from './constants/config.js';
 // Utils
 export { fetchWithRetry, delay } from './utils/fetch.js';
 export { convertDMSToDecimal, formatGPSCoordinates, decimalToDMS } from './utils/geo.js';
+export { handleError, showToast, ErrorLevel } from './utils/errorHandler.js';
 
 // State
 export { StateManager, store } from './state/StateManager.js';
