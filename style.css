@@ -18,6 +18,15 @@ body {
     color: white;
 }
 
+/* iOS Safe Area Utilities */
+.pt-safe {
+    padding-top: env(safe-area-inset-top, 20px);
+}
+
+.header-safe-padding {
+    padding-top: calc(env(safe-area-inset-top, 20px) + 0.75rem);
+}
+
 .ios-tab-bar {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
