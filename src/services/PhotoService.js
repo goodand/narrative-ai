@@ -61,32 +61,33 @@ export class PhotoService {
         if (photo.imageUrl && photo.location) return photo; // Already loaded
 
         try {
-            // 1. Image Data
+            const tasks = [];
+
+            // 1. Image Data (네이티브 플러그인)
             if (!photo.imageUrl) {
-                const { base64 } = await RecocolPhotos.loadImageData({ 
-                    assetId: photo.id, 
-                    quality: 'thumbnail' 
-                });
-                photo.imageUrl = `data:image/jpeg;base64,${base64}`;
+                tasks.push(
+                    RecocolPhotos.loadImageData({ assetId: photo.id, quality: 'thumbnail' })
+                        .then(({ base64 }) => { photo.imageUrl = `data:image/jpeg;base64,${base64}`; })
+                );
             }
 
-            // 2. Location Data
+            // 2. Location Data (API 호출) — 이미지와 병렬 실행
             if (!photo.location) {
                 if (photo.rawAsset.location) {
-                    try {
-                        photo.location = await geocodingService.getAddress(
-                            photo.rawAsset.location.latitude, 
+                    tasks.push(
+                        geocodingService.getAddress(
+                            photo.rawAsset.location.latitude,
                             photo.rawAsset.location.longitude
-                        );
-                    } catch (e) {
-                        console.warn('Geo-coding failed:', e);
-                        photo.location = '위치 정보 없음';
-                    }
+                        )
+                        .then(addr => { photo.location = addr; })
+                        .catch(() => { photo.location = '위치 정보 없음'; })
+                    );
                 } else {
                     photo.location = '위치 정보 없음';
                 }
             }
 
+            await Promise.all(tasks);
             return photo;
         } catch (error) {
             console.error(`PhotoService: Failed to load details for ${photo.id}`, error);

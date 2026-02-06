@@ -301,11 +301,13 @@ export class HomeManager {
     }
 
     async _loadAndReflectImages(currIdx, prevIdx, nextIdx) {
+        // 현재 사진 우선 로드 (사용자가 보는 사진)
         await this._loadSingleImageAndUpdate(currIdx, 'img-curr');
-        await new Promise(r => setTimeout(r, 50));
-        await this._loadSingleImageAndUpdate(nextIdx, 'img-next');
-        await new Promise(r => setTimeout(r, 50));
-        await this._loadSingleImageAndUpdate(prevIdx, 'img-prev');
+        // 이전/다음 사진은 병렬 로드
+        await Promise.all([
+            this._loadSingleImageAndUpdate(prevIdx, 'img-prev'),
+            this._loadSingleImageAndUpdate(nextIdx, 'img-next'),
+        ]);
     }
 
     async _loadSingleImageAndUpdate(index, elementId) {
