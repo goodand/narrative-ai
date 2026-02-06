@@ -106,6 +106,7 @@ class ContextBuilder:
         # (Label, ValueGetter) 튜플 리스트로 관리하여 확장성 확보
         optional_fields = [
             ("Location", ContextBuilder._extract_location(context.metadata)),
+            ("User's Meaning of this moment", getattr(context, "meaning", None)),
             ("User Tags", context.tags),
             ("Activity", context.activity),
             ("Body State", context.bodyState),

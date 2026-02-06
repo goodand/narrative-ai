@@ -64,126 +64,17 @@
                 </div>
             </div>
 
-            <div class="px-6 space-y-6">
-                <div class="space-y-4">
-                    <!-- Activity -->
-                    <div>
-                        <p class="text-[10px] font-bold text-muted-lavender tracking-wider uppercase mb-2 ml-1">Activity</p>
-                        <div class="relative">
-                            <select id="activity-select" class="w-full h-14 bg-field-bg border-none rounded-2xl px-5 text-sm appearance-none focus:ring-1 focus:ring-primary/30 text-white outline-none cursor-pointer">
-                                <option value="" disabled selected>무엇을 하고 있었나요?</option>
-                                <option value="working">일하는 중</option>
-                                <option value="resting">쉬는 중</option>
-                                <option value="playing">놀고 있는 중</option>
-                                <option value="exercising">운동 중</option>
-                                <option value="eating">먹는 중</option>
-                                <option value="moving">이동 중</option>
-                                <option value="nothing">아무것도 안 하는 중</option>
-                            </select>
-                            <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none">keyboard_arrow_down</span>
-                        </div>
-                    </div>
-
-                    <!-- Body State -->
-                    <div>
-                        <p class="text-[10px] font-bold text-muted-lavender tracking-wider uppercase mb-2 ml-1">Body State</p>
-                        <div class="relative">
-                            <select id="body-state-select" class="w-full h-14 bg-field-bg border-none rounded-2xl px-5 text-sm appearance-none focus:ring-1 focus:ring-primary/30 text-white outline-none cursor-pointer">
-                                <option value="" disabled selected>이때 몸의 감각은 어땠나요?</option>
-                                <option value="light">가벼웠어요</option>
-                                <option value="tired">피곤했어요</option>
-                                <option value="stiff">뻐근했어요</option>
-                                <option value="weak">힘이 빠져 있었어요</option>
-                                <option value="tense">몸에 힘이 들어가 있었어요</option>
-                            </select>
-                            <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none">keyboard_arrow_down</span>
-                        </div>
-                    </div>
-
-                    <!-- Relationship -->
-                    <div>
-                        <p class="text-[10px] font-bold text-muted-lavender tracking-wider uppercase mb-2 ml-1">Relationship</p>
-                        <div class="relative">
-                            <select id="relationship-select" class="w-full h-14 bg-field-bg border-none rounded-2xl px-5 text-sm appearance-none focus:ring-1 focus:ring-primary/30 text-white outline-none cursor-pointer">
-                                <option value="" disabled selected>그 순간, 타인과의 연결은요?</option>
-                                <option value="alone_full">혼자였지만 충만</option>
-                                <option value="alone_lonely">혼자였고 외로움</option>
-                                <option value="together_alone">함께 있었지만 혼자 같음</option>
-                                <option value="together_stable">함께 있어서 안정됨</option>
-                                <option value="connected">연결되어 있다고 느꼈음</option>
-                                <option value="distanced">거리감을 느꼈음</option>
-                                <option value="changing">관계가 변하고 있던 시점</option>
-                            </select>
-                            <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none">keyboard_arrow_down</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Emotion Temperature -->
+            <div class="px-6 space-y-8">
+                <!-- Meaning Input (New) -->
                 <div>
-                    <p class="text-[10px] font-bold text-muted-lavender tracking-wider uppercase mb-2 ml-1">Emotion Temperature</p>
-                    <div class="flex p-1 bg-field-bg rounded-2xl gap-1" id="temp-toggle-group">
-                        <button class="flex-1 flex flex-col items-center justify-center py-3 rounded-xl hover:bg-white/5 transition-colors" data-value="Cold">
-                            <div class="w-3 h-3 rounded-full bg-blue-500 mb-2"></div>
-                            <span class="text-xs text-white/70">차가움</span>
-                        </button>
-                        <button class="flex-1 flex flex-col items-center justify-center py-3 rounded-xl bg-white/10 shadow-sm" data-value="Lukewarm">
-                            <div class="w-3 h-3 rounded-full bg-yellow-400 mb-2"></div>
-                            <span class="text-xs text-white">미지근함</span>
-                        </button>
-                        <button class="flex-1 flex flex-col items-center justify-center py-3 rounded-xl hover:bg-white/5 transition-colors" data-value="Hot">
-                            <div class="w-3 h-3 rounded-full bg-red-500 mb-2"></div>
-                            <span class="text-xs text-white/70">뜨거움</span>
-                        </button>
-                    </div>
+                    <p class="text-[10px] font-bold text-muted-lavender tracking-wider uppercase mb-2 ml-1">Meaning</p>
+                    <textarea id="meaning-input" class="w-full bg-field-bg border-none rounded-2xl p-5 text-sm focus:ring-1 focus:ring-primary/30 placeholder:text-muted-lavender/40 text-white outline-none min-h-[120px] resize-none" placeholder="이 순간은 당신에게 어떤 의미인가요?"></textarea>
                 </div>
 
-                <!-- Tags -->
+                <!-- Tags (Kept) -->
                 <div>
                     <p class="text-[10px] font-bold text-muted-lavender tracking-wider uppercase mb-2 ml-1">Tags (Optional)</p>
                     <input id="tags-input" class="w-full h-14 bg-field-bg border-none rounded-2xl px-5 text-sm focus:ring-1 focus:ring-primary/30 placeholder:text-muted-lavender/40 text-white outline-none" placeholder="#태그 #키워드 #입력" type="text" />
-                </div>
-
-                <!-- Target Platform -->
-                <div>
-                    <p class="text-[10px] font-bold text-muted-lavender tracking-wider uppercase mb-2 ml-1">Target Platform</p>
-                    <div class="grid grid-cols-3 gap-2 sns-grid" id="sns-toggle-group">
-                        <button class="h-12 bg-primary text-white rounded-xl text-xs font-semibold sns-item active" data-value="Instagram">Instagram</button>
-                        <button class="h-12 bg-field-bg text-muted-lavender rounded-xl text-xs font-semibold sns-item" data-value="Threads">Threads</button>
-                        <button class="h-12 bg-field-bg text-muted-lavender rounded-xl text-xs font-semibold sns-item" data-value="Twitter (X)">Twitter (X)</button>
-                        <button class="h-12 bg-field-bg text-muted-lavender rounded-xl text-xs font-semibold sns-item" data-value="Facebook">Facebook</button>
-                        <button class="h-12 bg-field-bg text-muted-lavender rounded-xl text-xs font-semibold sns-item" data-value="Naver Blog">Blog</button>
-                        <button class="h-12 bg-field-bg text-muted-lavender rounded-xl text-xs font-semibold sns-item" data-value="TikTok">TikTok</button>
-                    </div>
-                </div>
-
-                <!-- Language & Style -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <p class="text-[10px] font-bold text-muted-lavender tracking-wider uppercase mb-2 ml-1">Language</p>
-                        <div class="relative">
-                            <select id="language-select" class="w-full h-14 bg-field-bg border-none rounded-2xl px-5 text-sm appearance-none focus:ring-1 focus:ring-primary/30 text-white outline-none cursor-pointer">
-                                <option value="Korean">한국어</option>
-                                <option value="English">English</option>
-                            </select>
-                            <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none">keyboard_arrow_down</span>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-bold text-muted-lavender tracking-wider uppercase mb-2 ml-1">Mood Style</p>
-                        <div class="relative">
-                            <select id="style-select" class="w-full h-14 bg-field-bg border-none rounded-2xl px-5 text-sm appearance-none focus:ring-1 focus:ring-primary/30 text-white outline-none cursor-pointer">
-                                <option value="emotional">감성적인 기록</option>
-                                <option value="descriptive">상세한 묘사</option>
-                                <option value="funny">유머러스한 코멘트</option>
-                                <option value="minimalist">미니멀리스트</option>
-                                <option value="gen-z">젠지 (Gen-Z)</option>
-                                <option value="young-forty">영포티 (Young Forty)</option>
-                                <option value="middle-aged">50대 아버님</option>
-                            </select>
-                            <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none">keyboard_arrow_down</span>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

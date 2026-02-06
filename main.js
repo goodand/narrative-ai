@@ -81,12 +81,8 @@ const els = {
     btnText: document.getElementById('btn-text'),
     loader: document.getElementById('btn-loader'),
     error: document.getElementById('error-msg'),
-    lang: document.getElementById('language-select'),
-    style: document.getElementById('style-select'),
+    meaningInput: document.getElementById('meaning-input'),
     tagsInput: document.getElementById('tags-input'),
-    activity: document.getElementById('activity-select'),
-    bodyState: document.getElementById('body-state-select'),
-    relationship: document.getElementById('relationship-select'),
     navHome: document.getElementById('nav-home'),
     navReport: document.getElementById('nav-report'),
     navMypage: document.getElementById('nav-mypage'),
@@ -115,8 +111,8 @@ const dropZone = new DropZone({
     }
 });
 
-const snsGroup = new SelectionGroup({ container: '.sns-grid', itemSelector: '.sns-item', activeClass: 'bg-primary text-white rounded-xl text-xs font-semibold sns-item active', inactiveClass: 'bg-field-bg text-muted-lavender rounded-xl text-xs font-semibold sns-item' });
-const tempGroup = new SelectionGroup({ container: '#temp-toggle-group', itemSelector: 'button', activeClass: 'bg-white/10 shadow-sm', inactiveClass: 'hover:bg-white/5' });
+// SelectionGroup instances for sns and temp are no longer needed as they are removed from UI
+// keeping them if they are used elsewhere, but ideally cleaning up if exclusively for input view
 
 const suggestionModal = new SuggestionModal('suggestion-modal', 'suggestion-list');
 
@@ -260,14 +256,15 @@ els.genBtn.onclick = async () => {
     setLoading(true);
 
     const context = {
-        sns: store.getPreference('sns') || snsGroup.getValue() || 'Instagram',
-        mood: els.style?.value || 'casual',
-        temp: store.getPreference('temp') || tempGroup.getValue() || 'Lukewarm',
-        language: els.lang?.value || 'Korean',
+        sns: 'Instagram', // Default
+        mood: 'emotional', // Default
+        temp: 'Lukewarm', // Default
+        language: 'Korean', // Default
+        meaning: els.meaningInput?.value?.trim() || '', // New field
         tags: els.tagsInput?.value?.trim() || '',
-        activity: els.activity?.value || '',
-        bodyState: els.bodyState?.value || '',
-        relationship: els.relationship?.value || '',
+        activity: '',
+        bodyState: '',
+        relationship: '',
         metadata: store.getState('metadata'),
         systemPrompt: store.getState('systemPrompt')
     };
