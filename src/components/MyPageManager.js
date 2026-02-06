@@ -324,91 +324,51 @@ export class MyPageManager {
                 modalConfirm.disabled = true;
             }
 
-            // Log withdrawal reason and user info
-            console.log('[WITHDRAW] Reason:', reason);
-            console.log('[WITHDRAW] this.user:', this.user);
-            console.log('[WITHDRAW] this.user?.id:', this.user?.id);
-
             // 1. 서버에 계정 삭제 요청 (실제 Supabase 계정 삭제)
-            // this.user가 없을 수 있으므로 직접 가져오기
             let userId = this.user?.id;
             if (!userId) {
                 try {
                     const { data: { user } } = await supabase.auth.getUser();
                     userId = user?.id;
-                    console.log('[WITHDRAW] Fetched userId from supabase:', userId);
                 } catch (e) {
                     console.error('[WITHDRAW] Failed to get user:', e);
                 }
             }
+
+            console.log('[WITHDRAW] userId:', userId, 'reason:', reason);
+
             if (userId) {
                 try {
                     const baseUrl = (API_CONFIG.BASE_URL || '').replace(/\/$/, '');
-                    const apiUrl = `${baseUrl}/api/v1/delete-account`;
-                    console.log('[WITHDRAW] Calling API:', apiUrl);
-                    console.log('[WITHDRAW] Request body:', { user_id: userId, reason: reason });
-
-                    const response = await fetch(apiUrl, {
+                    const response = await fetch(`${baseUrl}/api/v1/delete-account`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            user_id: userId,
-                            reason: reason
-                        })
+                        body: JSON.stringify({ user_id: userId, reason })
                     });
 
-                    const responseData = await response.json().catch(() => null);
-                    console.log('[WITHDRAW] Server response:', response.status, responseData);
-
-                    if (response.ok) {
-                        console.log('[WITHDRAW] Account deleted from server');
-                    } else {
-                        console.warn('[WITHDRAW] Server deletion failed, continuing with local cleanup');
-                    }
+                    const data = await response.json().catch(() => null);
+                    console.log('[WITHDRAW] Server:', response.status, data?.message);
                 } catch (serverErr) {
                     console.warn('[WITHDRAW] Server request failed:', serverErr);
-                    // 서버 에러가 있어도 로컬 정리는 계속 진행
                 }
             }
 
-            // 2. Sign out from all devices
-            try {
-                await supabase.auth.signOut({ scope: 'global' });
-                console.log('[WITHDRAW] Global signOut completed');
-            } catch (signOutErr) {
-                console.error('[WITHDRAW] SignOut error:', signOutErr);
-            }
+            // 2. Sign out
+            await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
 
-            // 3. Clear window cached supabase instance
-            if (window.supabaseInstance) {
-                delete window.supabaseInstance;
-            }
-
-            // 4. Clear all storage (localStorage, sessionStorage)
+            // 3. Clear all client-side storage
+            delete window.supabaseInstance;
             localStorage.clear();
             sessionStorage.clear();
-
-            // 5. Clear IndexedDB (Supabase might use this)
             try {
-                const databases = await indexedDB.databases();
-                for (const db of databases) {
-                    if (db.name) {
-                        indexedDB.deleteDatabase(db.name);
-                        console.log('[WITHDRAW] Deleted IndexedDB:', db.name);
-                    }
-                }
-            } catch (idbErr) {
-                console.warn('[WITHDRAW] IndexedDB clear failed:', idbErr);
-            }
-
-            // 6. Clear cookies
+                const dbs = await indexedDB.databases();
+                dbs.forEach(db => db.name && indexedDB.deleteDatabase(db.name));
+            } catch (_) {}
             document.cookie.split(";").forEach(c => {
                 document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
             });
 
-            console.log('[WITHDRAW] All cleanup completed');
-
-            // Show farewell screen then force reload
+            console.log('[WITHDRAW] Complete');
             this._showFarewellView();
 
         } catch (err) {
