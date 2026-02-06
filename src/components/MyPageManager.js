@@ -85,16 +85,6 @@ export class MyPageManager {
                             <span class="material-symbols-outlined">chevron_right</span>
                         </div>
                     </div>
-                    <div class="h-px bg-white/5 mx-5"></div>
-                    <div class="flex items-center gap-4 px-5 min-h-[64px] cursor-pointer active:bg-zinc-800 transition-colors">
-                        <div class="text-primary flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-[24px]">target</span>
-                        </div>
-                        <p class="text-white text-base font-semibold flex-1">일일 목표 설정</p>
-                        <div class="shrink-0 text-zinc-600">
-                            <span class="material-symbols-outlined">chevron_right</span>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="px-6 mt-6 space-y-4">
