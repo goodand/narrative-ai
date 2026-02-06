@@ -28,7 +28,7 @@ export class MyPageManager {
 
         this.container.innerHTML = `
             <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-md">
-                <div class="flex items-center p-4 justify-between max-w-md mx-auto">
+                <div class="flex items-center px-4 py-3 justify-between max-w-md mx-auto">
                     <div id="mypage-back" class="flex size-10 items-center justify-center cursor-pointer">
                         <span class="material-symbols-outlined text-2xl text-white">arrow_back_ios</span>
                     </div>
@@ -36,7 +36,7 @@ export class MyPageManager {
                 </div>
             </div>
             <main class="max-w-md mx-auto pb-16">
-                <div class="flex flex-col items-center pt-2 pb-6 gap-3">
+                <div class="flex flex-col items-center pt-6 pb-6 gap-3">
                     <div class="relative">
                         <div class="bg-field-bg p-1.5 rounded-full border border-primary/20 shadow-lg">
                             <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-28 h-28 bg-[#2A2635]" 
@@ -53,7 +53,7 @@ export class MyPageManager {
                     </div>
                 </div>
 
-                <div class="px-6 mb-8">
+                <div class="px-6 mb-6">
                     <h3 class="text-[11px] font-bold text-gray-500 uppercase tracking-[0.1em] mb-3 ml-1">이번 달 디지털 디톡스</h3>
                     <div class="bg-field-bg rounded-[24px] p-6 border border-white/5 flex items-center justify-between">
                         <div class="flex flex-col gap-2">
@@ -97,7 +97,7 @@ export class MyPageManager {
                     </div>
                 </div>
 
-                <div class="px-6 mt-8 space-y-4">
+                <div class="px-6 mt-6 space-y-4">
                     <div id="logout-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-[20px] border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
                         <div class="text-primary flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-[22px]">logout</span>
@@ -112,7 +112,7 @@ export class MyPageManager {
                     </div>
                 </div>
                 
-                <div class="mt-12 px-6 text-center">
+                <div class="mt-8 px-6 text-center">
                     <p class="text-xs text-gray-500 font-semibold tracking-wide">recoco v2.4.0</p>
                 </div>
             </main>

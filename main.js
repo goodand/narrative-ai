@@ -100,7 +100,8 @@ const els = {
     header: document.querySelector('header'),
     headerTitle: document.getElementById('header-title'),
     backBtn: document.getElementById('back-btn'),
-    bottomBar: document.getElementById('bottom-action-bar')
+    bottomBar: document.getElementById('bottom-action-bar'),
+    mypageView: document.getElementById('mypage-view')
 };
 
 // --- Component Initializations ---
@@ -207,10 +208,7 @@ const homeManager = new HomeManager('home-view', {
     }
 });
 const reportManager = new ReportManager('report-view');
-const mypageContainer = document.createElement('div');
-mypageContainer.id = 'mypage-view';
-mypageContainer.className = 'hidden min-h-screen bg-dark-bg';
-document.body.appendChild(mypageContainer);
+// MyPage View is now static in index.html, accessed via els.mypageView
 const mypageManager = new MyPageManager('mypage-view', { onLogout: () => window.location.reload() });
 
 function showView(viewName, addToHistory = true) {
@@ -223,7 +221,7 @@ function showView(viewName, addToHistory = true) {
     currentView = viewName;
 
     // 1. 모든 메인 뷰 숨기기 (클래스와 인라인 스타일 모두 적용)
-    [els.homeView, els.reportView, els.inputView, els.resultView, mypageContainer].forEach(el => {
+    [els.homeView, els.reportView, els.inputView, els.resultView, els.mypageView].forEach(el => {
         if (el) {
             el.classList.add('hidden');
             el.style.display = 'none';
@@ -270,7 +268,7 @@ function showView(viewName, addToHistory = true) {
     if (viewName === 'home') targetEl = els.homeView;
     else if (viewName === 'input') targetEl = els.inputView;
     else if (viewName === 'report') targetEl = els.reportView;
-    else if (viewName === 'mypage') targetEl = mypageContainer;
+    else if (viewName === 'mypage') targetEl = els.mypageView;
     else if (viewName === 'result') targetEl = els.resultView;
 
     if (targetEl) {
