@@ -27,9 +27,9 @@ export class MyPageManager {
         const profileImg = user.user_metadata?.avatar_url || 'https://lh3.googleusercontent.com/a/default-user';
 
         this.container.innerHTML = `
-            <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-md">
-                <div class="flex items-center px-4 py-3 justify-between max-w-md mx-auto">
-                    <div id="mypage-back" class="flex size-10 items-center justify-center cursor-pointer">
+            <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-md" style="padding-top: env(safe-area-inset-top);">
+                <div class="flex items-center px-4 py-4 justify-between max-w-md mx-auto">
+                    <div id="mypage-back" class="flex size-10 items-center justify-center cursor-pointer active:scale-90 transition-transform">
                         <span class="material-symbols-outlined text-2xl text-white">arrow_back_ios</span>
                     </div>
                     <h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10">마이페이지</h2>

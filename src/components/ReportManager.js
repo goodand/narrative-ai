@@ -130,7 +130,7 @@ export class ReportManager {
 
         this.container.innerHTML = `
             <div class="flex flex-col h-full bg-dark-bg text-white overflow-y-auto custom-scrollbar">
-                <header class="flex items-center sticky top-0 z-20 px-6 py-4 justify-between bg-dark-bg/80 backdrop-blur-md">
+                <header class="flex items-center sticky top-0 z-20 px-6 pb-4 justify-between bg-dark-bg/80 backdrop-blur-md" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
                     <div class="text-primary flex size-10 items-center">
                         <span class="material-symbols-outlined text-2xl">bubbles</span>
                     </div>
