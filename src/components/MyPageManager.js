@@ -105,7 +105,7 @@ export class MyPageManager {
                 <div class="mt-8 px-6 text-center">
                     <p class="text-xs text-gray-500 font-semibold tracking-wide">recoco v2.4.0</p>
                 </div>
-            </main>
+            </div>
         `;
 
         this._bindEvents();
@@ -149,7 +149,7 @@ export class MyPageManager {
                     <h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10">회원 탈퇴</h2>
                 </div>
             </div>
-            <main class="max-w-md mx-auto px-6 pb-40">
+            <div class="max-w-md mx-auto px-6 pb-40">
                 <div class="flex flex-col items-center py-10 gap-4 text-center">
                     <div class="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-2">
                         <span class="material-symbols-outlined text-red-400 text-4xl" style="font-variation-settings: 'FILL' 1;">warning</span>
@@ -195,7 +195,7 @@ export class MyPageManager {
                     <input class="mt-0.5 w-5 h-5 rounded border-2 border-zinc-700 bg-transparent text-primary focus:ring-0 focus:ring-offset-0" id="withdraw-confirm-checkbox" type="checkbox"/>
                     <label class="text-sm text-gray-400 font-medium leading-snug" for="withdraw-confirm-checkbox">모든 데이터가 삭제됨을 확인했으며 이에 동의합니다.</label>
                 </div>
-            </main>
+            </div>
             <div class="fixed bottom-0 left-0 right-0 bg-dark-bg/95 backdrop-blur-xl border-t border-white/5 px-6 pb-10 pt-4 z-50">
                 <div class="max-w-md mx-auto flex flex-col gap-3">
                     <button id="withdraw-keep-btn" class="w-full py-4 bg-primary text-dark-bg font-bold rounded-[20px] text-base active:scale-[0.97] transition-all">
@@ -377,7 +377,7 @@ export class MyPageManager {
      */
     _showFarewellView() {
         this.container.innerHTML = `
-            <main class="flex-1 flex flex-col items-center justify-center px-8 text-center max-w-md mx-auto min-h-screen">
+            <div class="flex-1 flex flex-col items-center justify-center px-8 text-center max-w-md mx-auto min-h-screen">
                 <div class="relative mb-12 flex justify-center items-center">
                     <div class="absolute w-48 h-48 bg-primary/5 rounded-full blur-3xl"></div>
                     <div class="relative" style="filter: drop-shadow(0 0 20px rgba(178, 165, 207, 0.3));">
@@ -400,7 +400,7 @@ export class MyPageManager {
                 <button id="farewell-btn" class="px-10 py-3 rounded-full border border-white/10 text-gray-500 text-sm font-medium hover:text-white transition-colors active:scale-95">
                     안녕히 가세요
                 </button>
-            </main>
+            </div>
         `;
 
         const farewellBtn = document.getElementById('farewell-btn');
