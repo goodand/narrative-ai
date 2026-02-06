@@ -1,13 +1,10 @@
 /**
  * HomeManager - Daily Curation Dashboard
- * 리코코 메인 데일리 큐레이션 화면 (필터 엔진 및 통계 연동)
+ * 리코코 메인 데일리 큐레이션 화면 (UI View Controller)
  */
 
 import { supabase } from '../services/supabase.js';
-import RecocolPhotos from '../plugins/RecocolPhotos.ts';
-import { geocodingService } from '../services/GeocodingService.js';
-import { CurationEngine } from '../services/CurationEngine.js';
-import { StatsService } from '../services/StatsService.js';
+import { photoService } from '../services/PhotoService.js';
 
 export class HomeManager {
     constructor(containerId, options = {}) {
@@ -15,9 +12,6 @@ export class HomeManager {
         this.onPreciousClick = options.onPreciousClick || null;
         this.onThanksClick = options.onThanksClick || null;
         this.user = null;
-        this.geminiService = null; // 필요 시 생성
-
-        this.curationPhotos = [];
         this.currentIndex = 0;
         this.isLoading = false;
         this.error = null;
@@ -26,7 +20,7 @@ export class HomeManager {
     }
 
     /**
-     * 실제 사진 목록 로드 및 Rule-base 큐레이션 엔진 적용
+     * 실제 사진 목록 로드 및 큐레이션 (PhotoService 위임)
      */
     async loadRealPhotos() {
         console.log('HomeManager: Starting loadRealPhotos...');
@@ -35,36 +29,16 @@ export class HomeManager {
         this.render();
 
         try {
-            console.log('HomeManager: Fetching photos from native plugin...');
-            const result = await RecocolPhotos.fetchPhotos({ limit: 30, offset: 0 });
-            console.log('HomeManager: Fetch result received:', result);
+            const { photos, totalCount } = await photoService.fetchAndRankPhotos();
             
             // 시뮬레이터 디버깅용 alert
-            if (!result || !result.photos) {
-                alert('Native Plugin 응답 오류: 데이터가 없습니다.');
+            if (totalCount > 0) {
+                alert(`사진 조회 성공: 총 ${totalCount}장 중 ${photos.length}장 큐레이션`);
             } else {
-                alert(`사진 조회 성공: 총 ${result.totalCount}장 중 ${result.photos.length}장 수신`);
+                // alert('Native Plugin 응답: 사진이 없습니다.');
             }
             
-            const photos = result.photos;
-            if (photos && photos.length > 0) {
-                console.log(`HomeManager: Found ${photos.length} photos. Ranking...`);
-                const rankedAssets = CurationEngine.rankAssets(photos);
-                const targetAssets = rankedAssets.slice(0, 10);
-
-                // 메타데이터만 먼저 구성 (이미지 로딩 지연)
-                this.curationPhotos = targetAssets.map(asset => ({
-                    id: asset.id,
-                    imageUrl: null, // 초기에는 null
-                    date: asset.creationDate.split('T')[0],
-                    location: '위치 확인 중...',
-                    contextMessage: asset.curationReasons.length > 0 
-                        ? `${asset.curationReasons.join(', ')}이라 비워내기 좋아요.`
-                        : '오늘의 소중한 기록 한 장입니다.',
-                    rawAsset: asset,
-                    score: asset.curationScore
-                }));
-                
+            if (photos.length > 0) {
                 this.currentIndex = 0;
             } else {
                 this.error = '사진첩에 분석할 수 있는 사진이 없습니다.';
@@ -79,71 +53,12 @@ export class HomeManager {
         }
     }
 
-    /**
-     * 특정 인덱스의 이미지 데이터를 로드합니다.
-     */
-    async _loadImageForIndex(index) {
-        if (index < 0 || index >= this.curationPhotos.length) return;
-        const photo = this.curationPhotos[index];
-        
-        // 이미 로드되었으면 스킵
-        if (photo.imageUrl) return;
-
-        try {
-            // 이미지 데이터 로드
-            const { base64 } = await RecocolPhotos.loadImageData({ 
-                assetId: photo.id, 
-                quality: 'thumbnail' 
-            });
-            photo.imageUrl = `data:image/jpeg;base64,${base64}`;
-
-            // 위치 정보 변환 (비동기)
-            if (photo.rawAsset.location) {
-                try {
-                    const address = await geocodingService.getAddress(
-                        photo.rawAsset.location.latitude, 
-                        photo.rawAsset.location.longitude
-                    );
-                    photo.location = address;
-                } catch (e) {
-                    console.warn('주소 변환 실패:', e);
-                    photo.location = '위치 정보 없음';
-                }
-            } else {
-                photo.location = '위치 정보 없음';
-            }
-        } catch (error) {
-            console.error(`이미지 로드 실패 (ID: ${photo.id}):`, error);
-        }
-    }
-
     async getCurrentImageAsFile() {
-        const photo = this.curationPhotos[this.currentIndex];
-        if (!photo) return null;
-
-        try {
-            const { base64 } = await RecocolPhotos.loadImageData({ 
-                assetId: photo.id, 
-                quality: 'original' 
-            });
-            
-            const byteCharacters = atob(base64);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: 'image/jpeg' });
-            
-            return new File([blob], `photo_${photo.id}.jpg`, { type: 'image/jpeg' });
-        } catch (error) {
-            console.error('HomeManager: 파일 변환 실패', error);
-            return null;
-        }
+        return await photoService.getPhotoAsFile(this.currentIndex);
     }
 
     getCurrentPhotoMeta() {
-        const photo = this.curationPhotos[this.currentIndex];
+        const photo = photoService.getPhoto(this.currentIndex);
         if (!photo) return {};
         const asset = photo.rawAsset;
         return {
@@ -170,6 +85,7 @@ export class HomeManager {
             const retryBtn = e.target.closest('#retry-btn');
             const prevImg = e.target.closest('#img-prev');
             const nextImg = e.target.closest('#img-next');
+            const photos = photoService.getPhotos();
 
             if (preciousBtn) {
                 e.preventDefault();
@@ -182,39 +98,30 @@ export class HomeManager {
                 e.preventDefault();
                 this.loadRealPhotos();
             } else if (prevImg) {
-                // 이전 사진으로 전환
                 e.preventDefault();
-                this.currentIndex = (this.currentIndex - 1 + this.curationPhotos.length) % this.curationPhotos.length;
+                this.currentIndex = (this.currentIndex - 1 + photos.length) % photos.length;
                 this.render();
             } else if (nextImg) {
-                // 다음 사진으로 전환
                 e.preventDefault();
-                this.currentIndex = (this.currentIndex + 1) % this.curationPhotos.length;
+                this.currentIndex = (this.currentIndex + 1) % photos.length;
                 this.render();
             }
         });
     }
 
     async _handleDelete() {
-        const current = this.curationPhotos[this.currentIndex];
+        const photos = photoService.getPhotos();
+        const current = photos[this.currentIndex];
         if (!current) return;
 
         if (!confirm('이 사진을 사진첩에서 삭제하시겠습니까?')) return;
 
         try {
-            const { success } = await RecocolPhotos.deletePhoto({ assetId: current.id });
+            const success = await photoService.deletePhoto(this.currentIndex);
             if (success) {
-                // [통계 연동] Supabase에 비움 성과 기록
-                await StatsService.logDetox({
-                    fileSize: current.rawAsset.fileSize,
-                    reason: current.rawAsset.curationReasons?.join(', ') || '사용자 선택',
-                    photoDate: current.rawAsset.creationDate,
-                    location: current.location
-                });
-
-                this.curationPhotos.splice(this.currentIndex, 1);
-                if (this.currentIndex >= this.curationPhotos.length) {
-                    this.currentIndex = Math.max(0, this.curationPhotos.length - 1);
+                // 인덱스 조정
+                if (this.currentIndex >= photoService.getPhotos().length) {
+                    this.currentIndex = Math.max(0, photoService.getPhotos().length - 1);
                 }
                 console.log('HomeManager: 사진 삭제 성공 및 통계 기록 완료');
                 this.render();
@@ -226,13 +133,12 @@ export class HomeManager {
     }
 
     async render() {
-        // 사용자 정보가 없으면 배경에서 가져오기 (렌더링을 차단하지 않음)
+        // 사용자 정보 로딩 로직
         if (!this.user && !this._isFetchingUser) {
             this._isFetchingUser = true;
             supabase.auth.getUser().then(({ data: { user } }) => {
                 this.user = user;
                 this._isFetchingUser = false;
-                // 사용자 이름을 표시하기 위해 재렌더링 (필요한 경우에만)
                 const nameEl = document.getElementById('profile-name-display');
                 if (nameEl && user) {
                     nameEl.innerText = `${user.user_metadata?.full_name || '사용자'}님, 함께 정리해요`;
@@ -247,8 +153,7 @@ export class HomeManager {
         if (this.error) {
             this.container.innerHTML = `
                 <div class="flex flex-col min-h-screen px-6">
-                    <!-- RECOCO Header -->
-                    <header class="flex items-center bg-transparent py-3 shrink-0">
+                    <header class="flex items-center bg-transparent py-3 shrink-0" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
                         <div class="text-primary flex size-8 shrink-0 items-center justify-center">
                             <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
                         </div>
@@ -268,8 +173,7 @@ export class HomeManager {
         if (this.isLoading) {
             this.container.innerHTML = `
                 <div class="flex flex-col min-h-screen px-6">
-                    <!-- RECOCO Header -->
-                    <header class="flex items-center bg-transparent py-3 shrink-0">
+                    <header class="flex items-center bg-transparent py-3 shrink-0" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
                         <div class="text-primary flex size-8 shrink-0 items-center justify-center">
                             <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
                         </div>
@@ -286,11 +190,12 @@ export class HomeManager {
             return;
         }
 
-        if (this.curationPhotos.length === 0) {
+        const photos = photoService.getPhotos();
+
+        if (photos.length === 0) {
             this.container.innerHTML = `
                 <div class="flex flex-col min-h-screen px-6">
-                    <!-- RECOCO Header -->
-                    <header class="flex items-center bg-transparent py-3 shrink-0">
+                    <header class="flex items-center bg-transparent py-3 shrink-0" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
                         <div class="text-primary flex size-8 shrink-0 items-center justify-center">
                             <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
                         </div>
@@ -307,16 +212,14 @@ export class HomeManager {
             return;
         }
 
-        const currentPhoto = this.curationPhotos[this.currentIndex];
-        const prevIdx = (this.currentIndex - 1 + this.curationPhotos.length) % this.curationPhotos.length;
-        const nextIdx = (this.currentIndex + 1) % this.curationPhotos.length;
-        const prevPhoto = this.curationPhotos[prevIdx];
-        const nextPhoto = this.curationPhotos[nextIdx];
+        const currentPhoto = photos[this.currentIndex];
+        const prevIdx = (this.currentIndex - 1 + photos.length) % photos.length;
+        const nextIdx = (this.currentIndex + 1) % photos.length;
+        const prevPhoto = photos[prevIdx];
+        const nextPhoto = photos[nextIdx];
 
-        // 1. 기본 UI 즉시 렌더링 (이미지는 있는 경우만 표시, 없으면 배경색)
         this.container.innerHTML = `
             <div class="flex flex-col min-h-screen overflow-hidden px-6">
-                <!-- RECOCO Header -->
                 <header class="flex items-center bg-transparent pb-3 shrink-0" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
                     <div class="text-primary flex size-8 shrink-0 items-center justify-center">
                         <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
@@ -334,12 +237,12 @@ export class HomeManager {
                         <div class="flex justify-between items-center mb-2">
                             <div class="flex flex-col">
                                 <span class="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-lavender">오늘의 비움 목표</span>
-                                <span class="text-sm font-bold text-white">${10 - this.curationPhotos.length} / 10 장</span>
+                                <span class="text-sm font-bold text-white">${10 - photos.length} / 10 장</span>
                             </div>
                             <span class="text-[10px] font-medium text-primary italic">${profileName}님, 함께 정리해요</span>
                         </div>
                         <div class="relative h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                            <div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all" style="width: ${(10 - this.curationPhotos.length) * 10}%;"></div>
+                            <div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all" style="width: ${(10 - photos.length) * 10}%;"></div>
                         </div>
                     </div>
                 </div>
@@ -396,12 +299,10 @@ export class HomeManager {
             </div>
         `;
 
-        // 2. 비동기 백그라운드 로딩 및 개별 DOM 업데이트
         this._loadAndReflectImages(this.currentIndex, prevIdx, nextIdx);
     }
 
     async _loadAndReflectImages(currIdx, prevIdx, nextIdx) {
-        // 순차 로딩: 현재 -> 다음 -> 이전
         await this._loadSingleImageAndUpdate(currIdx, 'img-curr');
         await new Promise(r => setTimeout(r, 50));
         await this._loadSingleImageAndUpdate(nextIdx, 'img-next');
@@ -410,20 +311,12 @@ export class HomeManager {
     }
 
     async _loadSingleImageAndUpdate(index, elementId) {
-        if (index < 0 || index >= this.curationPhotos.length) return;
-        const photo = this.curationPhotos[index];
-
-        // 이미지가 아직 로드되지 않은 경우에만 로드
-        if (!photo.imageUrl) {
-             await this._loadImageForIndex(index);
-        }
-
-        // DOM 요소 업데이트 (Re-render 방지)
+        const photo = await photoService.loadPhotoDetails(index);
+        
         const el = document.getElementById(elementId);
-        if (el && photo.imageUrl) {
+        if (el && photo && photo.imageUrl) {
             el.style.backgroundImage = `url("${photo.imageUrl}")`;
             
-            // 현재 이미지인 경우 위치 텍스트도 업데이트
             if (elementId === 'img-curr') {
                 const locEl = document.getElementById('txt-location');
                 if (locEl) locEl.innerText = photo.location || '위치 정보 없음';
