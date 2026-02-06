@@ -8,6 +8,9 @@ import './style.css';
 // Constants
 import { UI_MESSAGES, DEFAULT_SYSTEM_PROMPT } from './src/constants/config.js';
 
+// Error Handling
+import { handleError, showToast, ErrorLevel } from './src/utils/errorHandler.js';
+
 // State Management
 import { StateManager, store } from './src/state/StateManager.js';
 
@@ -67,7 +70,7 @@ const handleUrl = async (urlStr) => {
             console.log('[DEEPLINK] Code exchange successful');
         }
     } catch (err) {
-        console.error('[DEEPLINK] Error:', err);
+        handleError(err, 'Auth', { silent: true });
     }
 };
 
@@ -162,8 +165,7 @@ const resultViewer = new ResultViewer({
                 await shareCaption(captionText);
             }
         } catch (err) {
-            console.error('Share error:', err);
-            alert('공유 중 오류가 발생했습니다.');
+            handleError(err, 'Share');
         }
     }
 });
@@ -249,7 +251,7 @@ supabase.auth.onAuthStateChange((event, session) => {
 els.genBtn.onclick = async () => {
     const imageData = store.getState('base64') || store.getState('dataUrl');
     if (!imageData) {
-        showError(UI_MESSAGES.ERROR_NO_IMAGE);
+        showToast(UI_MESSAGES.ERROR_NO_IMAGE, ErrorLevel.WARN);
         return;
     }
 
@@ -306,8 +308,7 @@ els.genBtn.onclick = async () => {
         resultViewer.scrollIntoView();
 
     } catch (error) {
-        showError('AI 생성 중 오류 발생: ' + error.message);
-        console.error('Generation error:', error);
+        handleError(error, 'AI');
     } finally {
         setLoading(false);
     }
@@ -317,12 +318,6 @@ function setLoading(isLoading) {
     els.genBtn.disabled = isLoading;
     els.loader?.classList.toggle('hidden', !isLoading);
     els.btnText.innerText = isLoading ? UI_MESSAGES.LOADING : UI_MESSAGES.GENERATE_BUTTON;
-}
-
-function showError(message) {
-    els.error.innerText = message;
-    els.error.classList.remove('hidden');
-    setTimeout(() => els.error.classList.add('hidden'), 5000);
 }
 
 /**

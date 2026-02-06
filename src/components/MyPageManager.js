@@ -5,6 +5,7 @@
 
 import { supabase } from '../services/supabase.js';
 import { API_CONFIG } from '../constants/config.js';
+import { handleError } from '../utils/errorHandler.js';
 
 export class MyPageManager {
     constructor(containerId, options = {}) {
@@ -359,8 +360,7 @@ export class MyPageManager {
             this._showFarewellView();
 
         } catch (err) {
-            console.error('[WITHDRAW] Error:', err);
-            alert('탈퇴 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+            handleError(err, 'Withdraw');
 
             if (modalConfirm) {
                 modalConfirm.textContent = '탈퇴하기';

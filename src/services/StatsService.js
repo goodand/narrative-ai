@@ -4,6 +4,7 @@
  */
 
 import { supabase } from './supabase.js';
+import { handleError, ErrorLevel } from '../utils/errorHandler.js';
 
 export class StatsService {
     /**
@@ -36,13 +37,13 @@ export class StatsService {
             });
 
             if (rpcError) {
-                console.warn('[STATS] RPC 호출 실패, Fallback(Upsert) 시도:', rpcError);
+                handleError(rpcError, 'Stats', { level: ErrorLevel.WARN, userMessage: 'RPC 호출 실패, Fallback 시도 중...' });
                 await this._fallbackUpdateStats(user.id, fileSize);
             }
 
             console.log('[STATS] 비움 성과가 안전하게 기록되었습니다.');
         } catch (error) {
-            console.error('[STATS] 통계 기록 중 오류 발생:', error);
+            handleError(error, 'Stats', { level: ErrorLevel.WARN });
         }
     }
 

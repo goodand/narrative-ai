@@ -5,6 +5,7 @@
 
 import { API_CONFIG } from '../constants/config.js';
 import { fetchWithRetry } from '../utils/fetch.js';
+import { handleError, ErrorLevel } from '../utils/errorHandler.js';
 
 export class GeocodingService {
     constructor() {
@@ -40,7 +41,7 @@ export class GeocodingService {
             this.cache.set(cacheKey, address);
             return address;
         } catch (error) {
-            console.error('Geocoding error:', error);
+            handleError(error, 'Geocoding', { level: ErrorLevel.WARN, silent: true });
             return '위치 정보 오류';
         }
     }

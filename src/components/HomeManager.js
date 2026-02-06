@@ -5,6 +5,7 @@
 
 import { supabase } from '../services/supabase.js';
 import { photoService } from '../services/PhotoService.js';
+import { handleError, showToast, ErrorLevel } from '../utils/errorHandler.js';
 
 export class HomeManager {
     constructor(containerId, options = {}) {
@@ -31,11 +32,8 @@ export class HomeManager {
         try {
             const { photos, totalCount } = await photoService.fetchAndRankPhotos();
             
-            // 시뮬레이터 디버깅용 alert
             if (totalCount > 0) {
-                alert(`사진 조회 성공: 총 ${totalCount}장 중 ${photos.length}장 큐레이션`);
-            } else {
-                // alert('Native Plugin 응답: 사진이 없습니다.');
+                console.log(`HomeManager: 사진 조회 성공 — 총 ${totalCount}장 중 ${photos.length}장 큐레이션`);
             }
             
             if (photos.length > 0) {
@@ -44,8 +42,7 @@ export class HomeManager {
                 this.error = '사진첩에 분석할 수 있는 사진이 없습니다.';
             }
         } catch (error) {
-            console.error('HomeManager: 큐레이션 실패', error);
-            alert('에러 발생: ' + error.message);
+            handleError(error, 'HomeManager');
             this.error = '사진첩 접근 권한이 필요합니다.';
         } finally {
             this.isLoading = false;
@@ -127,8 +124,7 @@ export class HomeManager {
                 this.render();
             }
         } catch (err) {
-            console.error('삭제 실패:', err);
-            alert('사진 삭제 중 오류가 발생했습니다.');
+            handleError(err, 'PhotoDelete');
         }
     }
 
