@@ -14,6 +14,7 @@ import { StateManager, store } from './src/state/StateManager.js';
 // Services
 import { GeminiService } from './src/services/GeminiService.js';
 import { supabase } from './src/services/supabase.js';
+import { Router } from './src/services/Router.js';
 
 // Capacitor Plugins
 import { App } from '@capacitor/app';
@@ -32,10 +33,6 @@ import { ReportManager } from './src/components/ReportManager.js';
 
 // Initialize Core Services
 const geminiService = new GeminiService();
-
-// View History Management
-const viewHistory = ['home'];
-let currentView = 'home';
 
 /**
  * Handle Deep Links (OAuth Callback)
@@ -103,6 +100,9 @@ const els = {
     bottomBar: document.getElementById('bottom-action-bar'),
     mypageView: document.getElementById('mypage-view')
 };
+
+// Initialize Router
+const router = new Router(els);
 
 // --- Component Initializations ---
 const dropZone = new DropZone({
@@ -183,134 +183,53 @@ const onboardingModal = new OnboardingModal('onboarding-modal', {
 const homeManager = new HomeManager('home-view', {
     onPreciousClick: async () => {
         // 선택된 사진을 input-view에 표시
-        const currentPhoto = homeManager.curationPhotos[homeManager.currentIndex];
-        if (currentPhoto) {
-            // 이미지 프리뷰에 직접 표시
-            const previewImg = document.getElementById('image-preview');
-            const previewContainer = document.getElementById('preview-container');
-            const uploadPlaceholder = document.getElementById('upload-placeholder');
+        const currentPhoto = await homeManager.getCurrentImageAsFile(); // PhotoService 활용
+        const meta = homeManager.getCurrentPhotoMeta();
+        
+        // 이미지 프리뷰에 직접 표시
+        const previewImg = document.getElementById('image-preview');
+        const previewContainer = document.getElementById('preview-container');
+        const uploadPlaceholder = document.getElementById('upload-placeholder');
 
-            if (previewImg && currentPhoto.imageUrl) {
-                previewImg.src = currentPhoto.imageUrl;
+        if (previewImg && currentPhoto) {
+            // File -> DataURL 변환
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const dataUrl = e.target.result;
+                previewImg.src = dataUrl;
                 previewContainer?.classList.remove('hidden');
                 uploadPlaceholder?.classList.add('hidden');
 
-                // Store에 데이터 저장 (dataUrl에서 base64 추출)
-                const dataUrl = currentPhoto.imageUrl;
                 const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
-
                 store.setState('dataUrl', dataUrl);
                 store.setState('base64', base64);
-                store.setState('metadata', homeManager.getCurrentPhotoMeta());
-            }
+                store.setState('metadata', meta);
+            };
+            reader.readAsDataURL(currentPhoto);
         }
-        showView('input');
+        router.navigate('input');
     }
 });
 const reportManager = new ReportManager('report-view');
-// MyPage View is now static in index.html, accessed via els.mypageView
 const mypageManager = new MyPageManager('mypage-view', { onLogout: () => window.location.reload() });
 
-function showView(viewName, addToHistory = true) {
-    console.log(`[VIEW] Switching to: ${viewName}`);
-
-    // 히스토리 관리 (뒤로가기용)
-    if (addToHistory && viewName !== currentView) {
-        viewHistory.push(viewName);
-    }
-    currentView = viewName;
-
-    // 1. 모든 메인 뷰 숨기기 (클래스와 인라인 스타일 모두 적용)
-    [els.homeView, els.reportView, els.inputView, els.resultView, els.mypageView].forEach(el => {
-        if (el) {
-            el.classList.add('hidden');
-            el.style.display = 'none';
-        }
-    });
-
-    // 2. 하단 생성 버튼 영역 제어
-    const genBtnContainer = els.bottomBar.querySelector('div:first-child');
-    if (genBtnContainer) {
-        genBtnContainer.style.display = (viewName === 'input') ? 'block' : 'none';
-    }
-
-    // 3. 헤더 가시성 제어 (input, result 뷰에서만 표시)
-    const isMainTab = ['home', 'report', 'mypage'].includes(viewName);
-    els.header.style.display = isMainTab ? 'none' : 'flex';
-
-    // 4. 바텀바 전체 가시성 제어
-    els.bottomBar.style.display = (viewName === 'mypage') ? 'none' : 'block';
-
-    // 4.5 네비게이션 탭 활성 상태 업데이트
-    [els.navHome, els.navReport, els.navMypage].forEach(nav => {
-        if (nav) {
-            nav.classList.remove('text-primary');
-            nav.classList.add('opacity-40');
-            const icon = nav.querySelector('.material-symbols-outlined');
-            if (icon) icon.style.fontVariationSettings = "'FILL' 0";
-        }
-    });
-
-    let activeNav = null;
-    if (viewName === 'home' || viewName === 'input' || viewName === 'result') activeNav = els.navHome;
-    else if (viewName === 'report') activeNav = els.navReport;
-    else if (viewName === 'mypage') activeNav = els.navMypage;
-
-    if (activeNav) {
-        activeNav.classList.add('text-primary');
-        activeNav.classList.remove('opacity-40');
-        const icon = activeNav.querySelector('.material-symbols-outlined');
-        if (icon) icon.style.fontVariationSettings = "'FILL' 1";
-    }
-
-    // 5. 대상 뷰 활성화
-    let targetEl = null;
-    if (viewName === 'home') targetEl = els.homeView;
-    else if (viewName === 'input') targetEl = els.inputView;
-    else if (viewName === 'report') targetEl = els.reportView;
-    else if (viewName === 'mypage') targetEl = els.mypageView;
-    else if (viewName === 'result') targetEl = els.resultView;
-
-    if (targetEl) {
-        targetEl.classList.remove('hidden');
-        targetEl.style.display = 'block';
-
-        // 뷰별 렌더링/타이틀 업데이트
-        if (viewName === 'home') homeManager.render();
-        else if (viewName === 'input') els.headerTitle.innerText = '리코코 상세 기록 설정';
-        else if (viewName === 'report') reportManager.render();
-        else if (viewName === 'mypage') mypageManager.render();
-        else if (viewName === 'result') els.headerTitle.innerText = '리코코 기록 결과';
-    }
-
-    window.scrollTo(0, 0);
-}
-
-// 뒤로가기 버튼 핸들러
-function goBack() {
-    // 현재 뷰를 히스토리에서 제거
-    if (viewHistory.length > 1) {
-        viewHistory.pop();
-        const previousView = viewHistory[viewHistory.length - 1];
-        showView(previousView, false); // 히스토리에 추가하지 않음
-    } else {
-        // 히스토리가 없으면 홈으로
-        showView('home', false);
-    }
-}
+// Register Managers to Router
+router.registerManager('home', homeManager);
+router.registerManager('report', reportManager);
+router.registerManager('mypage', mypageManager);
 
 // 뒤로가기 버튼 이벤트 연결
 if (els.backBtn) {
-    els.backBtn.onclick = goBack;
+    els.backBtn.onclick = () => router.goBack();
 }
 
-els.navHome.onclick = () => showView('home');
-els.navReport.onclick = () => showView('report');
-els.navMypage.onclick = () => showView('mypage');
+els.navHome.onclick = () => router.navigate('home');
+els.navReport.onclick = () => router.navigate('report');
+els.navMypage.onclick = () => router.navigate('mypage');
 
 // MyPageManager의 뒤로가기 이벤트 처리
 window.addEventListener('nav-change', (e) => {
-    if (e.detail) showView(e.detail);
+    if (e.detail) router.navigate(e.detail);
 });
 
 /**
@@ -321,7 +240,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN') {
         authModal.close();
         onboardingModal.element.classList.add('hidden');
-        permissionModal.onComplete = () => showView('home');
+        permissionModal.onComplete = () => router.navigate('home');
         permissionModal.checkAndOpen();
     } else if (event === 'SIGNED_OUT') {
         onboardingModal.open();
@@ -373,9 +292,10 @@ els.genBtn.onclick = async () => {
         };
         store.setResult(result);
 
-        showView('result');
-        els.inputView.classList.add('hidden');
-        els.resultView.classList.remove('hidden');
+        router.navigate('result');
+        // Router handles visibility, but Input View specific hiding might be needed if Router doesn't cover it
+        // Router.navigate hides all views including inputView, so this is handled.
+        
         els.header.classList.remove('hidden');
         els.headerTitle.innerText = '리코코 기록 결과';
 
@@ -422,7 +342,7 @@ async function initApp() {
     } else {
         onboardingModal.element.classList.add('hidden');
         authModal.close();
-        permissionModal.onComplete = () => showView('home');
+        permissionModal.onComplete = () => router.navigate('home');
         permissionModal.checkAndOpen();
     }
 }
