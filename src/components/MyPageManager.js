@@ -376,7 +376,16 @@ export class MyPageManager {
                 document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
             });
 
-            console.log('[WITHDRAW] Complete');
+            console.log('[WITHDRAW] All cleanup completed');
+
+            // 7. Hide all app navigation before showing farewell
+            const bottomBar = document.getElementById('bottom-action-bar');
+            if (bottomBar) bottomBar.style.display = 'none';
+            
+            const header = document.querySelector('header');
+            if (header) header.style.display = 'none';
+
+            // Show farewell screen then force reload
             this._showFarewellView();
 
         } catch (err) {
@@ -397,29 +406,33 @@ export class MyPageManager {
      */
     _showFarewellView() {
         this.container.innerHTML = `
-            <div class="flex-1 flex flex-col items-center justify-center px-8 text-center max-w-md mx-auto min-h-screen">
-                <div class="relative mb-12 flex justify-center items-center">
-                    <div class="absolute w-48 h-48 bg-primary/5 rounded-full blur-3xl"></div>
-                    <div class="relative" style="filter: drop-shadow(0 0 20px rgba(178, 165, 207, 0.3));">
-                        <span class="material-symbols-outlined text-[120px] text-primary/80 leading-none select-none" style="font-variation-settings: 'FILL' 0, 'wght' 200;">
-                            water_drop
-                        </span>
-                        <div class="absolute -top-2 -right-2">
-                            <span class="material-symbols-outlined text-4xl text-primary/60">waves</span>
+            <div class="flex flex-col h-full bg-dark-bg">
+                <div class="flex-1 flex flex-col items-center justify-center px-8 text-center max-w-md mx-auto">
+                    <div class="relative mb-12 flex justify-center items-center">
+                        <div class="absolute w-48 h-48 bg-primary/5 rounded-full blur-3xl"></div>
+                        <div class="relative dolphin-glow">
+                            <span class="material-symbols-outlined text-[120px] text-primary/80 leading-none select-none" style="font-variation-settings: 'FILL' 0, 'wght' 200;">
+                                water_drop
+                            </span>
+                            <div class="absolute -top-2 -right-2">
+                                <span class="material-symbols-outlined text-4xl text-primary/60">waves</span>
+                            </div>
                         </div>
                     </div>
+                    <h1 class="text-2xl font-medium tracking-tight leading-relaxed mb-6 whitespace-pre-line">
+                        비움이 당신에게
+                        휴식이 되었길 바랍니다.
+                    </h1>
+                    <p class="text-gray-400 text-[15px] leading-7 font-light mb-12 break-keep">
+                        언제든 마음이 무거워질 때 다시 리코코를 찾아주세요.
+                        그동안 함께 비울 수 있어 고마웠습니다.
+                    </p>
                 </div>
-                <h1 class="text-2xl font-medium tracking-tight leading-relaxed mb-6 whitespace-pre-line">
-                    비움이 당신에게
-                    휴식이 되었길 바랍니다.
-                </h1>
-                <p class="text-gray-400 text-[15px] leading-7 font-light mb-12 break-keep">
-                    언제든 마음이 무거워질 때 다시 리코코를 찾아주세요.
-                    그동안 함께 비울 수 있어 고마웠습니다.
-                </p>
-                <button id="farewell-btn" class="px-10 py-3 rounded-full border border-white/10 text-gray-500 text-sm font-medium hover:text-white transition-colors active:scale-95">
-                    안녕히 가세요
-                </button>
+                <div class="pb-16 px-8 flex justify-center w-full max-w-md mx-auto">
+                    <button id="farewell-btn" class="px-10 py-3 rounded-full border border-white/10 text-gray-500 text-sm font-medium hover:text-white transition-colors active:scale-95">
+                        안녕히 가세요
+                    </button>
+                </div>
             </div>
         `;
 
