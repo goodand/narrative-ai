@@ -42,10 +42,19 @@ app = FastAPI(
 
 # Configure CORS
 settings = get_settings()
+origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://narrative-ai-5p8q.onrender.com",
+    "https://recoco.onrender.com",
+    "capacitor://localhost",
+    "ionic://localhost",
+    "com.narrativeai.appv://localhost",  # Capacitor iOS custom scheme
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all for debugging preflight 400
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

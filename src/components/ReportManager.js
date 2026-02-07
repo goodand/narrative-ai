@@ -209,7 +209,7 @@ export class ReportManager {
                             <p class="text-[13px] text-white/70 leading-snug font-medium">${this.stats.tips}</p>
                         </div>
                     </div>
-                </main>
+                </div>
             </div>
         `;
     }

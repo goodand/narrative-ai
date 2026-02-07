@@ -307,12 +307,13 @@ export class HomeManager {
             </div>
         `;
 
-        // 중앙 정렬 보장
+        // 중앙 정렬 보장 + 스와이프 스냅 리스너 등록
         requestAnimationFrame(() => {
             const wrapper = document.getElementById('carousel-wrapper');
             if (wrapper) {
                 const centerItem = wrapper.children[1];
                 if (centerItem) centerItem.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
+                this._setupCarouselSnap(wrapper);
             }
         });
 
@@ -350,6 +351,41 @@ export class HomeManager {
             const batch = remaining.slice(b, b + BATCH);
             await Promise.all(batch.map(i => photoService.loadPhotoDetails(i)));
         }
+    }
+
+    /**
+     * 캐러셀 스와이프 스냅 감지: 스크롤 종료 후 중앙 카드를 찾아 currentIndex 갱신
+     */
+    _setupCarouselSnap(wrapper) {
+        let scrollTimer;
+        wrapper.addEventListener('scroll', () => {
+            clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(() => {
+                const items = wrapper.querySelectorAll('.carousel-item');
+                const wrapperCenter = wrapper.scrollLeft + wrapper.offsetWidth / 2;
+
+                let closestVisualIdx = 0;
+                let closestDist = Infinity;
+                items.forEach((item, i) => {
+                    const dist = Math.abs((item.offsetLeft + item.offsetWidth / 2) - wrapperCenter);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        closestVisualIdx = i;
+                    }
+                });
+
+                // carousel items: [prev(0), current(1), next(2)]
+                if (closestVisualIdx === 1) return; // 이미 중앙
+
+                const photos = photoService.getPhotos();
+                const prevIdx = (this.currentIndex - 1 + photos.length) % photos.length;
+                const nextIdx = (this.currentIndex + 1) % photos.length;
+                const indexMap = [prevIdx, this.currentIndex, nextIdx];
+
+                this.currentIndex = indexMap[closestVisualIdx];
+                this.render();
+            }, 120);
+        }, { passive: true });
     }
 
     async _loadSingleImageAndUpdate(index, elementId) {

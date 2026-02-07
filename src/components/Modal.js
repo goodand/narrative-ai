@@ -177,6 +177,33 @@ export class ConfirmModal extends Modal {
     }
 
     /**
+     * 동적으로 내용을 채우고 모달을 표시
+     */
+    show({ title, message, confirmText = '확인', cancelText = '취소', onConfirm, onCancel }) {
+        if (!this.element) return;
+        const container = this.element.querySelector('div');
+        if (container) {
+            container.innerHTML = `
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-white mb-2">${title}</h3>
+                    <p class="text-muted-lavender text-sm leading-relaxed">${message}</p>
+                </div>
+                <div class="flex gap-3">
+                    <button id="dyn-modal-cancel" class="flex-1 py-3 rounded-xl font-bold bg-field-bg text-muted-lavender hover:bg-white/5 transition-colors">${cancelText}</button>
+                    <button id="dyn-modal-confirm" class="flex-1 py-3 rounded-xl font-bold bg-primary text-white hover:bg-primary/90 transition-colors">${confirmText}</button>
+                </div>
+            `;
+            this.setup({
+                confirmBtn: 'dyn-modal-confirm',
+                cancelBtn: 'dyn-modal-cancel',
+                onConfirm,
+                onCancel
+            });
+        }
+        this.open();
+    }
+
+    /**
      * Setup confirm and cancel buttons
      * @param {Object} options
      */
