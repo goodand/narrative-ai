@@ -45,9 +45,6 @@ export class MyPageManager {
                                  style='background-image: url("${profileImg}");'>
                             </div>
                         </div>
-                        <div class="absolute bottom-1 right-1 bg-primary p-2 rounded-full border-2 border-dark-bg shadow-md cursor-pointer active:scale-95 transition-transform">
-                            <span class="material-symbols-outlined text-white text-[16px] block" style="font-variation-settings: 'wght' 600;">edit</span>
-                        </div>
                     </div>
                     <div class="text-center">
                         <p class="text-2xl font-bold tracking-tight text-white">${profileName}님</p>
@@ -55,32 +52,10 @@ export class MyPageManager {
                     </div>
                 </div>
 
-                <div class="px-6 mb-6">
-                    <h3 class="text-[11px] font-bold text-gray-500 uppercase tracking-[0.1em] mb-3 ml-1">이번 달 디지털 디톡스</h3>
-                    <div class="bg-field-bg rounded-[24px] p-6 border border-white/5 flex items-center justify-between">
-                        <div class="flex flex-col gap-2">
-                            <div class="flex items-center gap-2">
-                                <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_delete</span>
-                                <p class="text-xl font-extrabold text-white leading-none">1.2GB 비워냈어요</p>
-                            </div>
-                            <div class="flex items-center gap-2 mt-1">
-                                <div class="h-1.5 w-32 bg-zinc-800 rounded-full overflow-hidden">
-                                    <div class="h-full bg-primary w-[70%]"></div>
-                                </div>
-                                <p class="text-primary text-xs font-bold">70% 달성</p>
-                            </div>
-                            <p class="text-gray-400 text-sm font-medium mt-1">이번 달 지운 사진: 428장</p>
-                        </div>
-                        <div class="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center">
-                            <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">cloud_done</span>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="px-6 space-y-px bg-field-bg rounded-[24px] border border-white/5 overflow-hidden mx-6">
                     <div id="notice-settings-btn" class="flex items-center gap-4 px-5 min-h-[64px] cursor-pointer active:bg-zinc-800 transition-colors">
                         <div class="text-primary flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-[24px]">notifications</span>
+                            <span class="material-symbols-outlined text-[22px]">notifications</span>
                         </div>
                         <p class="text-white text-base font-semibold flex-1">알림 설정</p>
                         <div class="shrink-0 text-zinc-600">
