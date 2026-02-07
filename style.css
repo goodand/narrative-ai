@@ -218,6 +218,7 @@ main {
     align-items: center;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
     -ms-overflow-style: none;
     scrollbar-width: none;
     gap: 16px;
