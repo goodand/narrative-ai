@@ -53,28 +53,26 @@ export class MyPageManager {
                 </div>
 
                 <div class="px-6">
-                    <div class="bg-field-bg rounded-[24px] border border-white/5 overflow-hidden">
-                        <div id="notice-settings-btn" class="flex items-center gap-4 px-5 min-h-[64px] cursor-pointer active:bg-zinc-800 transition-colors">
-                            <div class="text-primary flex items-center justify-center shrink-0">
-                                <span class="material-symbols-outlined text-[22px]">notifications</span>
-                            </div>
-                            <p class="text-white text-base font-semibold flex-1">알림 설정</p>
-                            <div class="shrink-0 text-zinc-600">
-                                <span class="material-symbols-outlined">chevron_right</span>
-                            </div>
+                    <div id="notice-settings-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-[20px] border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
+                        <div class="w-6 text-primary flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-[22px]">notifications</span>
+                        </div>
+                        <p class="text-white text-base font-semibold flex-1">알림 설정</p>
+                        <div class="shrink-0 text-zinc-600">
+                            <span class="material-symbols-outlined">chevron_right</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="px-6 mt-6 space-y-4">
                     <div id="logout-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-[20px] border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
-                        <div class="text-primary flex items-center justify-center shrink-0">
+                        <div class="w-6 text-primary flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-[22px]">logout</span>
                         </div>
                         <p class="text-white text-base font-semibold flex-1">로그아웃</p>
                     </div>
                     <div id="withdraw-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-[20px] border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
-                        <div class="text-red-400 flex items-center justify-center shrink-0">
+                        <div class="w-6 text-red-400 flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-[22px]">person_remove</span>
                         </div>
                         <p class="text-red-400 text-base font-semibold flex-1">회원탈퇴</p>
