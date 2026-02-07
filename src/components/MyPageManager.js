@@ -134,9 +134,13 @@ export class MyPageManager {
 
         if (logoutBtn) {
             logoutBtn.onclick = async () => {
-                const { error } = await supabase.auth.signOut();
-                if (error) console.error('Logout error:', error.message);
-                if (this.onLogout) this.onLogout();
+                try {
+                    const { error } = await supabase.auth.signOut();
+                    if (error) throw error;
+                    if (this.onLogout) this.onLogout();
+                } catch (err) {
+                    handleError(err, 'Auth', { userMessage: '로그아웃 중 오류가 발생했습니다.' });
+                }
             };
         }
 

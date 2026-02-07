@@ -191,6 +191,7 @@ const onboardingModal = new OnboardingModal('onboarding-modal', {
 });
 
 const homeManager = new HomeManager('home-view', {
+    confirmModal: editConfirmModal,
     onPreciousClick: async () => {
         // 선택된 사진을 input-view에 표시
         const currentPhoto = await homeManager.getCurrentImageAsFile(); // PhotoService 활용

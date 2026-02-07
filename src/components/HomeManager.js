@@ -12,6 +12,7 @@ export class HomeManager {
         this.container = document.getElementById(containerId);
         this.onPreciousClick = options.onPreciousClick || null;
         this.onThanksClick = options.onThanksClick || null;
+        this.confirmModal = options.confirmModal || null;
         this.user = null;
         this.currentIndex = 0;
         this.isLoading = false;
@@ -111,20 +112,31 @@ export class HomeManager {
         const current = photos[this.currentIndex];
         if (!current) return;
 
-        if (!confirm('이 사진을 사진첩에서 삭제하시겠습니까?')) return;
-
-        try {
-            const success = await photoService.deletePhoto(this.currentIndex);
-            if (success) {
-                // 인덱스 조정
-                if (this.currentIndex >= photoService.getPhotos().length) {
-                    this.currentIndex = Math.max(0, photoService.getPhotos().length - 1);
+        const performDelete = async () => {
+            try {
+                const success = await photoService.deletePhoto(this.currentIndex);
+                if (success) {
+                    if (this.currentIndex >= photoService.getPhotos().length) {
+                        this.currentIndex = Math.max(0, photoService.getPhotos().length - 1);
+                    }
+                    console.log('HomeManager: 사진 삭제 성공 및 통계 기록 완료');
+                    showToast('사진이 정리되었습니다.', ErrorLevel.INFO);
+                    this.render();
                 }
-                console.log('HomeManager: 사진 삭제 성공 및 통계 기록 완료');
-                this.render();
+            } catch (err) {
+                handleError(err, 'PhotoDelete');
             }
-        } catch (err) {
-            handleError(err, 'PhotoDelete');
+        };
+
+        if (this.confirmModal) {
+            this.confirmModal.show({
+                title: '사진을 비울까요?',
+                message: '이 사진을 기기에서 삭제하고 비움 기록을 남깁니다.',
+                confirmText: '비우기',
+                onConfirm: performDelete
+            });
+        } else if (confirm('이 사진을 사진첩에서 삭제하시겠습니까?')) {
+            await performDelete();
         }
     }
 

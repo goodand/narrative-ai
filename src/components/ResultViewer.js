@@ -1,7 +1,4 @@
-/**
- * ResultViewer - Caption Result Display Component
- * AI 생성 결과 표시 및 편집 모드 관리
- */
+import { showToast, ErrorLevel } from '../utils/errorHandler.js';
 
 export class ResultViewer {
     /**
@@ -303,13 +300,15 @@ export class ResultViewer {
     _showCopySuccess() {
         if (!this.copyBtn) return;
 
+        showToast('클립보드에 복사되었습니다.', ErrorLevel.INFO);
+
         const originalText = this.copyBtn.innerText;
         this.copyBtn.innerText = '복사 완료!';
         this.copyBtn.classList.add('bg-primary', 'text-white');
 
         setTimeout(() => {
             this.copyBtn.innerText = originalText;
-            this.copyBtn.classList.remove('bg-[#B2A5CF]', 'text-white');
+            this.copyBtn.classList.remove('bg-primary', 'text-white');
         }, 2000);
     }
 
