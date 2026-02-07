@@ -233,11 +233,7 @@ export class HomeManager {
                         <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
                     </div>
                     <h2 class="text-white text-base font-bold leading-tight tracking-tight flex-1 text-center uppercase">recoco</h2>
-                    <div class="flex w-8 items-center justify-end">
-                        <button class="flex cursor-pointer items-center justify-center rounded-lg h-8 bg-transparent text-muted-lavender p-0">
-                            <span class="material-symbols-outlined text-xl">settings</span>
-                        </button>
-                    </div>
+                    <div class="w-8"></div>
                 </header>
 
                 <div class="py-1 shrink-0">
@@ -245,12 +241,12 @@ export class HomeManager {
                         <div class="flex justify-between items-center mb-2">
                             <div class="flex flex-col">
                                 <span class="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-lavender">이번 주 비움 목표</span>
-                                <span class="text-sm font-bold text-white">${10 - photos.length} / 10 장</span>
+                                <span class="text-sm font-bold text-white">${7 - photos.length} / 7 장</span>
                             </div>
                             <span class="text-[10px] font-medium text-primary italic">${profileName}님, 함께 정리해요</span>
                         </div>
                         <div class="relative h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                            <div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all" style="width: ${(10 - photos.length) * 10}%;"></div>
+                            <div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all" style="width: ${(7 - photos.length) * (100 / 7)}%;"></div>
                         </div>
                     </div>
                 </div>
@@ -263,13 +259,13 @@ export class HomeManager {
                 </div>
 
                 <div class="flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
-                    <div class="carousel-container mb-4">
+                    <div class="carousel-container mb-4" id="carousel-wrapper">
                         <div class="carousel-item side opacity-40">
                             <div id="img-prev" class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60"
                                  style='${prevPhoto?.imageUrl ? `background-image: url("${prevPhoto.imageUrl}");` : ""} filter: grayscale(50%);'>
                             </div>
                         </div>
-                        <div class="carousel-item">
+                        <div class="carousel-item" id="carousel-center-item">
                             <div class="relative aspect-[4/5] w-full">
                                 <div id="img-curr" class="w-full h-full bg-center bg-cover rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 bg-field-bg transition-all duration-300" 
                                      style='${currentPhoto?.imageUrl ? `background-image: url("${currentPhoto.imageUrl}");` : ""}'>
@@ -308,6 +304,14 @@ export class HomeManager {
                 </div>
             </div>
         `;
+
+        // Ensure carousel is centered
+        requestAnimationFrame(() => {
+            const centerItem = document.getElementById('carousel-center-item');
+            if (centerItem) {
+                centerItem.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
+            }
+        });
 
         this._loadAndReflectImages(this.currentIndex, prevIdx, nextIdx);
     }
