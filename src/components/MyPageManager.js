@@ -52,7 +52,7 @@ export class MyPageManager {
                     </div>
                 </div>
 
-                <div class="px-6 max-w-md mx-auto">
+                <div class="px-6 mx-6 max-w-md mx-auto">
                     <div id="notice-settings-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-[20px] border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
                         <div class="w-6 text-primary flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-[22px]">notifications</span>
@@ -64,7 +64,7 @@ export class MyPageManager {
                     </div>
                 </div>
 
-                <div class="px-6 mt-6 space-y-4 max-w-md mx-auto">
+                <div class="px-6 mx-6 mt-6 space-y-4 max-w-md mx-auto">
                     <div id="logout-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-[20px] border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
                         <div class="w-6 text-primary flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-[22px]">logout</span>
