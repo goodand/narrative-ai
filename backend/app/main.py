@@ -42,21 +42,12 @@ app = FastAPI(
 
 # Configure CORS
 settings = get_settings()
-# 실제 프론트엔드 도메인 및 로컬 주소 명시
-origins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://narrative-ai-5p8q.onrender.com", # 현재 프론트엔드 도메인
-    "https://recoco.onrender.com",
-    "capacitor://localhost",  # Capacitor iOS 앱
-    "ionic://localhost",      # Capacitor iOS (구버전)
-]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"], # Allow all for debugging preflight 400
     allow_credentials=True,
-    allow_methods=["*"], # 모든 메서드 허용 (GET, POST, OPTIONS 등)
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 

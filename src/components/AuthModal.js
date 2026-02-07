@@ -31,6 +31,7 @@ export class AuthModal extends Modal {
             console.log('[AUTH] Google 로그인 시작...');
             const isCapacitor = window.Capacitor !== undefined;
 
+            // Xcode 설정(Info.plist)과 일치하는 정확한 주소: com.narrativeai.appv
             const redirectUrl = isCapacitor
                 ? 'com.narrativeai.appv://login-callback'
                 : window.location.origin;

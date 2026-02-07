@@ -1,5 +1,8 @@
 {
   "appId": "com.narrativeai.appv",
   "appName": "NarrativeAI",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "iosScheme": "com.narrativeai.appv"
+  }
 }

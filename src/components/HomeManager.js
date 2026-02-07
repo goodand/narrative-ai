@@ -92,7 +92,6 @@ export class HomeManager {
                 e.preventDefault();
                 await this._handleDelete();
             } else if (retryBtn) {
-                console.log('HomeManager: Retry button clicked');
                 e.preventDefault();
                 this.loadRealPhotos();
             } else if (prevImg) {
@@ -116,6 +115,7 @@ export class HomeManager {
             try {
                 const success = await photoService.deletePhoto(this.currentIndex);
                 if (success) {
+                    // 삭제 후 데이터 갱신 및 UI 리렌더링 (목록이 바뀌므로 이때는 리렌더링 필요)
                     if (this.currentIndex >= photoService.getPhotos().length) {
                         this.currentIndex = Math.max(0, photoService.getPhotos().length - 1);
                     }
@@ -141,7 +141,7 @@ export class HomeManager {
     }
 
     async render() {
-        // 사용자 정보 로딩 로직
+        // 사용자 정보 로딩 로직 (중략...)
         if (!this.user && !this._isFetchingUser) {
             this._isFetchingUser = true;
             supabase.auth.getUser().then(({ data: { user } }) => {
@@ -227,7 +227,7 @@ export class HomeManager {
         const nextPhoto = photos[nextIdx];
 
         this.container.innerHTML = `
-            <div class="flex flex-col px-6">
+            <div class="flex flex-col px-6 h-full">
                 <header class="flex items-center bg-transparent pb-3 shrink-0" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
                     <div class="text-primary flex size-8 shrink-0 items-center justify-center">
                         <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
@@ -258,33 +258,35 @@ export class HomeManager {
                     </h1>
                 </div>
 
-                <div class="flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
-                    <div class="carousel-container mb-4" id="carousel-wrapper">
+                <div class="flex-1 flex flex-col justify-center min-h-0">
+                    <!-- Carousel Wrapper: 3장만 노출하여 성능 최적화 -->
+                    <div class="carousel-container mb-2" id="carousel-wrapper">
                         <div class="carousel-item side opacity-40">
-                            <div id="img-prev" class="aspect-[2/3] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60"
-                                 style='${prevPhoto?.imageUrl ? `background-image: url("${prevPhoto.imageUrl}");` : ""} filter: grayscale(50%);'>
+                            <div id="img-prev" class="aspect-[2/3] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60 grayscale-[50%]"
+                                 style='${prevPhoto?.imageUrl ? `background-image: url("${prevPhoto.imageUrl}");` : ""}'>
                             </div>
                         </div>
-                        <div class="carousel-item" id="carousel-center-item">
+                        <div class="carousel-item">
                             <div class="relative aspect-[2/3] w-full">
-                                <div id="img-curr" class="w-full h-full bg-center bg-cover rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 bg-field-bg transition-all duration-300" 
+                                <div id="img-curr" class="w-full h-full bg-center bg-cover rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 bg-field-bg transition-all duration-300"
                                      style='${currentPhoto?.imageUrl ? `background-image: url("${currentPhoto.imageUrl}");` : ""}'>
                                 </div>
                                 ${currentPhoto?.score > 20 ? '<div class="absolute top-4 right-4 bg-primary/90 text-dark-bg text-[10px] font-black px-2 py-1 rounded-full shadow-lg">HIGH DETOX</div>' : ''}
                             </div>
                         </div>
                         <div class="carousel-item side opacity-40">
-                            <div id="img-next" class="aspect-[2/3] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60"
-                                 style='${nextPhoto?.imageUrl ? `background-image: url("${nextPhoto.imageUrl}");` : ""} filter: grayscale(50%);'>
+                            <div id="img-next" class="aspect-[2/3] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60 grayscale-[50%]"
+                                 style='${nextPhoto?.imageUrl ? `background-image: url("${nextPhoto.imageUrl}");` : ""}'>
                             </div>
                         </div>
                     </div>
 
-                    <div class="px-6 mx-6 shrink-0 max-w-md mx-auto">
-                        <div class="mb-6">
+                    <!-- Meta Info & Buttons (마진 축소) -->
+                    <div class="px-6 mx-6 shrink-0 max-w-md mx-auto w-full">
+                        <div id="photo-meta-info" class="mb-3 h-12 flex flex-col items-center justify-center">
                             <p class="text-white text-[14px] font-medium leading-relaxed text-center break-keep">
-                                ${currentPhoto?.date || ''} | <span id="txt-location">${currentPhoto?.location || ''}</span><br/>
-                                <span class="text-primary text-xs font-bold">${currentPhoto?.contextMessage || ''}</span>
+                                <span id="meta-date">${currentPhoto?.date || ''}</span> | <span id="meta-location">${currentPhoto?.location || ''}</span><br/>
+                                <span id="meta-context" class="text-primary text-xs font-bold">${currentPhoto?.contextMessage || ''}</span>
                             </p>
                         </div>
 
@@ -305,39 +307,48 @@ export class HomeManager {
             </div>
         `;
 
-        // Ensure carousel is centered
+        // 중앙 정렬 보장
         requestAnimationFrame(() => {
-            const centerItem = document.getElementById('carousel-center-item');
-            if (centerItem) {
-                centerItem.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
+            const wrapper = document.getElementById('carousel-wrapper');
+            if (wrapper) {
+                const centerItem = wrapper.children[1];
+                if (centerItem) centerItem.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
             }
         });
 
+        // 이미지 로딩 실행 (병렬 처리)
         this._loadAndReflectImages(this.currentIndex, prevIdx, nextIdx);
     }
 
     async _loadAndReflectImages(currIdx, prevIdx, nextIdx) {
-        // 현재 사진 우선 로드 (사용자가 보는 사진)
+        // 1. 현재 사진 우선 로드 (UX)
         await this._loadSingleImageAndUpdate(currIdx, 'img-curr');
-        // 이전/다음 사진은 병렬 로드
+        
+        // 2. 이전/다음 사진 병렬 로드 (Promise.all 적용)
         await Promise.all([
             this._loadSingleImageAndUpdate(prevIdx, 'img-prev'),
             this._loadSingleImageAndUpdate(nextIdx, 'img-next'),
         ]);
-        // 나머지 사진 백그라운드 프리페치 (UI 블로킹 없음)
+        
+        // 3. 나머지 사진 백그라운드 프리페치
         this._prefetchRemaining(new Set([currIdx, prevIdx, nextIdx]));
     }
 
     /**
-     * 캐러셀에 표시되지 않는 나머지 사진들을 백그라운드로 미리 로드.
-     * 스와이프 시 캐시 히트로 즉시 표시된다.
+     * 캐러셀에 표시되지 않는 나머지 사진들을 백그라운드로 점진 로드.
+     * 2장씩 배치 처리하여 네이티브 브릿지/네트워크 포화 방지.
      */
-    _prefetchRemaining(loadedSet) {
+    async _prefetchRemaining(loadedSet) {
         const photos = photoService.getPhotos();
+        const remaining = [];
         for (let i = 0; i < photos.length; i++) {
-            if (!loadedSet.has(i)) {
-                photoService.loadPhotoDetails(i);
-            }
+            if (!loadedSet.has(i)) remaining.push(i);
+        }
+
+        const BATCH = 2;
+        for (let b = 0; b < remaining.length; b += BATCH) {
+            const batch = remaining.slice(b, b + BATCH);
+            await Promise.all(batch.map(i => photoService.loadPhotoDetails(i)));
         }
     }
 
@@ -349,9 +360,10 @@ export class HomeManager {
             el.style.backgroundImage = `url("${photo.imageUrl}")`;
             
             if (elementId === 'img-curr') {
-                const locEl = document.getElementById('txt-location');
+                const locEl = document.getElementById('meta-location');
                 if (locEl) locEl.innerText = photo.location || '위치 정보 없음';
             }
         }
     }
+
 }

@@ -34,14 +34,15 @@ export class MyPageManager {
                     <div id="mypage-back" class="flex size-10 items-center justify-center cursor-pointer active:scale-90 transition-transform">
                         <span class="material-symbols-outlined text-2xl text-white">arrow_back_ios</span>
                     </div>
-                    <h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10">마이페이지</h2>
+                    <h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10 text-white">마이페이지</h2>
                 </div>
             </div>
             <div class="max-w-md mx-auto pb-10">
+                <!-- Profile Section -->
                 <div class="flex flex-col items-center pt-6 pb-6 gap-3">
                     <div class="relative">
                         <div class="bg-field-bg p-1.5 rounded-full border border-primary/20 shadow-lg">
-                            <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-28 h-28 bg-[#2A2635]" 
+                            <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-28 h-28 bg-[#2A2635]"
                                  style='background-image: url("${profileImg}");'>
                             </div>
                         </div>
@@ -52,7 +53,8 @@ export class MyPageManager {
                     </div>
                 </div>
 
-                <div class="px-6 max-w-md mx-auto">
+                <!-- Settings Group (mx-6 제거로 너비 확장) -->
+                <div class="px-6">
                     <div id="notice-settings-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-[24px] border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
                         <div class="w-6 text-primary flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-[22px]">notifications</span>
@@ -64,23 +66,23 @@ export class MyPageManager {
                     </div>
                 </div>
 
-                <div class="px-6 mt-6 space-y-4 max-w-md mx-auto">
-                    <div id="logout-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-[20px] border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
-                        <div class="w-6 text-primary flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-[22px]">logout</span>
-                        </div>
-                        <p class="text-white text-base font-semibold flex-1">로그아웃</p>
-                    </div>
+                <!-- Account Actions (mx-6 제거로 너비 확장) -->
+                <div class="px-6 mt-6 space-y-4">
                     <div id="withdraw-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-[20px] border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
                         <div class="w-6 text-red-400 flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-[22px]">person_remove</span>
                         </div>
                         <p class="text-red-400 text-base font-semibold flex-1">회원탈퇴</p>
+                        <div class="shrink-0 text-zinc-600">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="mt-8 px-6 text-center">
+                <!-- Footer / Logout (디자인 가이드 반영) -->
+                <div class="mt-12 px-6 text-center">
                     <p class="text-xs text-gray-500 font-semibold tracking-wide">recoco v2.4.0</p>
+                    <button id="logout-btn" class="mt-4 text-sm text-gray-500 font-medium underline underline-offset-4 decoration-zinc-800 active:text-white transition-colors">로그아웃</button>
                 </div>
             </div>
         `;
@@ -89,7 +91,6 @@ export class MyPageManager {
     }
 
     _bindEvents() {
-        // Direct binding method (Reverted to ea8a547 logic for reliability)
         const backBtn = document.getElementById('mypage-back');
         const logoutBtn = document.getElementById('logout-btn');
         const withdrawBtn = document.getElementById('withdraw-btn');
@@ -109,9 +110,13 @@ export class MyPageManager {
 
         if (logoutBtn) {
             logoutBtn.onclick = async () => {
-                const { error } = await supabase.auth.signOut();
-                if (error) console.error('Logout error:', error.message);
-                if (this.onLogout) this.onLogout();
+                try {
+                    const { error } = await supabase.auth.signOut();
+                    if (error) throw error;
+                    if (this.onLogout) this.onLogout();
+                } catch (err) {
+                    handleError(err, 'Auth', { userMessage: '로그아웃 중 오류가 발생했습니다.' });
+                }
             };
         }
 
@@ -130,7 +135,7 @@ export class MyPageManager {
                     <div id="withdraw-back" class="flex size-10 items-center justify-center cursor-pointer hover:bg-white/5 rounded-full transition-colors">
                         <span class="material-symbols-outlined text-2xl text-white">arrow_back_ios</span>
                     </div>
-                    <h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10">회원 탈퇴</h2>
+                    <h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10 text-white">회원 탈퇴</h2>
                 </div>
             </div>
             <div class="max-w-md mx-auto px-6 pb-40">
@@ -138,23 +143,23 @@ export class MyPageManager {
                     <div class="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-2">
                         <span class="material-symbols-outlined text-red-400 text-4xl" style="font-variation-settings: 'FILL' 1;">warning</span>
                     </div>
-                    <h1 class="text-2xl font-bold tracking-tight">정말 탈퇴하시겠어요?</h1>
+                    <h1 class="text-2xl font-bold tracking-tight text-white">정말 탈퇴하시겠어요?</h1>
                     <p class="text-gray-400 text-sm leading-relaxed">탈퇴하시면 리코코의 모든 데이터가 삭제되며<br/>다시는 복구할 수 없습니다.</p>
                 </div>
                 <div class="bg-field-bg rounded-[24px] p-6 border border-white/5 mb-8">
                     <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">삭제되는 데이터</h3>
-                    <ul class="space-y-4">
+                    <ul class="space-y-4 text-white">
                         <li class="flex items-center gap-3">
                             <span class="material-symbols-outlined text-gray-400 text-xl">photo_library</span>
-                            <span class="text-white text-[15px] font-medium">기록된 소중한 추억들</span>
+                            <span class="text-[15px] font-medium">기록된 소중한 추억들</span>
                         </li>
                         <li class="flex items-center gap-3">
                             <span class="material-symbols-outlined text-gray-400 text-xl">analytics</span>
-                            <span class="text-white text-[15px] font-medium">지금까지의 비움 통계</span>
+                            <span class="text-[15px] font-medium">지금까지의 비움 통계</span>
                         </li>
                         <li class="flex items-center gap-3">
                             <span class="material-symbols-outlined text-gray-400 text-xl">account_circle</span>
-                            <span class="text-white text-[15px] font-medium">연동된 구글 계정 정보</span>
+                            <span class="text-[15px] font-medium">연동된 구글 계정 정보</span>
                         </li>
                     </ul>
                 </div>
@@ -162,15 +167,15 @@ export class MyPageManager {
                     <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 ml-1">탈퇴 사유 (선택)</h3>
                     <div class="space-y-3">
                         <label class="flex items-center justify-between bg-field-bg border border-white/5 rounded-2xl px-5 py-4 cursor-pointer active:scale-[0.98] transition-all">
-                            <span class="text-[15px] font-medium">기능이 부족해요</span>
+                            <span class="text-[15px] font-medium text-white">기능이 부족해요</span>
                             <input class="w-5 h-5 border-2 border-zinc-700 bg-transparent text-primary focus:ring-0 focus:ring-offset-0 rounded-full" name="reason" type="radio" value="lack_features"/>
                         </label>
                         <label class="flex items-center justify-between bg-field-bg border border-white/5 rounded-2xl px-5 py-4 cursor-pointer active:scale-[0.98] transition-all">
-                            <span class="text-[15px] font-medium">정리가 더 이상 필요 없어요</span>
+                            <span class="text-[15px] font-medium text-white">정리가 더 이상 필요 없어요</span>
                             <input class="w-5 h-5 border-2 border-zinc-700 bg-transparent text-primary focus:ring-0 focus:ring-offset-0 rounded-full" name="reason" type="radio" value="no_need"/>
                         </label>
                         <label class="flex items-center justify-between bg-field-bg border border-white/5 rounded-2xl px-5 py-4 cursor-pointer active:scale-[0.98] transition-all">
-                            <span class="text-[15px] font-medium">다른 서비스를 이용해요</span>
+                            <span class="text-[15px] font-medium text-white">다른 서비스를 이용해요</span>
                             <input class="w-5 h-5 border-2 border-zinc-700 bg-transparent text-primary focus:ring-0 focus:ring-offset-0 rounded-full" name="reason" type="radio" value="other_service"/>
                         </label>
                     </div>
@@ -191,11 +196,10 @@ export class MyPageManager {
                 </div>
             </div>
 
-            <!-- Confirmation Modal -->
             <div id="withdraw-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center px-8 hidden">
                 <div class="bg-field-bg w-full max-w-xs rounded-[28px] border border-white/5 overflow-hidden shadow-2xl">
                     <div class="p-8 text-center">
-                        <h3 class="text-xl font-bold mb-3 tracking-tight">탈퇴를 진행할까요?</h3>
+                        <h3 class="text-xl font-bold mb-3 tracking-tight text-white">탈퇴를 진행할까요?</h3>
                         <p class="text-[14.5px] text-gray-400 leading-relaxed font-medium">
                             탈퇴 시 모든 데이터는 영구 삭제되며 복구할 수 없습니다. 정말 진행하시겠습니까?
                         </p>
@@ -224,17 +228,9 @@ export class MyPageManager {
         const modalCancel = document.getElementById('withdraw-modal-cancel');
         const modalConfirm = document.getElementById('withdraw-modal-confirm');
 
-        // Back button - return to mypage
-        if (backBtn) {
-            backBtn.onclick = () => this.render();
-        }
+        if (backBtn) backBtn.onclick = () => this.render();
+        if (keepBtn) keepBtn.onclick = () => this.render();
 
-        // Keep account button - return to mypage
-        if (keepBtn) {
-            keepBtn.onclick = () => this.render();
-        }
-
-        // Enable/disable proceed button based on checkbox
         if (confirmCheckbox && proceedBtn) {
             confirmCheckbox.onchange = () => {
                 proceedBtn.disabled = !confirmCheckbox.checked;
@@ -248,125 +244,61 @@ export class MyPageManager {
             };
         }
 
-        // Proceed button - show confirmation modal
         if (proceedBtn && modal) {
             proceedBtn.onclick = () => {
-                if (!proceedBtn.disabled) {
-                    modal.classList.remove('hidden');
-                }
+                if (!proceedBtn.disabled) modal.classList.remove('hidden');
             };
         }
 
-        // Modal cancel button
-        if (modalCancel && modal) {
-            modalCancel.onclick = () => modal.classList.add('hidden');
-        }
-
-        // Modal confirm button - actual withdrawal
-        if (modalConfirm) {
-            modalConfirm.onclick = () => this._performWithdrawal();
-        }
-
-        // Close modal on outside click
+        if (modalCancel && modal) modalCancel.onclick = () => modal.classList.add('hidden');
+        if (modalConfirm) modalConfirm.onclick = () => this._performWithdrawal();
         if (modal) {
             modal.onclick = (e) => {
-                if (e.target === modal) {
-                    modal.classList.add('hidden');
-                }
+                if (e.target === modal) modal.classList.add('hidden');
             };
         }
     }
 
-    /**
-     * Perform actual account withdrawal
-     */
     async _performWithdrawal() {
-        const modal = document.getElementById('withdraw-modal');
         const modalConfirm = document.getElementById('withdraw-modal-confirm');
-
-        // Get selected reason
         const reasonInput = document.querySelector('input[name="reason"]:checked');
         const reason = reasonInput ? reasonInput.value : 'not_specified';
 
         try {
-            // Show loading state
             if (modalConfirm) {
                 modalConfirm.textContent = '처리 중...';
                 modalConfirm.disabled = true;
             }
 
-            // 1. 서버에 계정 삭제 요청 (실제 Supabase 계정 삭제)
             let userId = this.user?.id;
             if (!userId) {
-                try {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    userId = user?.id;
-                } catch (e) {
-                    console.error('[WITHDRAW] Failed to get user:', e);
-                }
+                const { data: { user } } = await supabase.auth.getUser();
+                userId = user?.id;
             }
-
-            console.log('[WITHDRAW] userId:', userId, 'reason:', reason);
 
             if (userId) {
-                try {
-                    const baseUrl = (API_CONFIG.BASE_URL || '').replace(/\/$/, '');
-                    const response = await fetch(`${baseUrl}/api/v1/delete-account`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: userId, reason })
-                    });
-
-                    const data = await response.json().catch(() => null);
-                    console.log('[WITHDRAW] Server:', response.status, data?.message);
-                } catch (serverErr) {
-                    console.warn('[WITHDRAW] Server request failed:', serverErr);
-                }
+                const baseUrl = (API_CONFIG.BASE_URL || '').replace(/\/$/, '');
+                await fetch(`${baseUrl}/api/v1/delete-account`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, reason })
+                }).catch(e => console.warn('[WITHDRAW] Server error:', e));
             }
 
-            // 2. Sign out
             await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
-
-            // 3. Clear all client-side storage
-            delete window.supabaseInstance;
             localStorage.clear();
             sessionStorage.clear();
-            try {
-                const dbs = await indexedDB.databases();
-                dbs.forEach(db => db.name && indexedDB.deleteDatabase(db.name));
-            } catch (_) {}
-            document.cookie.split(";").forEach(c => {
-                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-            });
-
-            console.log('[WITHDRAW] All cleanup completed');
-
-            // 7. Hide all app navigation before showing farewell
-            const bottomBar = document.getElementById('bottom-action-bar');
-            if (bottomBar) bottomBar.style.display = 'none';
             
-            const header = document.querySelector('header');
-            if (header) header.style.display = 'none';
-
-            // Show farewell screen then force reload
             this._showFarewellView();
-
         } catch (err) {
             handleError(err, 'Withdraw');
-
             if (modalConfirm) {
                 modalConfirm.textContent = '탈퇴하기';
                 modalConfirm.disabled = false;
             }
-            if (modal) {
-                modal.classList.add('hidden');
-            }
         }
     }
 
-    /**
-     * Show farewell screen after withdrawal
-     */
     _showFarewellView() {
         this.container.innerHTML = `
             <div class="flex flex-col h-full bg-dark-bg">
@@ -377,34 +309,23 @@ export class MyPageManager {
                             <span class="material-symbols-outlined text-[120px] text-primary/80 leading-none select-none" style="font-variation-settings: 'FILL' 0, 'wght' 200;">
                                 water_drop
                             </span>
-                            <div class="absolute -top-2 -right-2">
-                                <span class="material-symbols-outlined text-4xl text-primary/60">waves</span>
-                            </div>
                         </div>
                     </div>
-                    <h1 class="text-2xl font-medium tracking-tight leading-relaxed mb-6 whitespace-pre-line">
-                        비움이 당신에게
-                        휴식이 되었길 바랍니다.
+                    <h1 class="text-2xl font-medium tracking-tight leading-relaxed mb-6 whitespace-pre-line text-white">
+                        비움이 당신에게\n휴식이 되었길 바랍니다.
                     </h1>
                     <p class="text-gray-400 text-[15px] leading-7 font-light mb-12 break-keep">
                         언제든 마음이 무거워질 때 다시 리코코를 찾아주세요.
-                        그동안 함께 비울 수 있어 고마웠습니다.
                     </p>
                 </div>
                 <div class="pb-16 px-8 flex justify-center w-full max-w-md mx-auto">
-                    <button id="farewell-btn" class="px-10 py-3 rounded-full border border-white/10 text-gray-500 text-sm font-medium hover:text-white transition-colors active:scale-95">
+                    <button id="farewell-btn" class="px-10 py-3 rounded-full border border-white/10 text-gray-500 text-sm font-medium hover:text-white transition-colors">
                         안녕히 가세요
                     </button>
                 </div>
             </div>
         `;
-
         const farewellBtn = document.getElementById('farewell-btn');
-        if (farewellBtn) {
-            farewellBtn.onclick = () => {
-                // 강제 새로고침 (캐시 무시)
-                window.location.href = window.location.origin + window.location.pathname;
-            };
-        }
+        if (farewellBtn) farewellBtn.onclick = () => window.location.reload();
     }
 }
