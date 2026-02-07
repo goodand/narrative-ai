@@ -25,7 +25,7 @@ import { Browser } from '@capacitor/browser';
 import { scheduleDailyNotification, setupActionListener } from './src/services/NotificationService.js';
 
 // Components
-import { DropZone } from './src/components/DropZone.js';
+import { InputManager } from './src/components/InputManager.js';
 import { SelectionGroup } from './src/components/SelectionGroup.js';
 import { ResultViewer } from './src/components/ResultViewer.js';
 import { SuggestionModal, SettingsModal, ConfirmModal } from './src/components/Modal.js';
@@ -46,6 +46,9 @@ const geminiService = new GeminiService();
 const handleUrl = async (urlStr) => {
     console.log('[DEEPLINK] Incoming URL:', urlStr);
     if (!urlStr) return;
+
+    // 딥링크 수신 직후 네이티브 레이어가 준비될 시간을 잠시 줌 (iOS 안정성 확보)
+    await new Promise(resolve => setTimeout(resolve, 150));
 
     // 딥링크가 들어오면 우선 브라우저를 닫음 (성공 여부 상관없이 UX 우선 처리)
     try { await Browser.close(); } catch (e) {}
@@ -96,8 +99,6 @@ const els = {
     genBtn: document.getElementById('generate-btn'),
     btnText: document.getElementById('btn-text'),
     loader: document.getElementById('btn-loader'),
-    meaningInput: document.getElementById('meaning-input'),
-    tagsInput: document.getElementById('tags-input'),
     navHome: document.getElementById('nav-home'),
     navReport: document.getElementById('nav-report'),
     navMypage: document.getElementById('nav-mypage'),
@@ -117,15 +118,7 @@ const els = {
 const router = new Router(els);
 
 // --- Component Initializations ---
-const dropZone = new DropZone({
-    dropZone: 'drop-zone', input: 'image-input', preview: 'image-preview', container: 'preview-container', placeholder: 'upload-placeholder',
-    metaElements: { date: 'meta-date', gps: 'meta-gps' },
-    onFileLoaded: (data) => {
-        store.setState('base64', data.base64);
-        store.setState('dataUrl', data.dataUrl);
-        store.setState('metadata', data.metadata);
-    }
-});
+const inputManager = new InputManager('input-view');
 
 // SelectionGroup instances for sns and temp are no longer needed as they are removed from UI
 // keeping them if they are used elsewhere, but ideally cleaning up if exclusively for input view
@@ -231,6 +224,7 @@ router.registerManager('home', homeManager);
 router.registerManager('report', reportManager);
 router.registerManager('mypage', mypageManager);
 router.registerManager('notice', noticeManager);
+router.registerManager('input', inputManager);
 
 // 뒤로가기 버튼 이벤트 연결
 if (els.backBtn) {
@@ -278,13 +272,14 @@ els.genBtn.onclick = async () => {
 
     setLoading(true);
 
+    const inputData = inputManager.getInputData();
     const context = {
         sns: 'Instagram', // Default
         mood: 'emotional', // Default
         temp: 'Lukewarm', // Default
         language: 'Korean', // Default
-        meaning: els.meaningInput?.value?.trim() || '', // New field
-        tags: els.tagsInput?.value?.trim() || '',
+        meaning: inputData.meaning, // Updated
+        tags: inputData.tags, // Updated
         activity: '',
         bodyState: '',
         relationship: '',
