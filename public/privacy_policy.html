@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#B2A5CF",
+                        "background-light": "#f7f6f7",
+                        "background-dark": "#121212",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "system-ui", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body {
+            font-family: 'Plus Jakarta Sans', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .privacy-content p {
+            line-height: 1.7;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display selection:bg-primary/30">
+<div class="h-12 w-full bg-background-light dark:bg-background-dark sticky top-0 z-50"></div>
+<header class="sticky top-12 z-50 flex items-center justify-between px-4 py-3 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
+<button class="flex items-center justify-center p-2 -ml-2 text-primary">
+<span class="material-symbols-outlined text-3xl">chevron_left</span>
+</button>
+<h1 class="text-gray-900 dark:text-white text-lg font-bold tracking-tight">개인정보처리방침</h1>
+<div class="w-10"></div> 
+</header>
+<main class="max-w-2xl mx-auto px-6 py-8">
+<section class="mb-10">
+<p class="text-gray-600 dark:text-gray-400 text-base mb-6">
+                리코코(recoco)는 사용자의 소중한 추억과 개인정보를 최우선으로 생각합니다. 본 방침은 리코코 서비스 이용 시 처리되는 정보와 보호 원칙을 설명합니다.
+            </p>
+<div class="relative overflow-hidden rounded-xl border-2 border-primary bg-primary/5 p-6 mb-10">
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary text-3xl shrink-0">shield_with_heart</span>
+<div>
+<h2 class="text-primary text-xl font-bold leading-tight mb-2">당신의 추억은 오직 당신의 기기 안에만 머무릅니다.</h2>
+<p class="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                            리코코의 '온디바이스(On-device) 처리' 원칙에 따라, 모든 사진 분석과 조직화는 오직 사용자의 기기 내부에서 안전하게 수행됩니다. 어떠한 사진 데이터도 외부 서버로 전송되지 않습니다.
+                        </p>
+</div>
+</div>
+</div>
+</section>
+<article class="privacy-content space-y-10 text-gray-800 dark:text-gray-200">
+<section>
+<h3 class="text-primary text-xl font-bold mb-4">1. 수집하는 개인정보 항목</h3>
+<p class="mb-4">
+                    리코코는 별도의 회원가입 절차 없이 사용 가능하며, 서비스 제공을 위해 필요한 최소한의 정보만을 처리합니다.
+                </p>
+<ul class="list-disc pl-5 space-y-2 text-gray-600 dark:text-gray-400">
+<li>기기 식별 정보 (서비스 최적화 및 오류 분석용)</li>
+<li>앱 이용 기록 (기능 개선을 위한 비식별 통계)</li>
+<li>구독 상태 정보 (유료 기능 제공 확인용)</li>
+</ul>
+</section>
+<section>
+<h3 class="text-primary text-xl font-bold mb-4">2. 데이터의 저장 및 온디바이스 처리 원칙</h3>
+<p class="mb-4">
+                    모든 사진 데이터 및 인공지능 분석 결과는 사용자의 로컬 스토리지에만 저장됩니다.
+                </p>
+<div class="bg-gray-100 dark:bg-white/5 rounded-lg p-4 mb-4">
+<p class="text-sm italic text-gray-500 dark:text-gray-400">
+                        * 리코코는 클라우드 서버에 사진을 백업하거나 공유하는 기능을 기본적으로 포함하지 않습니다. 모든 데이터 주권은 사용자 본인에게 있습니다.
+                    </p>
+</div>
+</section>
+<section>
+<h3 class="text-primary text-xl font-bold mb-4">3. 개인정보의 보유 및 이용기간</h3>
+<p>
+                    수집된 최소한의 서비스 이용 기록은 관계 법령에 따라 일정 기간 보관될 수 있으나, 앱 삭제 시 기기 내의 모든 분석 데이터는 즉시 삭제됩니다. 통계 목적의 비식별 정보는 서비스 운영 기간 동안 유지됩니다.
+                </p>
+</section>
+<section>
+<h3 class="text-primary text-xl font-bold mb-4">4. 이용자의 권리 및 행사방법</h3>
+<p>
+                    이용자는 언제든지 앱 설정을 통해 데이터 접근 권한을 철회할 수 있습니다. 사진 접근 권한을 거부할 경우 해당 기능을 제외한 기본 기능만을 이용하실 수 있습니다.
+                </p>
+</section>
+<div class="py-10">
+<div class="h-px w-full bg-gray-200 dark:bg-gray-800 mb-8"></div>
+<section class="text-center space-y-4">
+<p class="text-gray-500 dark:text-gray-500 text-sm">
+                        본 개인정보처리방침에 대해 궁금한 점이 있으시다면<br/>아래의 경로로 문의해주시기 바랍니다.
+                    </p>
+<div class="inline-flex items-center gap-2 text-primary font-semibold">
+<span class="material-symbols-outlined text-lg">mail</span>
+<a class="hover:underline" href="mailto:contact.dooooo@gmail.com">contact.dooooo@gmail.com</a>
+</div>
+<p class="text-xs text-gray-400 dark:text-gray-600 pt-4">
+                        최종 수정일: 2026년 2월 5일
+                    </p>
+</section>
+</div>
+</article>
+</main>
+<div class="h-10 w-full bg-background-light dark:bg-background-dark"></div>
+
+</body></html>
