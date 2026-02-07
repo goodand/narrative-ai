@@ -96,12 +96,16 @@ export class HomeManager {
                 this.loadRealPhotos();
             } else if (prevImg) {
                 e.preventDefault();
-                this.currentIndex = (this.currentIndex - 1 + photos.length) % photos.length;
-                this.render();
+                if (this.currentIndex > 0) {
+                    this.currentIndex--;
+                    this.render();
+                }
             } else if (nextImg) {
                 e.preventDefault();
-                this.currentIndex = (this.currentIndex + 1) % photos.length;
-                this.render();
+                if (this.currentIndex < photos.length - 1) {
+                    this.currentIndex++;
+                    this.render();
+                }
             }
         });
     }
@@ -221,10 +225,12 @@ export class HomeManager {
         }
 
         const currentPhoto = photos[this.currentIndex];
-        const prevIdx = (this.currentIndex - 1 + photos.length) % photos.length;
-        const nextIdx = (this.currentIndex + 1) % photos.length;
-        const prevPhoto = photos[prevIdx];
-        const nextPhoto = photos[nextIdx];
+        const isFirst = this.currentIndex === 0;
+        const isLast = this.currentIndex === photos.length - 1;
+        const prevIdx = isFirst ? null : this.currentIndex - 1;
+        const nextIdx = isLast ? null : this.currentIndex + 1;
+        const prevPhoto = prevIdx !== null ? photos[prevIdx] : null;
+        const nextPhoto = nextIdx !== null ? photos[nextIdx] : null;
 
         this.container.innerHTML = `
             <div class="flex flex-col px-6 h-full">
@@ -318,21 +324,24 @@ export class HomeManager {
         });
 
         // 이미지 로딩 실행 (병렬 처리)
-        this._loadAndReflectImages(this.currentIndex, prevIdx, nextIdx);
+        this._loadAndReflectImages(this.currentIndex, prevIdx, nextIdx, isFirst, isLast);
     }
 
-    async _loadAndReflectImages(currIdx, prevIdx, nextIdx) {
+    async _loadAndReflectImages(currIdx, prevIdx, nextIdx, isFirst, isLast) {
         // 1. 현재 사진 우선 로드 (UX)
         await this._loadSingleImageAndUpdate(currIdx, 'img-curr');
-        
-        // 2. 이전/다음 사진 병렬 로드 (Promise.all 적용)
-        await Promise.all([
-            this._loadSingleImageAndUpdate(prevIdx, 'img-prev'),
-            this._loadSingleImageAndUpdate(nextIdx, 'img-next'),
-        ]);
-        
+
+        // 2. 이전/다음 사진 병렬 로드 (경계일 때는 해당 방향 스킵)
+        const sideLoads = [];
+        if (!isFirst) sideLoads.push(this._loadSingleImageAndUpdate(prevIdx, 'img-prev'));
+        if (!isLast) sideLoads.push(this._loadSingleImageAndUpdate(nextIdx, 'img-next'));
+        await Promise.all(sideLoads);
+
         // 3. 나머지 사진 백그라운드 프리페치
-        this._prefetchRemaining(new Set([currIdx, prevIdx, nextIdx]));
+        const loaded = new Set([currIdx]);
+        if (prevIdx !== null) loaded.add(prevIdx);
+        if (nextIdx !== null) loaded.add(nextIdx);
+        this._prefetchRemaining(loaded);
     }
 
     /**
@@ -378,12 +387,13 @@ export class HomeManager {
                 if (closestVisualIdx === 1) return; // 이미 중앙
 
                 const photos = photoService.getPhotos();
-                const prevIdx = (this.currentIndex - 1 + photos.length) % photos.length;
-                const nextIdx = (this.currentIndex + 1) % photos.length;
-                const indexMap = [prevIdx, this.currentIndex, nextIdx];
-
-                this.currentIndex = indexMap[closestVisualIdx];
-                this.render();
+                if (closestVisualIdx === 0 && this.currentIndex > 0) {
+                    this.currentIndex--;
+                    this.render();
+                } else if (closestVisualIdx === 2 && this.currentIndex < photos.length - 1) {
+                    this.currentIndex++;
+                    this.render();
+                }
             }, 120);
         }, { passive: true });
     }
