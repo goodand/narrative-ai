@@ -98,7 +98,7 @@ export class AuthModal extends Modal {
                     
                     <div class="mb-3">
                         <button class="text-muted-lavender text-sm font-medium hover:text-white transition-colors">
-                            이미 계정이 있나요? <span class="underline underline-offset-4 decoration-primary/40 font-bold text-primary">로그인하기</span>
+                            처음이신가요? <span class="underline underline-offset-4 decoration-primary/40 font-bold text-primary">회원가입하기</span>
                         </button>
                     </div>
 
