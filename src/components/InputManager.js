@@ -18,8 +18,8 @@ export class InputManager {
 
         this.container.innerHTML = `
             <!-- Image Upload Area -->
-            <div class="flex flex-col items-center px-6 pt-12 pb-8">
-                <div id="drop-zone" class="relative w-40 h-40 overflow-hidden rounded-[2rem] border-2 border-dashed border-white/20 bg-white/5 hover:bg-white/10 transition-colors group cursor-pointer flex items-center justify-center">
+            <div class="flex flex-col items-center px-6 mx-6 pt-12 pb-8">
+                <div id="drop-zone" class="relative w-full max-w-[240px] aspect-[2/3] overflow-hidden rounded-[2rem] border-2 border-dashed border-white/20 bg-white/5 hover:bg-white/10 transition-colors group cursor-pointer flex items-center justify-center">
                     <input type="file" id="image-input" accept="image/*" class="hidden">
                     
                     <!-- Placeholder / Background -->
@@ -41,7 +41,7 @@ export class InputManager {
                 </div>
             </div>
 
-            <div class="px-6 space-y-8">
+            <div class="px-6 mx-6 space-y-8">
                 <!-- Meaning Input -->
                 <div>
                     <p class="text-[10px] font-bold text-muted-lavender tracking-wider uppercase mb-2 ml-1">Meaning</p>

@@ -261,12 +261,12 @@ export class HomeManager {
                 <div class="flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
                     <div class="carousel-container mb-4" id="carousel-wrapper">
                         <div class="carousel-item side opacity-40">
-                            <div id="img-prev" class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60"
+                            <div id="img-prev" class="aspect-[2/3] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60"
                                  style='${prevPhoto?.imageUrl ? `background-image: url("${prevPhoto.imageUrl}");` : ""} filter: grayscale(50%);'>
                             </div>
                         </div>
                         <div class="carousel-item" id="carousel-center-item">
-                            <div class="relative aspect-[4/5] w-full">
+                            <div class="relative aspect-[2/3] w-full">
                                 <div id="img-curr" class="w-full h-full bg-center bg-cover rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 bg-field-bg transition-all duration-300" 
                                      style='${currentPhoto?.imageUrl ? `background-image: url("${currentPhoto.imageUrl}");` : ""}'>
                                 </div>
@@ -274,7 +274,7 @@ export class HomeManager {
                             </div>
                         </div>
                         <div class="carousel-item side opacity-40">
-                            <div id="img-next" class="aspect-[4/5] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60"
+                            <div id="img-next" class="aspect-[2/3] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60"
                                  style='${nextPhoto?.imageUrl ? `background-image: url("${nextPhoto.imageUrl}");` : ""} filter: grayscale(50%);'>
                             </div>
                         </div>

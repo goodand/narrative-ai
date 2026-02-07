@@ -45,7 +45,7 @@ export class PermissionModal extends Modal {
 
         this.contentElement.innerHTML = `
             <div class="flex flex-col h-full px-8 bg-dark-bg" style="padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);">
-                <main class="flex-1 flex flex-col items-center justify-center max-w-md mx-auto w-full overflow-y-auto custom-scrollbar py-6">
+                <main class="flex-1 flex flex-col items-center justify-center max-w-md mx-auto w-full overflow-hidden py-4">
                     <div class="relative w-full max-w-[200px] aspect-square flex items-center justify-center mb-6 shrink-0">
                         <div class="absolute inset-0 bg-primary/5 rounded-[2.5rem] glow-effect"></div>
                         <div class="relative w-40 h-48 border-4 border-white/10 rounded-3xl overflow-hidden flex items-center justify-center bg-field-bg">
