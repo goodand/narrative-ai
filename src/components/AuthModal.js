@@ -61,8 +61,13 @@ export class AuthModal extends Modal {
 
     _bindEvents() {
         const googleBtn = this.element.querySelector('#google-auth-btn');
+        const signupBtn = this.element.querySelector('#auth-signup-btn');
+
         if (googleBtn) {
             googleBtn.onclick = () => this._handleGoogleLogin();
+        }
+        if (signupBtn) {
+            signupBtn.onclick = () => this._handleGoogleLogin();
         }
     }
 
@@ -97,7 +102,7 @@ export class AuthModal extends Modal {
                     </button>
                     
                     <div class="mb-3">
-                        <button class="text-muted-lavender text-sm font-medium hover:text-white transition-colors">
+                        <button id="auth-signup-btn" class="text-muted-lavender text-sm font-medium hover:text-white transition-colors">
                             처음이신가요? <span class="underline underline-offset-4 decoration-primary/40 font-bold text-primary">회원가입하기</span>
                         </button>
                     </div>
