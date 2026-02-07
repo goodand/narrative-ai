@@ -188,27 +188,13 @@ const homeManager = new HomeManager('home-view', {
     confirmModal: editConfirmModal,
     onPreciousClick: async () => {
         // 선택된 사진을 input-view에 표시
-        const currentPhoto = await homeManager.getCurrentImageAsFile(); // PhotoService 활용
+        const currentPhoto = await homeManager.getCurrentImageAsFile();
         const meta = homeManager.getCurrentPhotoMeta();
         
-        // 이미지 프리뷰에 직접 표시
-        const previewImg = document.getElementById('image-preview');
-        const previewContainer = document.getElementById('preview-container');
-        const uploadPlaceholder = document.getElementById('upload-placeholder');
-
-        if (previewImg && currentPhoto) {
-            // File -> DataURL 변환
+        if (currentPhoto) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                const dataUrl = e.target.result;
-                previewImg.src = dataUrl;
-                previewContainer?.classList.remove('hidden');
-                uploadPlaceholder?.classList.add('hidden');
-
-                const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
-                store.setState('dataUrl', dataUrl);
-                store.setState('base64', base64);
-                store.setState('metadata', meta);
+                inputManager.setPreviewImage(e.target.result, meta);
             };
             reader.readAsDataURL(currentPhoto);
         }

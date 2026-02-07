@@ -110,4 +110,26 @@ export class InputManager {
         store.setState('dataUrl', null);
         store.setState('metadata', null);
     }
+
+    /**
+     * 외부(예: HomeManager)에서 선택된 이미지를 프리뷰에 설정합니다.
+     * @param {string} dataUrl - 이미지 Data URL
+     * @param {Object} metadata - 이미지 메타데이터
+     */
+    setPreviewImage(dataUrl, metadata) {
+        const previewImg = document.getElementById('image-preview');
+        const previewContainer = document.getElementById('preview-container');
+        const uploadPlaceholder = document.getElementById('upload-placeholder');
+
+        if (previewImg && dataUrl) {
+            previewImg.src = dataUrl;
+            previewContainer?.classList.remove('hidden');
+            uploadPlaceholder?.classList.add('hidden');
+
+            const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
+            store.setState('dataUrl', dataUrl);
+            store.setState('base64', base64);
+            store.setState('metadata', metadata);
+        }
+    }
 }
