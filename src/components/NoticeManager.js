@@ -3,6 +3,7 @@
  */
 
 import { requestPermission, scheduleDailyNotification, cancelAll } from '../services/NotificationService.js';
+import { showToast, ErrorLevel } from '../utils/errorHandler.js';
 
 export class NoticeManager {
     constructor(containerId) {
@@ -98,7 +99,7 @@ export class NoticeManager {
                 if (enabled) {
                     const granted = await requestPermission();
                     if (!granted) {
-                        alert('알림 권한이 필요합니다. 설정에서 권한을 허용해주세요.');
+                        showToast('알림 권한이 필요합니다. 설정에서 권한을 허용해주세요.', ErrorLevel.WARN);
                         toggle.checked = false;
                         return;
                     }
@@ -108,7 +109,7 @@ export class NoticeManager {
                 }
 
                 this.isNoticeEnabled = enabled;
-                localStorage.setItem(this.storageKey, enabled);
+                localStorage.setItem(this.storageKey, String(enabled));
 
                 // UI Update
                 if (statusText) {
