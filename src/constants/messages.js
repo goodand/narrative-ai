@@ -6,7 +6,7 @@
 export const UI_MESSAGES = {
     LOADING: "기억을 분석하는 중...",
     FINDING_SYNONYMS: "유의어를 찾는 중...",
-    GENERATE_BUTTON: "내 기억을 선명하게 하기",
+    GENERATE_BUTTON: "기억 분석하기",
     COPY_SUCCESS: "복사 완료!",
     ERROR_NO_API_KEY: "API Key가 설정되지 않았습니다. .env 파일을 확인하세요.",
     ERROR_NO_IMAGE: "사진을 업로드해주세요.",
