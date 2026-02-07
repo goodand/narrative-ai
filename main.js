@@ -47,6 +47,9 @@ const handleUrl = async (urlStr) => {
     console.log('[DEEPLINK] Incoming URL:', urlStr);
     if (!urlStr) return;
 
+    // 딥링크가 들어오면 우선 브라우저를 닫음 (성공 여부 상관없이 UX 우선 처리)
+    try { await Browser.close(); } catch (e) {}
+
     try {
         let accessToken = null;
         let refreshToken = null;
@@ -67,12 +70,10 @@ const handleUrl = async (urlStr) => {
             });
             if (error) throw error;
             console.log('[DEEPLINK] Session set successfully');
-            try { await Browser.close(); } catch (e) {}
         } else if (code) {
             const { error } = await supabase.auth.exchangeCodeForSession(code);
             if (error) throw error;
             console.log('[DEEPLINK] Code exchange successful');
-            try { await Browser.close(); } catch (e) {}
         }
     } catch (err) {
         handleError(err, 'Auth', { silent: true });
