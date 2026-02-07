@@ -21,6 +21,7 @@ import { Router } from './src/services/Router.js';
 
 // Capacitor Plugins
 import { App } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { scheduleDailyNotification, setupActionListener } from './src/services/NotificationService.js';
 
 // Components
@@ -66,10 +67,12 @@ const handleUrl = async (urlStr) => {
             });
             if (error) throw error;
             console.log('[DEEPLINK] Session set successfully');
+            try { await Browser.close(); } catch (e) {}
         } else if (code) {
             const { error } = await supabase.auth.exchangeCodeForSession(code);
             if (error) throw error;
             console.log('[DEEPLINK] Code exchange successful');
+            try { await Browser.close(); } catch (e) {}
         }
     } catch (err) {
         handleError(err, 'Auth', { silent: true });

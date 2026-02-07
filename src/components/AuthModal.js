@@ -6,6 +6,7 @@
 import { Modal } from './Modal.js';
 import { supabase } from '../services/supabase.js';
 import { Browser } from '@capacitor/browser';
+import { showToast, ErrorLevel } from '../utils/errorHandler.js';
 
 export class AuthModal extends Modal {
     constructor(element) {
@@ -79,7 +80,7 @@ export class AuthModal extends Modal {
             }
         } catch (error) {
             console.error('[AUTH] 상세 에러:', error);
-            alert(`로그인 오류: ${error.message}`);
+            showToast(`로그인 오류: ${error.message}`, ErrorLevel.ERROR);
         }
     }
 
