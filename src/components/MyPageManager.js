@@ -52,14 +52,16 @@ export class MyPageManager {
                     </div>
                 </div>
 
-                <div class="px-6 space-y-px bg-field-bg rounded-[24px] border border-white/5 overflow-hidden mx-6">
-                    <div id="notice-settings-btn" class="flex items-center gap-4 px-5 min-h-[64px] cursor-pointer active:bg-zinc-800 transition-colors">
-                        <div class="text-primary flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-[22px]">notifications</span>
-                        </div>
-                        <p class="text-white text-base font-semibold flex-1">알림 설정</p>
-                        <div class="shrink-0 text-zinc-600">
-                            <span class="material-symbols-outlined">chevron_right</span>
+                <div class="px-6">
+                    <div class="bg-field-bg rounded-[24px] border border-white/5 overflow-hidden">
+                        <div id="notice-settings-btn" class="flex items-center gap-4 px-5 min-h-[64px] cursor-pointer active:bg-zinc-800 transition-colors">
+                            <div class="text-primary flex items-center justify-center shrink-0">
+                                <span class="material-symbols-outlined text-[22px]">notifications</span>
+                            </div>
+                            <p class="text-white text-base font-semibold flex-1">알림 설정</p>
+                            <div class="shrink-0 text-zinc-600">
+                                <span class="material-symbols-outlined">chevron_right</span>
+                            </div>
                         </div>
                     </div>
                 </div>
