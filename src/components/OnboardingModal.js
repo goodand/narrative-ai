@@ -80,7 +80,7 @@ export class OnboardingModal {
                     ${content}
                 </main>
                 
-                <footer class="flex flex-col items-center gap-6 shrink-0 mt-auto">
+                <footer class="flex flex-col items-center gap-6 shrink-0 mt-auto mb-6">
                     <div class="flex gap-2">
                         ${[1, 2, 3].map(i => `
                             <div class="w-1.5 h-1.5 rounded-full ${i === step ? 'bg-primary' : 'bg-white/10'}"></div>
@@ -108,7 +108,7 @@ export class OnboardingModal {
                 비움으로 선명해지는\n당신의 기록
             </h1>
             <p class="text-muted-lavender text-sm sm:text-base leading-relaxed whitespace-pre-line px-2">
-                매일 아침 도착하는 사진 한 장으로\n디지털 다이어트를 시작해보세요.
+                매일 아침 도착하는 사진 한 장으로\n디지털 웰니스를 시작해보세요.
             </p>
         `;
         const footer = `

@@ -17,6 +17,7 @@ html, body {
     overflow: hidden;
     position: fixed; /* Prevent iOS elastic scroll on body */
     width: 100%;
+    touch-action: none; /* Disable all system gestures including pull-to-refresh */
 }
 
 body {
@@ -34,17 +35,22 @@ main {
     -webkit-overflow-scrolling: touch;
     position: relative;
     z-index: 1;
+    touch-action: pan-y; /* Allow vertical scroll only inside main */
 }
 
 #bottom-action-bar {
-    position: relative;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
     z-index: 50;
-    background-color: #121212; /* Ensure it covers content during bounce */
+    background-color: #121212; 
 }
 
 .ios-tab-bar {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+    width: 100%;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -215,7 +221,7 @@ main {
     -ms-overflow-style: none;
     scrollbar-width: none;
     gap: 16px;
-    padding: 0 40px;
+    padding: 0 12.5%;
 }
 
 .carousel-container::-webkit-scrollbar {

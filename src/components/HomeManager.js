@@ -280,7 +280,7 @@ export class HomeManager {
                         </div>
                     </div>
 
-                    <div class="px-8 shrink-0">
+                    <div class="px-6 mx-6 shrink-0 max-w-md mx-auto">
                         <div class="mb-6">
                             <p class="text-white text-[14px] font-medium leading-relaxed text-center break-keep">
                                 ${currentPhoto?.date || ''} | <span id="txt-location">${currentPhoto?.location || ''}</span><br/>
