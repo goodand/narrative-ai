@@ -405,16 +405,22 @@ export class HomeManager {
     }
 
     async _loadSingleImageAndUpdate(index, elementId) {
-        const photo = await photoService.loadPhotoDetails(index);
-        
-        const el = document.getElementById(elementId);
-        if (el && photo && photo.imageUrl) {
-            el.style.backgroundImage = `url("${photo.imageUrl}")`;
-            
-            if (elementId === 'img-curr') {
-                const locEl = document.getElementById('meta-location');
-                if (locEl) locEl.innerText = photo.location || '위치 정보 없음';
+        try {
+            const photo = await photoService.loadPhotoDetails(index);
+            const el = document.getElementById(elementId);
+
+            if (el && photo && photo.imageUrl) {
+                el.style.backgroundImage = `url("${photo.imageUrl}")`;
+
+                if (elementId === 'img-curr') {
+                    const locEl = document.getElementById('meta-location');
+                    if (locEl) locEl.innerText = photo.location || '위치 정보 없음';
+                }
+            } else if (el) {
+                el.style.backgroundImage = 'none';
             }
+        } catch (error) {
+            console.error(`HomeManager: Failed to load image at index ${index}:`, error);
         }
     }
 

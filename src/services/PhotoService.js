@@ -11,7 +11,6 @@ import { StatsService } from './StatsService.js';
 export class PhotoService {
     constructor() {
         this.photos = [];
-        this.cache = new Map(); // assetId -> { imageUrl, location }
     }
 
     /**
@@ -68,6 +67,10 @@ export class PhotoService {
                 tasks.push(
                     RecocolPhotos.loadImageData({ assetId: photo.id, quality: 'thumbnail' })
                         .then(({ base64 }) => { photo.imageUrl = `data:image/jpeg;base64,${base64}`; })
+                        .catch(err => {
+                            console.error(`PhotoService: Failed to load image ${photo.id}:`, err);
+                            photo.imageUrl = null;
+                        })
                 );
             }
 

@@ -6,6 +6,7 @@ Google Gemini API 통신 담당
 import asyncio
 import json
 import logging
+import random
 import httpx
 from typing import Optional
 
@@ -23,6 +24,31 @@ class GeminiService:
     def __init__(self, client: httpx.AsyncClient):
         self.client = client
         self.settings = get_settings()
+
+    @staticmethod
+    def _extract_gps(metadata) -> tuple:
+        """metadata에서 GPS 좌표(lat, lon)를 추출. 없으면 (None, None) 반환."""
+        if not metadata:
+            return None, None
+
+        gps_data = metadata.get("gps") if isinstance(metadata, dict) else getattr(metadata, "gps", None)
+        if not gps_data:
+            return None, None
+
+        # 문자열 → dict 변환 시도
+        if isinstance(gps_data, str):
+            try:
+                gps_data = json.loads(gps_data)
+            except (json.JSONDecodeError, ValueError):
+                return None, None
+
+        # dict 또는 Pydantic 모델에서 lat/lon 추출
+        if isinstance(gps_data, dict):
+            lat, lon = gps_data.get("lat"), gps_data.get("lon")
+        else:
+            lat, lon = getattr(gps_data, "lat", None), getattr(gps_data, "lon", None)
+
+        return lat, lon
 
     async def _fetch_with_retry(
         self,
@@ -56,14 +82,14 @@ class GeminiService:
                 logger.error(f"HTTP {e.response.status_code} error: {error_body}")
 
                 if e.response.status_code == 429:
-                    # Rate limit - wait longer
-                    wait_time = initial_backoff * (2 ** attempt) * 2
-                    logger.warning(f"Rate limited. Waiting {wait_time}s before retry {attempt + 1}")
+                    # Rate limit - wait longer (with jitter to prevent thundering herd)
+                    wait_time = initial_backoff * (2 ** attempt) * 2 * (0.5 + random.random())
+                    logger.warning(f"Rate limited. Waiting {wait_time:.1f}s before retry {attempt + 1}")
                     await asyncio.sleep(wait_time)
                 elif e.response.status_code >= 500:
-                    # Server error - retry with backoff
-                    wait_time = initial_backoff * (2 ** attempt)
-                    logger.warning(f"Server error. Waiting {wait_time}s before retry {attempt + 1}")
+                    # Server error - retry with backoff (with jitter)
+                    wait_time = initial_backoff * (2 ** attempt) * (0.5 + random.random())
+                    logger.warning(f"Server error. Waiting {wait_time:.1f}s before retry {attempt + 1}")
                     await asyncio.sleep(wait_time)
                 else:
                     raise
@@ -84,60 +110,20 @@ class GeminiService:
         이미지 기반 스토리 생성
         """
         # Geocoding 처리 (위도/경도 -> 주소 변환)
-        if context.metadata:
-            # metadata가 dict인 경우와 객체인 경우 모두 처리
-            gps_data = None
-            if isinstance(context.metadata, dict):
-                gps_data = context.metadata.get("gps")
-            elif hasattr(context.metadata, "gps"):
-                gps_data = context.metadata.gps
-
-            # GPS 데이터가 존재하면 주소 변환 시도
-            if gps_data:
-                logger.info(f"GPS data found (Type: {type(gps_data)}): {gps_data}")
-                lat, lon = None, None
-                
-                # 0. 만약 문자열로 들어왔다면 JSON 파싱 시도
-                if isinstance(gps_data, str):
-                    try:
-                        import json
-                        gps_data = json.loads(gps_data)
-                    except:
-                        pass
-
-                # 1. 딕셔너리 형태인 경우
-                if isinstance(gps_data, dict):
-                    lat = gps_data.get("lat")
-                    lon = gps_data.get("lon")
-                # 2. Pydantic 모델 형태인 경우 (lat, lon 속성 직접 접근)
-                elif hasattr(gps_data, "lat") and hasattr(gps_data, "lon"):
-                    lat = getattr(gps_data, "lat", None)
-                    lon = getattr(gps_data, "lon", None)
-                # 3. 만약 lat/lon이 여전히 None이면 dict 변환 후 재시도
-                if lat is None and lon is None and hasattr(gps_data, "dict"):
-                    temp_dict = gps_data.dict()
-                    lat = temp_dict.get("lat")
-                    lon = temp_dict.get("lon")
-
-                if lat is not None and lon is not None:
-                    try:
-                        address = get_address_from_coords(lat, lon)
-                        if address:
-                            logger.info(f"Address resolved successfully: {address}")
-                            if isinstance(context.metadata, dict):
-                                context.metadata["location_address"] = address
-                            else:
-                                setattr(context.metadata, "location_address", address)
-                        else:
-                            logger.warning(f"Geocoding returned empty result for {lat}, {lon}")
-                    except Exception as e:
-                        logger.error(f"Failed to resolve address: {e}", exc_info=True)
+        lat, lon = self._extract_gps(context.metadata)
+        if lat is not None and lon is not None:
+            try:
+                address = get_address_from_coords(lat, lon)
+                if address:
+                    logger.info(f"Address resolved: {address}")
+                    if isinstance(context.metadata, dict):
+                        context.metadata["location_address"] = address
+                    else:
+                        setattr(context.metadata, "location_address", address)
                 else:
-                    logger.info("GPS data exists but coordinates are empty. Normal for no GPS metadata.")
-            else:
-                logger.info("No GPS data found in the request.")
-        else:
-            logger.info("No metadata provided in context.")
+                    logger.warning(f"Geocoding returned empty for {lat}, {lon}")
+            except Exception as e:
+                logger.error(f"Failed to resolve address: {e}", exc_info=True)
 
         prompt = build_story_prompt(context)
         system_prompt = context.systemPrompt or DEFAULT_SYSTEM_PROMPT
