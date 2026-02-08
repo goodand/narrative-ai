@@ -55,6 +55,10 @@ export class HomeManager {
         return await photoService.getPhotoAsFile(this.currentIndex);
     }
 
+    async getCurrentPhotoBase64() {
+        return await photoService.getPhotoAsBase64(this.currentIndex);
+    }
+
     getCurrentPhotoMeta() {
         const photo = photoService.getPhoto(this.currentIndex);
         if (!photo) return {};

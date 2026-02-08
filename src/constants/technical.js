@@ -3,9 +3,9 @@
  */
 
 export const IMAGE_CONFIG = {
-    MAX_SIDE: 512,
-    MAX_AREA: 512 * 512,
-    QUALITY: 0.6,
+    MAX_SIDE: 384,
+    MAX_AREA: 384 * 384,
+    QUALITY: 0.7,
     FORMAT: 'image/jpeg'
 };
 

@@ -187,16 +187,12 @@ const onboardingModal = new OnboardingModal('onboarding-modal', {
 const homeManager = new HomeManager('home-view', {
     confirmModal: editConfirmModal,
     onPreciousClick: async () => {
-        // 선택된 사진을 input-view에 표시
-        const currentPhoto = await homeManager.getCurrentImageAsFile();
+        // 선택된 사진을 input-view에 표시 (QW-0: base64 직접 전달, File/FileReader 왕복 제거)
+        const base64 = await homeManager.getCurrentPhotoBase64();
         const meta = homeManager.getCurrentPhotoMeta();
-        
-        if (currentPhoto) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                inputManager.setPreviewImage(e.target.result, meta);
-            };
-            reader.readAsDataURL(currentPhoto);
+
+        if (base64) {
+            inputManager.setPreviewImage(`data:image/jpeg;base64,${base64}`, meta);
         }
         router.navigate('input');
     }

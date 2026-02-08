@@ -99,6 +99,26 @@ export class PhotoService {
     }
 
     /**
+     * Returns raw base64 string directly from native plugin (no binary conversion)
+     * Path B 최적화: base64 → File → FileReader → base64 왕복 제거
+     */
+    async getPhotoAsBase64(index) {
+        if (index < 0 || index >= this.photos.length) return null;
+        const photo = this.photos[index];
+
+        try {
+            const { base64 } = await RecocolPhotos.loadImageData({
+                assetId: photo.id,
+                quality: 'original'
+            });
+            return base64;
+        } catch (error) {
+            console.error('PhotoService: Base64 load failed', error);
+            return null;
+        }
+    }
+
+    /**
      * Converts current photo to a File object for upload
      */
     async getPhotoAsFile(index) {
