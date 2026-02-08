@@ -27,7 +27,11 @@ export class StatsService {
                     photo_location: location
                 });
 
-            if (logError) throw logError;
+            if (logError) {
+                console.error('[STATS] detox_logs INSERT 실패:', logError.message, logError);
+                handleError(logError, 'Stats', { level: ErrorLevel.WARN, userMessage: `detox_logs 실패: ${logError.message}` });
+                return;
+            }
 
             // 2. RPC를 통한 원자적 통계 증가 (Race Condition 방지)
             // SQL: update user_stats set bytes = bytes + val, count = count + 1 ...
@@ -37,13 +41,15 @@ export class StatsService {
             });
 
             if (rpcError) {
-                handleError(rpcError, 'Stats', { level: ErrorLevel.WARN, userMessage: 'RPC 호출 실패, Fallback 시도 중...' });
+                console.error('[STATS] RPC 실패:', rpcError.message, rpcError);
+                handleError(rpcError, 'Stats', { level: ErrorLevel.WARN, userMessage: `RPC 실패: ${rpcError.message}` });
                 await this._fallbackUpdateStats(user.id, fileSize);
             }
 
             console.log('[STATS] 비움 성과가 안전하게 기록되었습니다.');
         } catch (error) {
-            handleError(error, 'Stats', { level: ErrorLevel.WARN });
+            console.error('[STATS] 전체 실패:', error.message, error);
+            handleError(error, 'Stats', { level: ErrorLevel.WARN, userMessage: `통계 기록 실패: ${error.message}` });
         }
     }
 

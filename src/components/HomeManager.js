@@ -102,7 +102,8 @@ export class HomeManager {
                 }
             } else if (nextImg) {
                 e.preventDefault();
-                if (this.currentIndex < photos.length - 1) {
+                const visibleMax = Math.min(photos.length, 3);
+                if (this.currentIndex < visibleMax - 1) {
                     this.currentIndex++;
                     this.render();
                 }
@@ -224,9 +225,13 @@ export class HomeManager {
             return;
         }
 
+        const VISIBLE_COUNT = 3;
+        const visibleMax = Math.min(photos.length, VISIBLE_COUNT);
+        if (this.currentIndex >= visibleMax) this.currentIndex = visibleMax - 1;
+
         const currentPhoto = photos[this.currentIndex];
         const isFirst = this.currentIndex === 0;
-        const isLast = this.currentIndex === photos.length - 1;
+        const isLast = this.currentIndex === visibleMax - 1;
         const prevIdx = isFirst ? null : this.currentIndex - 1;
         const nextIdx = isLast ? null : this.currentIndex + 1;
         const prevPhoto = prevIdx !== null ? photos[prevIdx] : null;
@@ -247,12 +252,12 @@ export class HomeManager {
                         <div class="flex justify-between items-center mb-2">
                             <div class="flex flex-col">
                                 <span class="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-lavender">이번 주 비움 목표</span>
-                                <span class="text-sm font-bold text-white">${7 - photos.length} / 7 장</span>
+                                <span class="text-sm font-bold text-white">${7 - visibleMax} / 7 장</span>
                             </div>
                             <span class="text-[10px] font-medium text-primary italic">${profileName}님, 함께 정리해요</span>
                         </div>
                         <div class="relative h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                            <div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all" style="width: ${(7 - photos.length) * (100 / 7)}%;"></div>
+                            <div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all" style="width: ${Math.max(0, (7 - visibleMax) * (100 / 7))}%;"></div>
                         </div>
                     </div>
                 </div>
@@ -267,7 +272,7 @@ export class HomeManager {
                 <div class="flex-1 flex flex-col justify-center min-h-0">
                     <!-- Carousel Wrapper: 3장만 노출하여 성능 최적화 -->
                     <div class="carousel-container mb-2" id="carousel-wrapper">
-                        <div class="carousel-item side opacity-40">
+                        <div class="carousel-item side ${prevPhoto ? 'opacity-40' : 'opacity-0 pointer-events-none'}">
                             <div id="img-prev" class="aspect-[2/3] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60 grayscale-[50%]"
                                  style='${prevPhoto?.imageUrl ? `background-image: url("${prevPhoto.imageUrl}");` : ""}'>
                             </div>
@@ -280,7 +285,7 @@ export class HomeManager {
                                 ${currentPhoto?.score > 20 ? '<div class="absolute top-4 right-4 bg-primary/90 text-dark-bg text-[10px] font-black px-2 py-1 rounded-full shadow-lg">HIGH DETOX</div>' : ''}
                             </div>
                         </div>
-                        <div class="carousel-item side opacity-40">
+                        <div class="carousel-item side ${nextPhoto ? 'opacity-40' : 'opacity-0 pointer-events-none'}">
                             <div id="img-next" class="aspect-[2/3] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60 grayscale-[50%]"
                                  style='${nextPhoto?.imageUrl ? `background-image: url("${nextPhoto.imageUrl}");` : ""}'>
                             </div>
@@ -387,10 +392,11 @@ export class HomeManager {
                 if (closestVisualIdx === 1) return; // 이미 중앙
 
                 const photos = photoService.getPhotos();
+                const visibleMax = Math.min(photos.length, 3);
                 if (closestVisualIdx === 0 && this.currentIndex > 0) {
                     this.currentIndex--;
                     this.render();
-                } else if (closestVisualIdx === 2 && this.currentIndex < photos.length - 1) {
+                } else if (closestVisualIdx === 2 && this.currentIndex < visibleMax - 1) {
                     this.currentIndex++;
                     this.render();
                 }
