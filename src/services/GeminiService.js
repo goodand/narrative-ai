@@ -18,33 +18,42 @@ export class GeminiService {
 
     /**
      * Generate story caption from image via backend proxy
-     * @param {string} imageData - Base64 encoded image or Image URL
+     * @param {string} imageData - Base64 encoded image string
      * @param {Object} context - Context data for generation
      * @returns {Promise<Object>} Generated caption and keywords
      */
     async generateStory(imageData, context) {
         let response;
         try {
+            // base64 → Blob 변환 (multipart 전송용)
+            const byteChars = atob(imageData);
+            const byteArray = new Uint8Array(byteChars.length);
+            for (let i = 0; i < byteChars.length; i++) {
+                byteArray[i] = byteChars.charCodeAt(i);
+            }
+            const imageBlob = new Blob([byteArray], { type: 'image/jpeg' });
+
+            const formData = new FormData();
+            formData.append('image', imageBlob, 'photo.jpg');
+            formData.append('context', JSON.stringify({
+                sns: context.sns,
+                mood: context.mood,
+                temp: context.temp,
+                language: context.language,
+                tags: context.tags || '',
+                activity: context.activity || 'Not specified',
+                bodyState: context.bodyState || 'Not specified',
+                relationship: context.relationship || 'Not specified',
+                metadata: context.metadata || {},
+                systemPrompt: context.systemPrompt || null
+            }));
+
             response = await fetchWithRetry(
                 `${this.baseUrl}/api/v1/narrative`,
                 {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        image: imageData,
-                        context: {
-                            sns: context.sns,
-                            mood: context.mood,
-                            temp: context.temp,
-                            language: context.language,
-                            tags: context.tags || '',
-                            activity: context.activity || 'Not specified',
-                            bodyState: context.bodyState || 'Not specified',
-                            relationship: context.relationship || 'Not specified',
-                            metadata: context.metadata || {},
-                            systemPrompt: context.systemPrompt || null
-                        }
-                    })
+                    // Content-Type은 브라우저가 multipart boundary와 함께 자동 설정
+                    body: formData
                 }
             );
         } catch (networkError) {
