@@ -67,9 +67,7 @@ self.onmessage = async (e) => {
         }
 
         // 2. 이미지 리사이징 (OffscreenCanvas 사용)
-        // 파일을 직접 넘기기보다 Blob으로 변환하여 디코딩 안정성 확보
-        const blobForBitmap = new Blob([file], { type: file.type });
-        const bitmap = await createImageBitmap(blobForBitmap);
+        const bitmap = await createImageBitmap(file);
         let { width: w, height: h } = bitmap;
 
         const scaleSide = Math.max(w, h) > config.MAX_SIDE ? config.MAX_SIDE / Math.max(w, h) : 1;
@@ -80,30 +78,26 @@ self.onmessage = async (e) => {
         h = Math.round(h * scale);
 
         const canvas = new OffscreenCanvas(w, h);
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { alpha: false });
         ctx.drawImage(bitmap, 0, 0, w, h);
 
-        // Blob으로 변환 후 Base64 생성
+        // Blob → ArrayBuffer (Transferable zero-copy 전송)
         const blob = await canvas.convertToBlob({
             type: config.FORMAT,
             quality: config.QUALITY
         });
-        
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const dataUrl = reader.result;
-            self.postMessage({
-                success: true,
-                result: {
-                    base64: dataUrl.split(',')[1],
-                    dataUrl,
-                    width: w,
-                    height: h,
-                    metadata
-                }
-            });
-        };
-        reader.readAsDataURL(blob);
+        const arrayBuffer = await blob.arrayBuffer();
+
+        self.postMessage({
+            success: true,
+            result: {
+                imageBuffer: arrayBuffer,
+                mimeType: config.FORMAT,
+                width: w,
+                height: h,
+                metadata
+            }
+        }, [arrayBuffer]); // Transferable: zero-copy 전송
 
     } catch (error) {
         self.postMessage({ success: false, error: error.message });

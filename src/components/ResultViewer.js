@@ -92,7 +92,8 @@ export class ResultViewer {
             let imageSrc = data.image;
 
             // 접두사가 없는 순수 base64인 경우 처리 (안전장치)
-            if (typeof imageSrc === 'string' && !imageSrc.startsWith('data:')) {
+            // blob: URL과 data: URL은 그대로 통과
+            if (typeof imageSrc === 'string' && !imageSrc.startsWith('data:') && !imageSrc.startsWith('blob:')) {
                 console.log('ResultViewer: Prepending data URL prefix to raw base64');
                 imageSrc = `data:image/jpeg;base64,${imageSrc}`;
             }
