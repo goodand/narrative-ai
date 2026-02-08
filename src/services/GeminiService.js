@@ -17,15 +17,6 @@ export class GeminiService {
     }
 
     /**
-     * Check if backend API is available
-     * @returns {boolean}
-     */
-    isConfigured() {
-        // 백엔드 프록시 사용 시 항상 true 반환
-        return true;
-    }
-
-    /**
      * Generate story caption from image via backend proxy
      * @param {string} imageData - Base64 encoded image or Image URL
      * @param {Object} context - Context data for generation

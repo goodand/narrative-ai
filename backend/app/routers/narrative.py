@@ -24,7 +24,6 @@ router = APIRouter(prefix="/api/v1", tags=["narrative"])
     summary="이미지 기반 스토리 생성",
     description="업로드된 이미지와 컨텍스트를 기반으로 AI 스토리를 생성합니다."
 )
-@router.post("/narrative/") # 슬래시 있는 버전 추가
 async def generate_narrative(request: Request, body: NarrativeRequest):
     """
     이미지 기반 내러티브 생성 API

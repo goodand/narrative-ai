@@ -29,7 +29,7 @@ export class PhotoService {
 
             console.log(`PhotoService: Found ${result.photos.length} photos. Ranking...`);
             const rankedAssets = CurationEngine.rankAssets(result.photos);
-            const targetAssets = rankedAssets.slice(0, 10); // Top 10 curation targets
+            const targetAssets = rankedAssets.slice(0, 10); // Top 10 curation targets (백그라운드 프리페치 포함)
 
             this.photos = targetAssets.map(asset => ({
                 id: asset.id,
@@ -109,11 +109,10 @@ export class PhotoService {
             });
             
             const byteCharacters = atob(base64);
-            const byteNumbers = new Array(byteCharacters.length);
+            const byteArray = new Uint8Array(byteCharacters.length);
             for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                byteArray[i] = byteCharacters.charCodeAt(i);
             }
-            const byteArray = new Uint8Array(byteNumbers);
             const blob = new Blob([byteArray], { type: 'image/jpeg' });
             
             return new File([blob], `photo_${photo.id}.jpg`, { type: 'image/jpeg' });
