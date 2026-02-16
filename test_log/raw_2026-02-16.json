@@ -1,0 +1,42 @@
+{
+  "date": "2026-02-16",
+  "build_smoke": {
+    "perf-baseline_sec": 10.69,
+    "perf-exp-render_sec": 11.12,
+    "perf-exp-metrics_sec": 11.5
+  },
+  "base64_decode_previous": [
+    { "mb": 1, "buffer_decode_avg_ms": 0.35, "atob_loop_avg_ms": 10.73 },
+    { "mb": 5, "buffer_decode_avg_ms": 5.27, "atob_loop_avg_ms": 55.1 },
+    { "mb": 10, "buffer_decode_avg_ms": 5.85, "atob_loop_avg_ms": 74.21 },
+    { "mb": 20, "buffer_decode_avg_ms": 18.39, "atob_loop_avg_ms": 170.47 }
+  ],
+  "json_payload": [
+    { "mb": 1, "stringify_avg_ms": 8.13, "parse_avg_ms": 6.16 },
+    { "mb": 5, "stringify_avg_ms": 12.04, "parse_avg_ms": 12.64 },
+    { "mb": 10, "stringify_avg_ms": 11.66, "parse_avg_ms": 27.43 },
+    { "mb": 20, "stringify_avg_ms": 26.65, "parse_avg_ms": 59.21 }
+  ],
+  "base64_inflation": [
+    { "mb": 1, "inflation_pct": 33.33 },
+    { "mb": 5, "inflation_pct": 33.33 },
+    { "mb": 10, "inflation_pct": 33.33 },
+    { "mb": 20, "inflation_pct": 33.33 },
+    { "mb": 30, "inflation_pct": 33.33 }
+  ],
+  "main_vs_worker_decode_20mb": {
+    "rounds": 5,
+    "main_avg_ms": 126.34,
+    "worker_roundtrip_avg_ms": 275.03
+  },
+  "eventloop_block_main_vs_worker_20mb_x3": {
+    "main": { "elapsed_ms": 422.93, "max_lag_ms": 0, "ticks": 0 },
+    "worker": { "elapsed_ms": 472.93, "max_lag_ms": 13.43, "ticks": 40 }
+  },
+  "bridge_pattern_sim_20mb": {
+    "rounds": 10,
+    "chatty100_avg_ms": 239.77,
+    "batch1_avg_ms": 96.41,
+    "chunked4_avg_ms": 138.21
+  }
+}
