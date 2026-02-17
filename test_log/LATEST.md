@@ -13,7 +13,9 @@
 ## Confirmed Artifacts
 - Plan doc: `docs/perf/worktree-experiment-plan.md`
 - Metrics commit: `49fd92c` on `perf-exp-metrics`
+- Render lab commit: `2adcfab` on `perf-exp-render`
 - Detailed report: `test_log/2026-02-16_perf_experiments_round2.md`
+- Render lab setup note: `test_log/2026-02-16_perf_render_lab_setup.md`
 
 ## Open Issues
 1. Need real iOS simulator/device p95 metrics from `PERF_LAB` logs.
