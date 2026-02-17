@@ -16,6 +16,9 @@ class Settings(BaseSettings):
 
     # API Keys
     gemini_api_key: str = ""
+    gemini_api_key_sub: str = ""
+    gemini_api_key_insu: str = ""
+    gemini_api_keys: str = ""  # optional comma-separated key list
     google_cloud_api_key: str = ""
 
     # Supabase Configuration (for admin operations)
@@ -44,4 +47,3 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Get cached settings instance"""
     return Settings()
-

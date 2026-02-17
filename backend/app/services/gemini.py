@@ -25,6 +25,44 @@ class GeminiService:
         self.client = client
         self.settings = get_settings()
 
+    def _get_gemini_api_keys(self) -> list[str]:
+        """
+        Gemini API keys in failover order.
+        Priority:
+        1) GEMINI_API_KEYS (comma-separated)
+        2) GEMINI_API_KEY -> GEMINI_API_KEY_SUB -> GEMINI_API_KEY_INSU
+        """
+        keys: list[str] = []
+
+        if self.settings.gemini_api_keys:
+            keys.extend([k.strip() for k in self.settings.gemini_api_keys.split(",") if k.strip()])
+
+        for key in [
+            self.settings.gemini_api_key,
+            self.settings.gemini_api_key_sub,
+            self.settings.gemini_api_key_insu,
+        ]:
+            if key and key not in keys:
+                keys.append(key)
+
+        return keys
+
+    @staticmethod
+    def _is_quota_or_rate_limit_error(status_code: int, error_body: str) -> bool:
+        if status_code == 429:
+            return True
+        if status_code in (400, 403):
+            body = (error_body or "").lower()
+            markers = [
+                "quota",
+                "resource_exhausted",
+                "rate limit",
+                "too many requests",
+                "exceeded",
+            ]
+            return any(m in body for m in markers)
+        return False
+
     @staticmethod
     def _extract_gps(metadata) -> tuple:
         """metadata에서 GPS 좌표(lat, lon)를 추출. 없으면 (None, None) 반환."""
@@ -81,11 +119,9 @@ class GeminiService:
                 error_body = e.response.text[:500] if e.response.text else "No body"
                 logger.error(f"HTTP {e.response.status_code} error: {error_body}")
 
-                if e.response.status_code == 429:
-                    # Rate limit - wait longer (with jitter to prevent thundering herd)
-                    wait_time = initial_backoff * (2 ** attempt) * 2 * (0.5 + random.random())
-                    logger.warning(f"Rate limited. Waiting {wait_time:.1f}s before retry {attempt + 1}")
-                    await asyncio.sleep(wait_time)
+                # Quota/rate-limit errors should bubble up quickly so caller can switch to next API key.
+                if self._is_quota_or_rate_limit_error(e.response.status_code, error_body):
+                    raise
                 elif e.response.status_code >= 500:
                     # Server error - retry with backoff (with jitter)
                     wait_time = initial_backoff * (2 ** attempt) * (0.5 + random.random())
@@ -100,6 +136,47 @@ class GeminiService:
                 await asyncio.sleep(wait_time)
 
         raise last_error or Exception("Max retries exceeded")
+
+    async def _fetch_with_key_failover(
+        self,
+        model: str,
+        payload: dict,
+        max_retries: Optional[int] = None,
+        initial_backoff: Optional[float] = None,
+    ) -> dict:
+        keys = self._get_gemini_api_keys()
+        if not keys:
+            raise ValueError("Gemini API key is not configured.")
+
+        last_error = None
+        for idx, key in enumerate(keys, start=1):
+            url = f"{self.settings.gemini_base_url}/{model}:generateContent?key={key}"
+            try:
+                if idx > 1:
+                    logger.warning(f"Trying fallback Gemini key #{idx}")
+                return await self._fetch_with_retry(
+                    url,
+                    payload,
+                    max_retries=max_retries,
+                    initial_backoff=initial_backoff,
+                )
+            except httpx.HTTPStatusError as e:
+                last_error = e
+                body = e.response.text[:500] if e.response and e.response.text else ""
+                if self._is_quota_or_rate_limit_error(e.response.status_code, body) and idx < len(keys):
+                    logger.warning(
+                        f"Gemini key #{idx} exhausted/rate-limited (HTTP {e.response.status_code}). Switching key."
+                    )
+                    continue
+                raise
+            except Exception as e:
+                last_error = e
+                if idx < len(keys):
+                    logger.warning(f"Gemini key #{idx} failed ({type(e).__name__}). Switching key.")
+                    continue
+                raise
+
+        raise last_error or Exception("All Gemini API keys failed")
 
     async def generate_story(
         self,
@@ -127,8 +204,6 @@ class GeminiService:
 
         prompt = build_story_prompt(context)
         system_prompt = context.systemPrompt or DEFAULT_SYSTEM_PROMPT
-
-        url = f"{self.settings.gemini_base_url}/{self.settings.gemini_story_model}:generateContent?key={self.settings.gemini_api_key}"
 
         payload = {
             "contents": [{
@@ -160,7 +235,10 @@ class GeminiService:
             }
         }
 
-        data = await self._fetch_with_retry(url, payload)
+        data = await self._fetch_with_key_failover(
+            self.settings.gemini_story_model,
+            payload
+        )
         return self._parse_story_response(data)
 
     async def get_synonyms(
@@ -175,8 +253,6 @@ class GeminiService:
         await asyncio.sleep(0.5)
 
         prompt = build_synonyms_prompt(keywords, language)
-
-        url = f"{self.settings.gemini_base_url}/{self.settings.gemini_suggestions_model}:generateContent?key={self.settings.gemini_api_key}"
 
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
@@ -208,7 +284,11 @@ class GeminiService:
         }
 
         try:
-            data = await self._fetch_with_retry(url, payload, max_retries=3)
+            data = await self._fetch_with_key_failover(
+                self.settings.gemini_suggestions_model,
+                payload,
+                max_retries=3
+            )
             return self._parse_synonyms_response(data, keywords)
         except Exception as e:
             # Fallback: return empty suggestions
