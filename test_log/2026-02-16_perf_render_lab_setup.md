@@ -30,4 +30,4 @@
 
 ## Related references
 - Detailed benchmark result: `test_log/2026-02-16_perf_experiments_round2.md`
-- Latest status: `test_log/LATEST.md`
+- Latest status index: `test_log/LATEST_INDEX.json`
