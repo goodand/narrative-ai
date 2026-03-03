@@ -1,0 +1,16 @@
+file,run,http_code,time_total_sec,response_bytes,has_caption,has_keywords
+"assets/test-assets/스크린샷 2026-01-20 오전 12.21.22.png",1,200,48.720392,215,1,1
+"assets/test-assets/스크린샷 2026-01-20 오전 12.21.22.png",2,200,6.845543,231,1,1
+"assets/test-assets/스크린샷 2026-01-20 오전 12.21.22.png",3,200,5.191509,258,1,1
+"assets/test-assets/스크린샷 2026-01-19 오후 9.42.17.png",1,200,6.926188,228,1,1
+"assets/test-assets/스크린샷 2026-01-19 오후 9.42.17.png",2,200,6.266646,242,1,1
+"assets/test-assets/스크린샷 2026-01-19 오후 9.42.17.png",3,200,5.520737,238,1,1
+"assets/test-assets/스크린샷 2026-01-19 오후 9.41.14.png",1,200,8.215335,252,1,1
+"assets/test-assets/스크린샷 2026-01-19 오후 9.41.14.png",2,200,5.389628,246,1,1
+"assets/test-assets/스크린샷 2026-01-19 오후 9.41.14.png",3,200,7.098008,234,1,1
+"assets/test-assets/Gemini_Generated_Image_4gswtq4gswtq4gsw.png",1,200,8.609941,231,1,1
+"assets/test-assets/Gemini_Generated_Image_4gswtq4gswtq4gsw.png",2,200,5.218129,238,1,1
+"assets/test-assets/Gemini_Generated_Image_4gswtq4gswtq4gsw.png",3,200,6.696322,334,1,1
+"assets/test-assets/IMG_9544.JPG",1,200,11.962386,313,1,1
+"assets/test-assets/IMG_9544.JPG",2,200,10.005764,246,1,1
+"assets/test-assets/IMG_9544.JPG",3,200,7.622032,294,1,1
