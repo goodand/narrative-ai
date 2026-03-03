@@ -4,47 +4,17 @@ Narrative Router
 """
 
 import base64
-import io
 import json
 import logging
 
 import httpx
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
-from PIL import Image, ImageOps
 
 from ..models.schemas import NarrativeContext, NarrativeResponse, ErrorResponse
 from ..services.gemini import GeminiService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["narrative"])
-MAX_IMAGE_EDGE = 2048
-JPEG_QUALITY = 85
-
-
-def _normalize_image_bytes(image_bytes: bytes) -> bytes:
-    """
-    Normalize uploaded image before sending to Gemini.
-    - apply EXIF orientation
-    - resize to max edge
-    - convert to RGB JPEG
-    """
-    try:
-        with Image.open(io.BytesIO(image_bytes)) as img:
-            img = ImageOps.exif_transpose(img)
-            img.thumbnail((MAX_IMAGE_EDGE, MAX_IMAGE_EDGE), Image.Resampling.LANCZOS)
-
-            if img.mode in ("RGBA", "LA"):
-                bg = Image.new("RGB", img.size, (255, 255, 255))
-                bg.paste(img, mask=img.split()[-1])
-                img = bg
-            elif img.mode != "RGB":
-                img = img.convert("RGB")
-
-            out = io.BytesIO()
-            img.save(out, format="JPEG", quality=JPEG_QUALITY, optimize=True)
-            return out.getvalue()
-    except Exception as e:
-        raise ValueError(f"이미지 정규화 실패: {str(e)}")
 
 
 @router.post(
@@ -75,15 +45,12 @@ async def generate_narrative(
         except (json.JSONDecodeError, Exception) as e:
             raise ValueError(f"context JSON 파싱 실패: {str(e)}")
 
-        raw_image_bytes = await image.read()
-        normalized_image_bytes = _normalize_image_bytes(raw_image_bytes)
-        image_base64 = base64.b64encode(normalized_image_bytes).decode("utf-8")
+        # 이미지 바이너리 → base64 (Gemini API 요구 형식)
+        image_bytes = await image.read()
+        image_base64 = base64.b64encode(image_bytes).decode("utf-8")
 
         logger.info(f"Narrative request received - SNS: {context_obj.sns}, Language: {context_obj.language}")
-        logger.info(
-            f"Image size raw={len(raw_image_bytes)} bytes, normalized={len(normalized_image_bytes)} bytes, "
-            f"base64 length={len(image_base64)}"
-        )
+        logger.info(f"Image size: {len(image_bytes)} bytes, base64 length: {len(image_base64)}")
 
         client = request.app.state.http_client
         gemini_service = GeminiService(client)
