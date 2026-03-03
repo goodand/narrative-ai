@@ -1,9 +1,3 @@
----
-updated_at: "2026-03-04T01:59:48+0900"
-minute_key: "2026-03-04_0159"
-source_file: "2026-03-04_one-day_detailed_test_runbook_v2.md"
----
-
 # One-Day Test Runbook v2 (Very Detailed)
 
 ## A. Test Mission
