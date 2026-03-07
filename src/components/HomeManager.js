@@ -26,15 +26,35 @@ export class HomeManager {
      */
     async loadRealPhotos() {
         console.log('HomeManager: Starting loadRealPhotos...');
+        const startedAt = performance.now();
         this.isLoading = true;
         this.error = null;
         this.render();
 
         try {
-            const { photos, totalCount } = await photoService.fetchAndRankPhotos();
+            // Launch path는 전체 스캔을 피하고, 네이티브 daily cache 결과만 즉시 받는다.
+            const { photos, totalCount, dayKey, fromCache, needsRefresh } = await photoService.fetchDailyCuration({
+                limit: 6,
+                thumbSize: 420,
+                transport: 'base64'
+            });
             
             if (totalCount > 0) {
-                console.log(`HomeManager: 사진 조회 성공 — 총 ${totalCount}장 중 ${photos.length}장 큐레이션`);
+                const elapsed = Math.round(performance.now() - startedAt);
+                console.log(`[PERF] launch_to_carousel_ms=${elapsed} dayKey=${dayKey} fromCache=${fromCache} needsRefresh=${needsRefresh}`);
+                console.log(`HomeManager: 데일리 큐레이션 조회 성공 — ${photos.length}장`);
+                // Console이 불안정한 환경에서도 측정값을 수집할 수 있도록 로컬에 누적 저장
+                const perfEntry = {
+                    ts: new Date().toISOString(),
+                    launch_to_carousel_ms: elapsed,
+                    dayKey,
+                    fromCache,
+                    needsRefresh
+                };
+                const prev = JSON.parse(localStorage.getItem('perf_runs') || '[]');
+                prev.push(perfEntry);
+                localStorage.setItem('perf_runs', JSON.stringify(prev.slice(-50)));
+                showToast(`[PERF] ${elapsed}ms cache=${fromCache ? 'Y' : 'N'} refresh=${needsRefresh ? 'Y' : 'N'}`, ErrorLevel.INFO);
             }
             
             if (photos.length > 0) {
@@ -122,8 +142,27 @@ export class HomeManager {
 
         const performDelete = async () => {
             try {
+                const actionDayKey = current.dayKey;
                 const success = await photoService.deletePhoto(this.currentIndex);
                 if (success) {
+                    await photoService.recordCurationAction({
+                        assetId: current.id,
+                        action: 'deleted',
+                        dayKey: actionDayKey
+                    });
+
+                    try {
+                        // 삭제 직후에는 force refresh로 pending/today 후보를 반영한다.
+                        const { photos: refreshed } = await photoService.refreshDailyCurationAfterMutation({
+                            limit: 6,
+                            thumbSize: 420,
+                            transport: 'base64'
+                        });
+                        this.currentIndex = 0;
+                    } catch (refreshError) {
+                        console.warn('HomeManager: daily refresh after mutation failed', refreshError);
+                    }
+
                     // 삭제 후 데이터 갱신 및 UI 리렌더링 (목록이 바뀌므로 이때는 리렌더링 필요)
                     if (this.currentIndex >= photoService.getPhotos().length) {
                         this.currentIndex = Math.max(0, photoService.getPhotos().length - 1);

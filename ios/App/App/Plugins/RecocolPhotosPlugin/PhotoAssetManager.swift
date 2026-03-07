@@ -5,19 +5,20 @@ import UIKit
 class PhotoAssetManager {
     private let imageManager = PHImageManager.default()
     
-    func loadImage(asset: PHAsset, quality: String, completion: @escaping (String?) -> Void) {
+    func loadImage(asset: PHAsset, quality: String, thumbSize: CGFloat = 250, completion: @escaping (String?) -> Void) {
         let options = PHImageRequestOptions()
-        options.isNetworkAccessAllowed = true
         options.deliveryMode = .highQualityFormat
         
         var targetSize: CGSize
         var compression: CGFloat = 0.8
         
         if quality == "thumbnail" {
-            targetSize = CGSize(width: 250, height: 250) // Reduced from 300
+            options.isNetworkAccessAllowed = false
+            targetSize = CGSize(width: thumbSize, height: thumbSize)
             options.resizeMode = .exact
-            compression = 0.6 // Lower quality for thumbnails to save memory
+            compression = 0.6
         } else {
+            options.isNetworkAccessAllowed = true
             targetSize = PHImageManagerMaximumSize
             options.resizeMode = .none
         }

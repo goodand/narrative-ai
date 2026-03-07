@@ -1,0 +1,26 @@
+# 2026-03-07 13:18 KST - Xcode 재검증 결과
+
+## 결론
+- `App.xcworkspace` 기준 빌드는 성공(`BUILD SUCCEEDED`).
+- `Capacitor` 모듈 에러는 `xcodeproj` 단독 빌드 또는 비정상 세션에서 재현되는 성격이며, workspace 빌드 경로에서는 재현되지 않음.
+- 런타임 실측(`launch_to_carousel_ms`) 수집은 CoreSimulatorService 세션 상태에 따라 불안정.
+
+## 실행 커맨드
+```bash
+xcodebuild -workspace ios/App/App.xcworkspace \
+  -scheme App \
+  -configuration Debug \
+  -sdk iphonesimulator \
+  -derivedDataPath /tmp/narrative-ai-dd \
+  build CODE_SIGNING_ALLOWED=NO
+```
+
+## 관찰
+- simulator destination 목록은 출력됨 (iPhone 15 포함).
+- `warning: [CP] Embed Pods Frameworks` 반복 실행 경고는 존재하나 빌드 실패 원인은 아님.
+- 환경에 따라 `simctl` 호출 시 CoreSimulatorService connection invalid가 간헐 발생.
+
+## 다음 액션
+1. 반드시 `App.xcworkspace`로 실행/디버깅.
+2. Xcode GUI에서 시뮬레이터 1개 선택 후 Run 5회 반복해 `[PERF] launch_to_carousel_ms` 수집.
+3. 런타임 실패가 지속되면 Xcode 재시작 + Simulator 재시작 후 동일 테스트 재시도.

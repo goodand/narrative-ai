@@ -21,8 +21,29 @@ export interface PhotoAsset {
 
 export interface RecocolPhotosPlugin {
   fetchPhotos(options: { limit: number; offset: number }): Promise<{ photos: PhotoAsset[]; totalCount: number }>;
+  getDailyCuration(options: {
+    limit?: number;
+    thumbSize?: number;
+    transport?: 'base64' | 'file';
+    forceRefresh?: boolean;
+  }): Promise<{
+    dayKey: string;
+    fromCache: boolean;
+    needsRefresh: boolean;
+    items: Array<{
+      assetId: string;
+      score: number;
+      flags: string[];
+      thumb: string;
+    }>;
+  }>;
+  recordCurationAction(options: {
+    assetId: string;
+    action: 'deleted' | 'recorded' | 'skipped';
+    dayKey: string;
+  }): Promise<{ ok: boolean }>;
   getPhotoMetadata(options: { assetId: string }): Promise<any>;
-  loadImageData(options: { assetId: string; quality: 'thumbnail' | 'original' }): Promise<{ base64: string }>;
+  loadImageData(options: { assetId: string; quality: 'thumbnail' | 'original'; thumbSize?: number }): Promise<{ base64: string }>;
   deletePhoto(options: { assetId: string }): Promise<{ success: boolean }>;
 }
 
