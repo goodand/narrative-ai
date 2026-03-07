@@ -24,6 +24,8 @@ develop-plan.md
 develope-plan.md
 interview.md
 
+test-logs/
+plugin_backup
 test-assets
  /Users/jaehyuntak/Desktop/Project_____현재 진행중인/narrative-ai/skill-pipline-test.md
 
@@ -37,6 +39,9 @@ backend/.pytest_cache/
 *.egg-info/
 
 .mcp.json
+
+# Codex local workspace artifacts
+.codex/
 
 
 
@@ -70,7 +75,27 @@ depsolve_report.txt
 # iOS 개인 설정 파일
 **/xcuserdata/
 **/DerivedData/
+*.xcuserstate
+**/UserInterfaceState.xcuserstate
 
 project.xcworkspace/* 
 
 IOS_STABILIZATION_REPORT.md
+
+# Test artifacts / experiment logs
+test_log/
+
+# Local backup/worktree scratch
+plugin_backup/
+
+# Common local temp files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Local env variants
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
