@@ -1,0 +1,16 @@
+agents:
+  default:
+    - claude
+    - codex
+
+packages:
+  - local_path: ../.claude/skills
+    agents:
+      includes:
+        - claude
+        - codex
+  - local_path: ../.claude/skills/.claude
+    agents:
+      includes:
+        - claude
+        - codex

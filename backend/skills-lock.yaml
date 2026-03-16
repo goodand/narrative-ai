@@ -1,0 +1,81 @@
+skills:
+  - name: class-hierarchy-classifier
+    repo:
+    local_path: ../.claude/skills
+    commit:
+    skill_path: class-hierarchy-classifier
+    linked_to:
+      - ~/.claude/skills/class-hierarchy-classifier
+      - ~/.codex/skills/class-hierarchy-classifier
+  - name: codebase-architecture-mapper
+    repo:
+    local_path: ../.claude/skills
+    commit:
+    skill_path: codebase-architecture-mapper
+    linked_to:
+      - ~/.claude/skills/codebase-architecture-mapper
+      - ~/.codex/skills/codebase-architecture-mapper
+  - name: depsolve-analyzer
+    repo:
+    local_path: ../.claude/skills
+    commit:
+    skill_path: depsolve-analyzer
+    linked_to:
+      - ~/.claude/skills/depsolve-analyzer
+      - ~/.codex/skills/depsolve-analyzer
+  - name: graph-structure-classifier
+    repo:
+    local_path: ../.claude/skills
+    commit:
+    skill_path: graph-structure-classifier
+    linked_to:
+      - ~/.claude/skills/graph-structure-classifier
+      - ~/.codex/skills/graph-structure-classifier
+  - name: runtime-flow-tracer
+    repo:
+    local_path: ../.claude/skills
+    commit:
+    skill_path: runtime-flow-tracer
+    linked_to:
+      - ~/.claude/skills/runtime-flow-tracer
+      - ~/.codex/skills/runtime-flow-tracer
+  - name: runtime-flow-tracer-web-preview
+    repo:
+    local_path: ../.claude/skills
+    commit:
+    skill_path: runtime-flow-tracer-web-preview
+    linked_to:
+      - ~/.claude/skills/runtime-flow-tracer-web-preview
+      - ~/.codex/skills/runtime-flow-tracer-web-preview
+  - name: skill-path-resolver
+    repo:
+    local_path: ../.claude/skills
+    commit:
+    skill_path: skill-path-resolver
+    linked_to:
+      - ~/.claude/skills/skill-path-resolver
+      - ~/.codex/skills/skill-path-resolver
+  - name: super-skill-creator
+    repo:
+    local_path: ../.claude/skills
+    commit:
+    skill_path: super-skill-creator
+    linked_to:
+      - ~/.claude/skills/super-skill-creator
+      - ~/.codex/skills/super-skill-creator
+  - name: troubleshooting-cot
+    repo:
+    local_path: ../.claude/skills
+    commit:
+    skill_path: troubleshooting-cot-2
+    linked_to:
+      - ~/.claude/skills/troubleshooting-cot
+      - ~/.codex/skills/troubleshooting-cot
+  - name: xcode-mcp-setup
+    repo:
+    local_path: ../.claude/skills/.claude
+    commit:
+    skill_path: xcode-mcp-setup
+    linked_to:
+      - ~/.claude/skills/xcode-mcp-setup
+      - ~/.codex/skills/xcode-mcp-setup

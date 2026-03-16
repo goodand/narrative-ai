@@ -38,3 +38,6 @@ dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
 ]
+tools = [
+    "skm @ git+https://github.com/reorx/skm ; python_version >= '3.12'",
+]
