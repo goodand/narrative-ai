@@ -26,8 +26,8 @@
 ## 2. Private GitHub Push Prep
 
 - [ ] GitHub에 올릴 변경만 남도록 working tree를 정리한다.
-- [ ] `.env.example`가 tracked 상태다.
-- [ ] `.github/workflows/ci.yml`가 tracked 상태다.
+- [x] `.env.example`가 tracked 상태다.
+- [x] `.github/workflows/ci.yml`가 tracked 상태다.
 - [x] `.github/workflows/build-ios.yml`가 tracked 상태이며 iOS build job이 있다.
 - [ ] 첫 GitHub Actions run에서 frontend build + backend `/health`가 green이다.
 - [ ] CI 실패 시 확인할 로그/산출물 경로가 문서로 정리돼 있다.
@@ -43,6 +43,6 @@
 
 아래 3개가 충족되기 전에는 이 문서를 public release 완료 근거로 사용하지 않는다.
 
-- [ ] private GitHub CI용 필수 파일이 tracked 상태다.
+- [x] private GitHub CI용 필수 파일이 tracked 상태다.
 - [ ] `삭제 추천 -> 삭제 결정 -> 후속 갱신` 핵심 흐름이 추가로 검증됐다.
 - [ ] 첫 GitHub Actions run이 green이다.
