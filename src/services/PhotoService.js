@@ -7,10 +7,12 @@ import RecocolPhotos from '../plugins/RecocolPhotos.ts';
 import { CurationEngine } from './CurationEngine.js';
 import { geocodingService } from './GeocodingService.js';
 import { StatsService } from './StatsService.js';
+import { formatGPSCoordinates } from '../utils/geo.js';
 
 export class PhotoService {
     constructor() {
         this.photos = [];
+        this.currentDayKey = null;
     }
 
     /**
@@ -47,6 +49,112 @@ export class PhotoService {
         } catch (error) {
             console.error('PhotoService: Fetch failed', error);
             throw error;
+        }
+    }
+
+    async fetchDailyCuration({ limit = 6, thumbSize = 420, transport = 'base64', forceRefresh = false } = {}) {
+        try {
+            // iOS plugin이 dayKey/applied/pending 정책을 포함해 큐레이션 결과를 반환한다.
+            const daily = await RecocolPhotos.getDailyCuration({
+                limit,
+                thumbSize,
+                transport,
+                forceRefresh
+            });
+
+            const items = Array.isArray(daily?.items) ? daily.items : [];
+            this.currentDayKey = daily?.dayKey || null;
+            // HomeManager는 this.photos를 그대로 렌더링하므로 공통 스키마로 정규화한다.
+            this.photos = items.map((item) => ({
+                id: item.assetId,
+                imageUrl: item.thumb || null,
+                date: this.currentDayKey || '',
+                location: '위치 정보 없음',
+                contextMessage: this._generateDailyContextMessage(item.flags || []),
+                rawAsset: {
+                    id: item.assetId,
+                    curationReasons: item.flags || []
+                },
+                score: item.score || 0,
+                dayKey: this.currentDayKey
+            }));
+
+            return {
+                photos: this.photos,
+                totalCount: this.photos.length,
+                dayKey: this.currentDayKey,
+                fromCache: Boolean(daily?.fromCache),
+                needsRefresh: Boolean(daily?.needsRefresh)
+            };
+        } catch (error) {
+            console.error('PhotoService: Daily curation fetch failed', error);
+            throw error;
+        }
+    }
+
+    async refreshDailyCurationAfterMutation(options = {}) {
+        const result = await this.fetchDailyCuration({ ...options, forceRefresh: true });
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('daily-curation-updated', {
+                detail: {
+                    dayKey: result.dayKey,
+                    totalCount: result.totalCount
+                }
+            }));
+        }
+        return result;
+    }
+
+    async ensurePhotoSummary(index, { includeFileSize = false } = {}) {
+        if (index < 0 || index >= this.photos.length) return null;
+        const photo = this.photos[index];
+        if (!photo) return null;
+
+        const rawAsset = photo.rawAsset || {};
+        const summaryHydrated = rawAsset._summaryHydrated === true;
+        const needsBaseSummary =
+            !summaryHydrated ||
+            !rawAsset.creationDate ||
+            !rawAsset.pixelWidth ||
+            !rawAsset.pixelHeight;
+        const needsFileSize = includeFileSize && !(typeof rawAsset.fileSize === 'number' && rawAsset.fileSize > 0);
+
+        if (!needsBaseSummary && !needsFileSize) {
+            return photo;
+        }
+
+        try {
+            const summary = await RecocolPhotos.getPhotoSummary({
+                assetId: photo.id,
+                includeFileSize
+            });
+
+            if (!summary) return photo;
+
+            const mergedRawAsset = {
+                ...rawAsset,
+                ...summary,
+                location: summary.location ?? rawAsset.location ?? null,
+                _summaryHydrated: true
+            };
+
+            photo.rawAsset = mergedRawAsset;
+
+            if (summary.creationDate && (!photo.date || photo.date === this.currentDayKey)) {
+                photo.date = summary.creationDate.split('T')[0];
+            }
+
+            if (mergedRawAsset.location && (!photo.location || photo.location === '위치 정보 없음')) {
+                photo.location = formatGPSCoordinates(
+                    mergedRawAsset.location.latitude,
+                    mergedRawAsset.location.longitude
+                );
+            }
+
+            return photo;
+        } catch (error) {
+            console.error('PhotoService: Summary hydration failed', error);
+            return photo;
         }
     }
 
@@ -118,6 +226,22 @@ export class PhotoService {
         }
     }
 
+    async recordCurationAction({ assetId, action, dayKey }) {
+        if (!assetId || !action) return false;
+        try {
+            // dayKey를 같이 저장해 다음 daily 계산에서 skip/exclude 정책에 활용한다.
+            await RecocolPhotos.recordCurationAction({
+                assetId,
+                action,
+                dayKey: dayKey || this.currentDayKey || ''
+            });
+            return true;
+        } catch (error) {
+            console.error('PhotoService: recordCurationAction failed', error);
+            throw error;
+        }
+    }
+
     /**
      * Converts current photo to a File object for upload
      */
@@ -150,6 +274,7 @@ export class PhotoService {
      */
     async deletePhoto(index) {
         if (index < 0 || index >= this.photos.length) return false;
+        await this.ensurePhotoSummary(index, { includeFileSize: true });
         const photo = this.photos[index];
 
         try {
@@ -185,6 +310,24 @@ export class PhotoService {
         return asset.curationReasons.length > 0 
             ? `${asset.curationReasons.join(', ')}이라 비워내기 좋아요.`
             : '오늘의 소중한 기록 한 장입니다.';
+    }
+
+    _generateDailyContextMessage(flags) {
+        if (!Array.isArray(flags) || flags.length === 0) {
+            return '오늘 정리하기 좋은 항목이에요.';
+        }
+
+        const messages = [];
+        if (flags.includes('unorganized')) messages.push('앨범에 정리되지 않았어요');
+        if (flags.includes('screenshot')) messages.push('스크린샷 항목이에요');
+        if (flags.includes('old')) messages.push('오래된 사진이에요');
+        if (flags.includes('burst_day')) messages.push('비슷한 사진이 많은 날이에요');
+        if (flags.includes('large')) messages.push('고해상도 사진이에요');
+        if (flags.includes('icloud_only')) messages.push('일부 iCloud 항목이 제외됐어요');
+
+        return messages.length > 0
+            ? `${messages.join(', ')}.`
+            : '오늘 정리하기 좋은 항목이에요.';
     }
 }
 

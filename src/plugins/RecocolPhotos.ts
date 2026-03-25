@@ -19,10 +19,45 @@ export interface PhotoAsset {
   burstIdentifier?: string;
 }
 
+export interface PhotoSummary {
+  id: string;
+  creationDate: string;
+  pixelWidth: number;
+  pixelHeight: number;
+  fileSize?: number;
+  location?: {
+    latitude: number;
+    longitude: number;
+    altitude?: number;
+  } | null;
+}
+
 export interface RecocolPhotosPlugin {
   fetchPhotos(options: { limit: number; offset: number }): Promise<{ photos: PhotoAsset[]; totalCount: number }>;
+  getDailyCuration(options: {
+    limit?: number;
+    thumbSize?: number;
+    transport?: 'base64' | 'file';
+    forceRefresh?: boolean;
+  }): Promise<{
+    dayKey: string;
+    fromCache: boolean;
+    needsRefresh: boolean;
+    items: Array<{
+      assetId: string;
+      score: number;
+      flags: string[];
+      thumb: string;
+    }>;
+  }>;
+  recordCurationAction(options: {
+    assetId: string;
+    action: 'deleted' | 'recorded' | 'skipped';
+    dayKey: string;
+  }): Promise<{ ok: boolean }>;
+  getPhotoSummary(options: { assetId: string; includeFileSize?: boolean }): Promise<PhotoSummary>;
   getPhotoMetadata(options: { assetId: string }): Promise<any>;
-  loadImageData(options: { assetId: string; quality: 'thumbnail' | 'original' }): Promise<{ base64: string }>;
+  loadImageData(options: { assetId: string; quality: 'thumbnail' | 'original'; thumbSize?: number }): Promise<{ base64: string }>;
   deletePhoto(options: { assetId: string }): Promise<{ success: boolean }>;
 }
 

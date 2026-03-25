@@ -29,34 +29,56 @@ export class ReportManager {
             this.user = user;
 
             // 1. 전체 통계 (user_stats)
-            const { data: userStats } = await supabase
+            const { data: userStats, error: userStatsError } = await supabase
                 .from('user_stats')
                 .select('*')
                 .eq('user_id', user.id)
                 .single();
 
+            // user_stats 행이 아직 없을 수 있으므로 에러를 로그로만 남기고 기본값 유지
+            if (userStatsError) {
+                console.warn('[REPORT] user_stats 조회 경고:', this._normalizeError(userStatsError));
+            }
+
             if (userStats) {
-                const gb = (userStats.total_cleared_bytes / (1024 * 1024 * 1024)).toFixed(1);
+                const clearedBytes = Number(userStats.total_cleared_bytes || 0);
+                const clearedCount = Number(userStats.total_cleared_count || 0);
+                const gb = (clearedBytes / (1024 * 1024 * 1024)).toFixed(1);
                 this.stats.totalBytesGB = gb;
-                this.stats.totalCount = userStats.total_cleared_count.toLocaleString();
+                this.stats.totalCount = clearedCount.toLocaleString();
             }
 
             // 2. 주간 비움 데이터 분석 (최근 14일치 조회)
             const fourteenDaysAgo = new Date();
             fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
             
-            const { data: logs } = await supabase
+            const { data: logs, error: logsError } = await supabase
                 .from('detox_logs')
                 .select('cleared_at')
                 .eq('user_id', user.id)
                 .gte('cleared_at', fourteenDaysAgo.toISOString());
+
+            if (logsError) {
+                console.warn('[REPORT] detox_logs 조회 경고:', this._normalizeError(logsError));
+            }
 
             if (logs) {
                 this._analyzeWeeklyTrends(logs);
             }
 
         } catch (error) {
-            console.error('[REPORT] 데이터 로드 실패:', error);
+            console.error('[REPORT] 데이터 로드 실패:', this._normalizeError(error));
+        }
+    }
+
+    _normalizeError(error) {
+        if (!error) return 'unknown error';
+        if (typeof error === 'string') return error;
+        if (error.message) return error.message;
+        try {
+            return JSON.stringify(error);
+        } catch {
+            return String(error);
         }
     }
 
