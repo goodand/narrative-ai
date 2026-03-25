@@ -2,7 +2,7 @@
   "name": "narrative-ai",
   "version": "1.0.0",
   "type": "module",
-  "description": "narrative AI - 이미지 메타데이터 기반 스토리텔링 플랫폼",
+  "description": "RECOCO - 사진 메타데이터와 이미지 내용을 바탕으로 삭제할 이미지를 추천하는 디지털 디톡스 앱",
   "main": "main.js",
   "scripts": {
     "dev": "vite",
