@@ -7,6 +7,7 @@ import RecocolPhotos from '../plugins/RecocolPhotos.ts';
 import { CurationEngine } from './CurationEngine.js';
 import { geocodingService } from './GeocodingService.js';
 import { StatsService } from './StatsService.js';
+import { formatGPSCoordinates } from '../utils/geo.js';
 
 export class PhotoService {
     constructor() {
@@ -92,7 +93,69 @@ export class PhotoService {
     }
 
     async refreshDailyCurationAfterMutation(options = {}) {
-        return this.fetchDailyCuration({ ...options, forceRefresh: true });
+        const result = await this.fetchDailyCuration({ ...options, forceRefresh: true });
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('daily-curation-updated', {
+                detail: {
+                    dayKey: result.dayKey,
+                    totalCount: result.totalCount
+                }
+            }));
+        }
+        return result;
+    }
+
+    async ensurePhotoSummary(index, { includeFileSize = false } = {}) {
+        if (index < 0 || index >= this.photos.length) return null;
+        const photo = this.photos[index];
+        if (!photo) return null;
+
+        const rawAsset = photo.rawAsset || {};
+        const summaryHydrated = rawAsset._summaryHydrated === true;
+        const needsBaseSummary =
+            !summaryHydrated ||
+            !rawAsset.creationDate ||
+            !rawAsset.pixelWidth ||
+            !rawAsset.pixelHeight;
+        const needsFileSize = includeFileSize && !(typeof rawAsset.fileSize === 'number' && rawAsset.fileSize > 0);
+
+        if (!needsBaseSummary && !needsFileSize) {
+            return photo;
+        }
+
+        try {
+            const summary = await RecocolPhotos.getPhotoSummary({
+                assetId: photo.id,
+                includeFileSize
+            });
+
+            if (!summary) return photo;
+
+            const mergedRawAsset = {
+                ...rawAsset,
+                ...summary,
+                location: summary.location ?? rawAsset.location ?? null,
+                _summaryHydrated: true
+            };
+
+            photo.rawAsset = mergedRawAsset;
+
+            if (summary.creationDate && (!photo.date || photo.date === this.currentDayKey)) {
+                photo.date = summary.creationDate.split('T')[0];
+            }
+
+            if (mergedRawAsset.location && (!photo.location || photo.location === '위치 정보 없음')) {
+                photo.location = formatGPSCoordinates(
+                    mergedRawAsset.location.latitude,
+                    mergedRawAsset.location.longitude
+                );
+            }
+
+            return photo;
+        } catch (error) {
+            console.error('PhotoService: Summary hydration failed', error);
+            return photo;
+        }
     }
 
     /**
@@ -164,7 +227,7 @@ export class PhotoService {
     }
 
     async recordCurationAction({ assetId, action, dayKey }) {
-        if (!assetId || !action) return;
+        if (!assetId || !action) return false;
         try {
             // dayKey를 같이 저장해 다음 daily 계산에서 skip/exclude 정책에 활용한다.
             await RecocolPhotos.recordCurationAction({
@@ -172,8 +235,10 @@ export class PhotoService {
                 action,
                 dayKey: dayKey || this.currentDayKey || ''
             });
+            return true;
         } catch (error) {
             console.error('PhotoService: recordCurationAction failed', error);
+            throw error;
         }
     }
 
@@ -209,6 +274,7 @@ export class PhotoService {
      */
     async deletePhoto(index) {
         if (index < 0 || index >= this.photos.length) return false;
+        await this.ensurePhotoSummary(index, { includeFileSize: true });
         const photo = this.photos[index];
 
         try {

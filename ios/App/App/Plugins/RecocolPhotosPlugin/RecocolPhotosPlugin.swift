@@ -100,7 +100,7 @@ private final class DailyCurationEngine {
     func compute(dayKey: String, now: Date = Date(), excludeDayKey: String?, store: DailyCurationStore) -> DailyCurationCache {
         let candidates = fetchOldCandidates(now: now)
         let dayCounts = computeDayCounts(candidates)
-        let skipSet = buildSkipSet(excludeDayKey: excludeDayKey, store: store)
+        let skipSet = buildSkipSet(currentDayKey: dayKey, excludeDayKey: excludeDayKey, store: store)
 
         var scored: [(PHAsset, Int, [String])] = []
         scored.reserveCapacity(candidates.count)
@@ -197,6 +197,15 @@ private final class DailyCurationEngine {
         var out: [PHAsset] = []
         out.reserveCapacity(min(result.count, cfg.fetchOldLimit))
         result.enumerateObjects { asset, _, _ in out.append(asset) }
+
+        // Fallback: 오래된 사진 조건에서 0건이면 최근 사진까지 포함해 재시도
+        if out.isEmpty {
+            let fallbackOptions = PHFetchOptions()
+            fallbackOptions.fetchLimit = cfg.fetchOldLimit
+            fallbackOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
+            let fallbackResult = PHAsset.fetchAssets(with: .image, options: fallbackOptions)
+            fallbackResult.enumerateObjects { asset, _, _ in out.append(asset) }
+        }
         return out
     }
 
@@ -230,10 +239,11 @@ private final class DailyCurationEngine {
         return found
     }
 
-    private func buildSkipSet(excludeDayKey: String?, store: DailyCurationStore) -> Set<String> {
-        guard let excludeDayKey else { return [] }
+    private func buildSkipSet(currentDayKey: String, excludeDayKey: String?, store: DailyCurationStore) -> Set<String> {
+        let activeDayKeys = Set([currentDayKey, excludeDayKey].compactMap { $0 })
+        guard !activeDayKeys.isEmpty else { return [] }
         let map = store.loadSkipMap()
-        let ids = map.compactMap { key, value in value == excludeDayKey ? key : nil }
+        let ids = map.compactMap { key, value in activeDayKeys.contains(value) ? key : nil }
         return Set(ids)
     }
 }
@@ -247,43 +257,10 @@ public class RecocolPhotosPlugin: CAPPlugin {
         let limit = call.getInt("limit") ?? 30
         let offset = call.getInt("offset") ?? 0
 
-        let status = PHPhotoLibrary.authorizationStatus()
-        print("📸 [RecocolPhotos] PHAuthorizationStatus: \(status.rawValue)")
-
-        if status == .notDetermined {
-            print("📸 [RecocolPhotos] Requesting authorization...")
-            PHPhotoLibrary.requestAuthorization { newStatus in
-                DispatchQueue.main.async {
-                    var isAuthorized = newStatus == .authorized
-                    if #available(iOS 14, *) {
-                        if newStatus == .limited {
-                            isAuthorized = true
-                        }
-                    }
-
-                    if isAuthorized {
-                        self.performFetchPhotos(call: call, limit: limit, offset: offset)
-                    } else {
-                        call.reject("Photo library access denied")
-                    }
-                }
-            }
-            return
+        // 권한 검증 로직은 getDailyCuration과 동일하게 재사용
+        ensurePhotoLibraryAuthorized(call: call) {
+            self.performFetchPhotos(call: call, limit: limit, offset: offset)
         }
-
-        var isAuthorized = status == .authorized
-        if #available(iOS 14, *) {
-            if status == .limited {
-                isAuthorized = true
-            }
-        }
-
-        if !isAuthorized {
-            call.reject("Photo library access not authorized")
-            return
-        }
-
-        performFetchPhotos(call: call, limit: limit, offset: offset)
     }
 
     private func performFetchPhotos(call: CAPPluginCall, limit: Int, offset: Int) {
@@ -359,26 +336,34 @@ public class RecocolPhotosPlugin: CAPPlugin {
         let transport = call.getString("transport") ?? "base64"
         let forceRefresh = call.getBool("forceRefresh") ?? false
         let todayKey = DailyCurationTime.dayKey(resetHour: 17)
+        let hasMutationToday = (curationStore.mutationDayKey() == todayKey)
 
-        if let applied = curationStore.loadApplied(), applied.dayKey == todayKey, !forceRefresh {
+        if let applied = curationStore.loadApplied(),
+           applied.dayKey == todayKey,
+           !forceRefresh,
+           !hasMutationToday,
+           !applied.items.isEmpty {
             returnWithThumbs(call: call, cache: applied, limit: limit, thumbSize: thumbSize, transport: transport, fromCache: true, needsRefresh: false)
             return
         }
 
-        if let applied = curationStore.loadApplied(), applied.dayKey != todayKey, !forceRefresh {
+        if let applied = curationStore.loadApplied(),
+           applied.dayKey != todayKey,
+           !forceRefresh,
+           !applied.items.isEmpty {
             preparePendingToday(todayKey: todayKey)
             returnWithThumbs(call: call, cache: applied, limit: limit, thumbSize: thumbSize, transport: transport, fromCache: true, needsRefresh: true)
             return
         }
 
-        if let pending = curationStore.loadPending(), pending.dayKey == todayKey {
-            let mutationToday = (curationStore.mutationDayKey() == todayKey)
-            // 정책 B: mutation(삭제/기록) 또는 forceRefresh일 때만 pending -> applied 승격
-            if forceRefresh || mutationToday {
-                curationStore.saveApplied(pending)
-                returnWithThumbs(call: call, cache: pending, limit: limit, thumbSize: thumbSize, transport: transport, fromCache: false, needsRefresh: false)
-                return
-            }
+        if let pending = curationStore.loadPending(),
+           pending.dayKey == todayKey,
+           !pending.items.isEmpty,
+           !forceRefresh,
+           !hasMutationToday {
+            curationStore.saveApplied(pending)
+            returnWithThumbs(call: call, cache: pending, limit: limit, thumbSize: thumbSize, transport: transport, fromCache: false, needsRefresh: false)
+            return
         }
 
         DispatchQueue.global(qos: .userInitiated).async {
@@ -392,6 +377,7 @@ public class RecocolPhotosPlugin: CAPPlugin {
 
     private func ensurePhotoLibraryAuthorized(call: CAPPluginCall, onAuthorized: @escaping () -> Void) {
         let status = PHPhotoLibrary.authorizationStatus()
+        print("📸 [RecocolPhotos] PHAuthorizationStatus: \(status.rawValue)")
 
         if status == .notDetermined {
             PHPhotoLibrary.requestAuthorization { newStatus in
@@ -444,6 +430,40 @@ public class RecocolPhotosPlugin: CAPPlugin {
         }
 
         call.resolve(["ok": true])
+    }
+
+    @objc func getPhotoSummary(_ call: CAPPluginCall) {
+        guard let assetId = call.getString("assetId"),
+              let asset = PhotoAssetManager.findAsset(id: assetId) else {
+            call.reject("Asset not found")
+            return
+        }
+
+        let includeFileSize = call.getBool("includeFileSize") ?? false
+
+        var locationDict: [String: Double]? = nil
+        if let location = asset.location {
+            locationDict = [
+                "latitude": location.coordinate.latitude,
+                "longitude": location.coordinate.longitude,
+                "altitude": location.altitude
+            ]
+        }
+
+        var fileSize: Int64 = 0
+        if includeFileSize {
+            let resources = PHAssetResource.assetResources(for: asset)
+            fileSize = resources.first?.value(forKey: "fileSize") as? Int64 ?? 0
+        }
+
+        call.resolve([
+            "id": asset.localIdentifier,
+            "creationDate": asset.creationDate?.iso8601String ?? "",
+            "pixelWidth": asset.pixelWidth,
+            "pixelHeight": asset.pixelHeight,
+            "fileSize": fileSize,
+            "location": locationDict as Any
+        ])
     }
 
     @objc func getPhotoMetadata(_ call: CAPPluginCall) {
@@ -500,7 +520,7 @@ public class RecocolPhotosPlugin: CAPPlugin {
     }
 
     private func preparePendingToday(todayKey: String) {
-        if let pending = curationStore.loadPending(), pending.dayKey == todayKey {
+        if let pending = curationStore.loadPending(), pending.dayKey == todayKey, !pending.items.isEmpty {
             return
         }
 
@@ -563,6 +583,20 @@ public class RecocolPhotosPlugin: CAPPlugin {
                 ])
             }
 
+            // 썸네일 생성 실패가 연쇄로 발생하면(예: PHPhotosErrorDomain 3303), 후보 자체는 반환해 홈이 비지 않게 유지
+            if out.isEmpty && !cache.items.isEmpty {
+                for item in cache.items.prefix(max(1, want)) {
+                    var flags = item.flags
+                    flags.append("thumb_unavailable")
+                    out.append([
+                        "assetId": item.assetId,
+                        "score": item.score,
+                        "flags": flags,
+                        "thumb": ""
+                    ])
+                }
+            }
+
             DispatchQueue.main.async {
                 call.resolve([
                     "dayKey": cache.dayKey,
@@ -577,6 +611,35 @@ public class RecocolPhotosPlugin: CAPPlugin {
     private struct ThumbPayload {
         let assetId: String
         let payload: String
+    }
+
+    private func makeThumbnailJPEGData(from data: Data, thumbSize: CGFloat) -> Data? {
+        guard let image = UIImage(data: data) else { return nil }
+
+        let target = CGSize(width: thumbSize, height: thumbSize)
+        let scale = max(target.width / image.size.width, target.height / image.size.height)
+        let drawSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let origin = CGPoint(x: (target.width - drawSize.width) / 2, y: (target.height - drawSize.height) / 2)
+        let renderer = UIGraphicsImageRenderer(size: target)
+        let rendered = renderer.image { _ in
+            image.draw(in: CGRect(origin: origin, size: drawSize))
+        }
+        return rendered.jpegData(compressionQuality: 0.75)
+    }
+
+    // 썸네일 transport(file/base64) 변환 로직을 한 곳으로 모아 중복을 줄인다.
+    private func buildThumbPayload(from data: Data, transport: String) -> String {
+        if transport == "file" {
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("dc_\(UUID().uuidString).jpg")
+            do {
+                try data.write(to: tempURL)
+                return tempURL.absoluteString
+            } catch {
+                // 파일 저장 실패 시 base64로 안전하게 폴백
+                return "data:image/jpeg;base64,\(data.base64EncodedString())"
+            }
+        }
+        return "data:image/jpeg;base64,\(data.base64EncodedString())"
     }
 
     private func fetchThumbsSkippingICloud(candidateIds: [String],
@@ -615,29 +678,33 @@ public class RecocolPhotosPlugin: CAPPlugin {
             manager.requestImage(for: asset, targetSize: target, contentMode: .aspectFill, options: options) { image, info in
                 let inCloud = (info?[PHImageResultIsInCloudKey] as? Bool) ?? false
 
-                guard let image, let data = image.jpegData(compressionQuality: 0.75) else {
-                    if inCloud {
-                        print("📸 [DailyCuration] iCloud-only skipped: \(id)")
-                    }
+                if let image, let data = image.jpegData(compressionQuality: 0.75) {
+                    let payload = self.buildThumbPayload(from: data, transport: transport)
+                    results.append(.init(assetId: id, payload: payload))
                     step(idx + 1)
                     return
                 }
 
-                if transport == "file" {
-                    let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("dc_\(UUID().uuidString).jpg")
-                    do {
-                        try data.write(to: tempURL)
-                        results.append(.init(assetId: id, payload: tempURL.absoluteString))
-                    } catch {
-                        let b64 = data.base64EncodedString()
-                        results.append(.init(assetId: id, payload: "data:image/jpeg;base64,\(b64)"))
-                    }
-                } else {
-                    let b64 = data.base64EncodedString()
-                    results.append(.init(assetId: id, payload: "data:image/jpeg;base64,\(b64)"))
-                }
+                // requestImage 실패 시 requestImageDataAndOrientation으로 한 번 더 시도
+                let dataOptions = PHImageRequestOptions()
+                dataOptions.deliveryMode = .highQualityFormat
+                dataOptions.resizeMode = .none
+                dataOptions.version = .current
+                dataOptions.isNetworkAccessAllowed = false
 
-                step(idx + 1)
+                manager.requestImageDataAndOrientation(for: asset, options: dataOptions) { data, _, _, info2 in
+                    let inCloud2 = (info2?[PHImageResultIsInCloudKey] as? Bool) ?? false
+                    if let data,
+                       let thumbData = self.makeThumbnailJPEGData(from: data, thumbSize: thumbSize) {
+                        let payload = self.buildThumbPayload(from: thumbData, transport: transport)
+                        results.append(.init(assetId: id, payload: payload))
+                    } else if inCloud || inCloud2 {
+                        print("📸 [DailyCuration] iCloud-only skipped: \(id)")
+                    } else {
+                        print("📸 [DailyCuration] thumb fetch failed: \(id)")
+                    }
+                    step(idx + 1)
+                }
             }
         }
 
