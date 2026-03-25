@@ -1,171 +1,165 @@
-# RECOCO (narrative AI) - Image Metadata-Based Storytelling Platform
+# RECOCO
 
-**RECOCO**는 업로드된 이미지와 EXIF 메타데이터(위치, 시간, 날짜)를 분석하여 다양한 소셜 미디어 플랫폼에 최적화된 서사를 생성해주는 AI 어시스턴트입니다.
+RECOCO는 사진 메타데이터와 이미지 내용을 바탕으로 `삭제할 이미지를 추천`해 주는 디지털 디톡스 앱입니다. 현재 코드베이스는 `Vite + Vanilla JS + Capacitor iOS + FastAPI` 조합으로 운영되며, 사진 캐러셀을 얼마나 빠르게 띄우고 삭제 흐름을 얼마나 매끄럽게 이어 가는지가 핵심 제품 가치입니다.
 
-> **Architecture Update**: 본 프로젝트는 보안 강화 및 서버 측 로직 처리를 위해 **FastAPI 백엔드**와 **Vanilla JS 프론트엔드**가 결합된 클라이언트-사이드 아키텍처로 진화했습니다.
+현재 이 저장소의 우선 목표는 `private GitHub push + CI readiness`입니다. 이 README는 그 목적에 맞는 실행/검증 안내를 먼저 두고, 기존 문서가 담고 있던 제품 의도와 설계 히스토리는 아래에 별도 섹션으로 보존합니다.
 
----
+## 현재 프로젝트 의도
 
-## 1. 주요 기능 (Key Features)
+- 사진 메타데이터와 이미지 내용을 바탕으로 삭제 추천 후보를 빠르게 계산한다.
+- 홈 캐러셀을 빠르게 띄워 사용자가 바로 삭제 결정을 내릴 수 있게 한다.
+- 삭제 후 다음 카드, 통계, 리포트 반영까지의 흐름을 짧게 유지한다.
+- 기록/스토리 생성은 보조 흐름으로 유지하되, 디지털 디톡스 경험을 해치지 않게 둔다.
+- API 키와 AI 호출은 백엔드 경유 구조를 우선한다.
 
-- **멀티모달 AI 분석**: Google Gemini API를 활용하여 이미지 인식 및 고품질 캡션 생성.
-- **EXIF 데이터 추출**: 이미지의 GPS 좌표, 촬영 일시를 자동으로 추출하여 컨텍스트 기반의 서사 생성.
-- **감정의 온도 (New)**: 사용자의 현재 감정 상태(🔵 차가움 / 🟡 미지근함 / 🔴 뜨거움)를 선택하여 문체와 톤 제어.
-- **플랫폼별 최적화**: Instagram, Threads, Blog 등 각 SNS 특성에 맞는 텍스트 스타일 제공.
-- **인터랙티브 에디팅**: 생성된 문장 내 주요 키워드를 클릭하여 AI가 추천하는 유의어로 즉시 변경 가능.
-- **보안 설계**: API Key를 백엔드에서 안전하게 관리하여 클라이언트 노출 방지.
+## 핵심 사용자 흐름
 
-## 2. 기술 스택 (Tech Stack)
+1. 앱 진입
+2. 홈 캐러셀 표시
+3. 추천된 사진에 대해 `고마웠어`로 삭제 또는 `소중해`로 보류/기록
+4. 삭제/기록 후 홈과 리포트 상태 갱신
 
-### Frontend
-- **Core**: Vanilla JavaScript (ES Modules)
-- **Styling**: Tailwind CSS v4
-- **Build Tool**: Vite
-- **Libraries**: `exifreader` (Metadata extraction)
+이 방향 때문에 현재 최적화의 중심은 `AI 생성 속도`보다 `launch_to_carousel`, `thumbnail 전달`, `delete 후 다음 카드 노출`, `report 반영`에 있습니다.
 
-### Backend
-- **Framework**: FastAPI (Python 3.11+)
-- **Package Manager**: `uv` (Fast Python package manager)
-- **AI Integration**: Google Gemini API (via Vertex AI/Google AI SDK)
+## 저장소 구조
 
-## 3. 프로젝트 구조 (Project Structure)
+- `src/`, `main.js`
+  프론트엔드 애플리케이션 코드
+- `ios/App/`
+  Capacitor iOS 프로젝트와 native photo plugin
+- `backend/`
+  FastAPI 백엔드와 백엔드 전용 설정
+- `.maestro/`, `scripts/maestro/`
+  iOS smoke 자동화 도구
+- `.github/workflows/`
+  private GitHub CI workflow
+
+## 환경 변수
+
+루트 기준 템플릿:
 
 ```bash
-narrative-ai/
-├── backend/                # FastAPI 백엔드 서버
-│   ├── app/
-│   │   ├── main.py         # 진입점 및 프록시 설정
-│   │   ├── routers/        # API 엔드포인트 (narrative, synonyms)
-│   │   └── services/       # Gemini API 연동 로직
-│   ├── pyproject.toml      # Python 의존성 관리
-│   └── run.py              # 서버 실행 스크립트 (Port 정리 포함)
-├── src/                    # 프론트엔드 소스 코드
-│   ├── components/         # UI 컴포넌트 (DropZone, Modal 등)
-│   ├── services/           # 백엔드 연동 서비스
-│   └── state/              # 상태 관리 (StateManager)
-├── index.html              # 메인 엔트리
-├── main.js                 # 애플리케이션 오케스트레이션
-└── README.md               # 프로젝트 문서
+cp .env.example .env
 ```
 
-## 4. 로컬 실행 방법 (Setup)
+- 프론트엔드는 루트 `.env`를 읽습니다.
+- Vite build/runtime은 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, 선택적으로 `VITE_API_BASE_URL`을 사용합니다.
+- 개발용 프록시 포트는 `VITE_BACKEND_PORT`로 조정할 수 있습니다.
+- 백엔드는 process env를 직접 읽거나, `backend/`에서 실행할 때 `backend/.env`를 읽습니다.
+- 백엔드 세부 설명은 [backend/README.md](backend/README.md)를 참고하세요.
 
-### Step 1: Backend 실행
+## 로컬 실행
+
+프론트엔드:
+
+```bash
+npm install
+npm run dev
+```
+
+백엔드:
+
 ```bash
 cd backend
 uv venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 uv pip install -e .
-python run.py --dev        # 8000 포트에서 실행
+uvicorn app.main:app --reload --port 8000
 ```
 
-### Step 2: Frontend 실행
+웹 자산 변경 후 iOS 프로젝트 반영:
+
 ```bash
-# Root 디렉토리에서
-npm install
-npm run dev                # http://localhost:5173
+npm run build
+npx cap sync ios
 ```
 
----
+## 로컬 검증
 
-# 프로젝트 기술 인터뷰 및 로직 문서
+프론트엔드 build smoke:
 
----
+```bash
+npm test
+```
 
-## Development Interview: RECOCO Rebranding & Feature Addition (New)
+현재 `npm test`는 `npm run build`에 매핑됩니다.
 
-### 배경 (Background)
-- 서비스명을 기존 `vakita AI`에서 `RECOCO`로 변경하고, 이에 맞춘 전반적인 브랜드 아이덴티티(BI) 리뉴얼이 필요합니다.
-- 기존의 노랑/남색 중심의 디자인에서 블랙 & 화이트 톤의 모던한 디자인으로 전환하고, 특정 요소에 포인트 컬러를 적용합니다.
+백엔드 health smoke:
 
-### 문제 (Problem)
-1. **브랜드명 및 로고 불일치**: UI 곳곳에 남아있는 `vakita AI` 명칭과 로고를 새로운 `RECOCO` 워드마크 및 캐릭터 로고로 교체해야 합니다.
-2. **디자인 테마 노후화**: 기존의 연노랑/남색 조합을 걷어내고, 블랙 & 화이트 기반의 세련된 UI로 변경해야 합니다.
-3. **가독성 및 폰트**: 기울임꼴이 적용된 폰트를 제거하고, 표준적이고 깔끔한 `Noto Sans KR`로 통일해야 합니다.
-4. **신규 기능 부재**: 사용자의 감정 상태를 직관적으로 선택할 수 있는 "감정의 온도" UI가 필요합니다.
+```bash
+python -m pip install -e ./backend
+python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000
+curl http://127.0.0.1:8000/health
+```
 
-### 목표 (Goal)
-1. **서비스명 변경**: 모든 텍스트 요소를 `RECOCO`로 변경합니다.
-2. **로고 교체**:
-   - 워드마크: 텍스트 기반에서 제공된 SVG 이미지(`word_mark_IMG_0056.svg`)로 변경.
-   - 캐릭터 로고: 기존 이미지에서 제공된 SVG 이미지(`character_logo_IMG_0055.svg`)로 변경.
-3. **색상 체계 개편**:
-   - 기반: 블랙 (#000000) & 화이트 (#FFFFFF).
-   - 포인트 컬러: `#B2A5CF` (버튼 및 강조 요소).
-4. **폰트 적용**: `Noto Sans KR` 적용 및 모든 `italic` 스타일 제거.
-5. **신규 UI 추가**: "감정의 온도" (🔵 차가움 / 🟡 미지근함 / 🔴 뜨거움) 선택용 Segmented UI 구현.
+제품 방향 기준으로 우선 검증할 항목:
 
----
+- 홈 캐러셀 첫 표시 속도
+- 썸네일/캐러셀 이미지 로드 안정성
+- `고마웠어` 삭제 후 다음 카드 전환
+- 삭제 후 통계와 리포트 반영
+- same-day refresh와 daily curation 재계산
 
-## 7. 가이드라인: 감정의 온도 UI (Emotion Temperature)
+## Maestro
 
-- **UI 형태**: Segmented Control (세그먼트 버튼)
-- **옵션**: 🔵 차가움 (Cold) / 🟡 미지근함 (Lukewarm) / 🔴 뜨거움 (Hot)
-- **로직**: 선택된 값은 AI 프롬프트 생성 시 "현재 사용자의 감정 온도" 컨텍스트로 주입됩니다.
+설치:
 
----
+```bash
+npm run maestro:install
+npm run maestro:install:ios
+```
 
-## Development Interview: Metadata UI & Error Fix (Revised)
+온보딩 smoke:
 
-### 배경 (Background)
-- `exif-js` 라이브러리의 Strict Mode 호환성 이슈로 인한 `Uncaught ReferenceError: n is not defined` 발생 확인.
-- UI에서 불필요한 파일 정보 노출 및 CSS 우선순위 충돌 문제 해결 필요.
+```bash
+npm run maestro:test:ios
+```
 
-### 목표 (Goal)
-1. **라이브러리 교체**: `exif-js`를 제거하고 **`exifreader`** 라이브러리로 교체.
-2. **UI/CSS 수정**: `.metadata-pill`의 `hidden` 클래스 정상화 및 파일명/용량 정보 제거.
-3. **날짜/위치 포맷**: `YYYY-MM-DD HH:MM` 형식 및 정규화된 GPS 데이터 표시.
+로컬 recording:
 
----
+```bash
+npm run maestro:record:ios
+```
 
-## 1. 이미지 최적화 및 화질 저하 로직 (Image Optimization)
+상세 사용법은 [docs/testing/maestro.md](docs/testing/maestro.md)에 있습니다.
 
-- **해상도 제어**: 긴 변 최대 1024px, 전체 면적 1MP 이하 유지.
-- **압축 설정**: JPEG 품질 0.85 (85%) 적용.
-- **목적**: 생성 속도 향상 및 API 토큰 비용 최적화.
+## GitHub Actions
 
----
+현재 private-repo 기준 workflow:
 
-## 2. 프로젝트 전체 기술 스택 및 주요 로직 (System Architecture)
+- [ci.yml](.github/workflows/ci.yml)
+  frontend build + backend `/health` smoke
+- [build-ios.yml](.github/workflows/build-ios.yml)
+  iOS simulator app build artifact
 
-### 핵심 비즈니스 로직
-- **메타데이터 처리**: GPS(DMS to Decimal) 변환 및 데이터 정규화.
-- **AI 인터랙티브 캡션**: 키워드 하이라이팅 및 유의어 실시간 교체 로직.
-- **안정성**: `fetchWithRetry`를 통한 네트워크 오류 대응 (최대 5회).
+이 저장소는 CI만으로 출시 준비 완료를 주장하지 않습니다. 특히 `캐러셀 첫 표시`, `delete/report`, `recorded/refresh` 같은 런타임 핵심 흐름은 별도 release gate로 남겨 둡니다.
 
----
+## 체크리스트
 
-## 3. 프로젝트 구조 및 아키텍처 개선 제안 (Refactoring Proposal)
+- [docs/release-checklist.md](docs/release-checklist.md)
+- [docs/github-readiness-checklist.md](docs/github-readiness-checklist.md)
+- [docs/testing/maestro.md](docs/testing/maestro.md)
 
-### 모듈화 전략
-- `GeminiService`: API 통신 전담 클래스.
-- `ImageProcessor`: 이미지 리사이징 및 메타데이터 추출.
-- `StateManager`: 중앙 집중식 상태 관리.
-- `Component-based UI`: DropZone, ResultViewer 등 독립적 컴포넌트화.
+## 설계 히스토리와 문서 의도
 
----
+기존 README는 단순 실행 안내만이 아니라 아래 성격의 문서를 함께 담고 있었습니다.
 
-## 4. 보안 및 배포 (Security & Deployment)
+- RECOCO 리브랜딩과 BI/톤앤매너 정리
+- 감정의 온도 UI 추가 의도
+- 메타데이터 처리 UI/라이브러리 교체 배경
+- 이미지 최적화, 에러 처리, 프롬프트 구조 개선 메모
+- 보안과 배포에 대한 초기 방향성
 
-### API Key 보안
-- 브라우저 노출 방지를 위해 **백엔드 프록시 서버** 도입 필수.
-- 모든 API 요청은 클라이언트 -> 백엔드 -> Gemini 순으로 전달됨.
+현재는 그 위에 제품 방향이 한 번 더 정리됐습니다.
 
----
+- 메인 제품 정체성: `삭제할 이미지를 추천하는` 디지털 디톡스 앱
+- 성능 우선순위: `캐러셀 표시 속도`와 `삭제 액션 연속성`
+- AI 기록 생성: 메인 플로우를 보조하는 서브 플로우
 
-## 5. 알려진 이슈 (Known Issues)
+즉, 원래 README의 의도는 `프로젝트 소개 + 운영 가이드 + 설계 인터뷰 메모`를 한 파일에 함께 두는 것이었습니다. 현재는 private GitHub CI 준비가 우선이므로 상단은 운영 안내로 정리했지만, 이 문서가 단순한 설치 문서만은 아니었다는 점은 유지합니다.
 
-- **Render 배포 오류**: `exif-js` 의존성 문제 해결 완료 (`exifreader` 교체).
-- **Tailwind v4 적용**: CDN 방식 배포 지양 및 PostCSS 빌드 파이프라인 구축 완료.
+## 운영 메모
 
----
-
-## 12. 최신 수정 사항 (Latest Updates) - 2026-01-23
-
-1. **기능 수정**: 단어 하이라이트(Word Suggestion) 정확도 향상을 위한 백엔드 프롬프트 강화.
-2. **안정성 강화**: Gemini API `responseSchema` 적용 (Structured Output 보장).
-3. **에러 핸들링**: 429(Rate Limit) 및 네트워크 오류에 대한 구체적인 한글 피드백 제공.
-
----
-**최종 수정일**: 2026. 01. 23.
-**개발자**: Jaehyun Tak
+- private GitHub CI 준비와 런타임 코어 앱 변경은 가능하면 분리해서 커밋합니다.
+- CI, 문서, 환경 변수 정리는 좁은 배치로 먼저 정리하는 편이 안전합니다.
+- 캐러셀/삭제 성능 최적화는 이 앱의 메인 가치에 직접 연결되므로, 회귀가 나면 우선순위를 가장 높게 둡니다.

@@ -5,11 +5,18 @@ Application Configuration
 
 import os
 from functools import lru_cache
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
     # Server Configuration
     port: int = 8000
@@ -36,12 +43,6 @@ class Settings(BaseSettings):
 
     # CORS Configuration
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False  # 대소문자 구분 없이 환경변수 읽기
-
 
 @lru_cache()
 def get_settings() -> Settings:

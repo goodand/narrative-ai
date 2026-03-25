@@ -7,7 +7,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "test": "npm run build",
+    "preview": "vite preview",
+    "maestro:install": "bash ./scripts/maestro/install-cli.sh",
+    "maestro:install:ios": "bash ./scripts/maestro/install-ios-debug.sh",
+    "maestro:test:ios": "bash ./scripts/maestro/run-ios-smoke.sh",
+    "maestro:record:ios": "bash ./scripts/maestro/record-ios-smoke.sh"
   },
   "keywords": [],
   "author": "",
