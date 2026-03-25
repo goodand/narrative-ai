@@ -19,6 +19,7 @@ export class HomeManager {
         this.error = null;
         
         this._setupEventDelegation();
+        this._setupDailyCurationListener();
     }
 
     /**
@@ -26,16 +27,36 @@ export class HomeManager {
      */
     async loadRealPhotos() {
         console.log('HomeManager: Starting loadRealPhotos...');
+        const startedAt = performance.now();
         this.isLoading = true;
         this.error = null;
         this.render();
 
         try {
-            const { photos, totalCount } = await photoService.fetchAndRankPhotos();
+            // Launch path는 전체 스캔을 피하고, 네이티브 daily cache 결과만 즉시 받는다.
+            const { photos, totalCount, dayKey, fromCache, needsRefresh } = await photoService.fetchDailyCuration({
+                // 홈 첫 진입 p95 개선: 실제 캐러셀 표시 수(최대 3장)에 맞춰 페이로드를 최소화
+                limit: 3,
+                thumbSize: 300,
+                transport: 'base64'
+            });
             
-            if (totalCount > 0) {
-                console.log(`HomeManager: 사진 조회 성공 — 총 ${totalCount}장 중 ${photos.length}장 큐레이션`);
-            }
+            const elapsed = Math.round(performance.now() - startedAt);
+            console.log(`[PERF] launch_to_carousel_ms=${elapsed} dayKey=${dayKey} fromCache=${fromCache} needsRefresh=${needsRefresh}`);
+            console.log(`HomeManager: 데일리 큐레이션 조회 성공 — ${photos.length}장`);
+            // 빈 결과여도 성능 측정값은 남겨야 p95/p99 분석에서 샘플 누락이 없다.
+            const perfEntry = {
+                ts: new Date().toISOString(),
+                launch_to_carousel_ms: elapsed,
+                dayKey,
+                fromCache,
+                needsRefresh,
+                daily_items_count: photos.length
+            };
+            const prev = JSON.parse(localStorage.getItem('perf_runs') || '[]');
+            prev.push(perfEntry);
+            localStorage.setItem('perf_runs', JSON.stringify(prev.slice(-50)));
+            showToast(`[PERF] ${elapsed}ms cache=${fromCache ? 'Y' : 'N'} refresh=${needsRefresh ? 'Y' : 'N'} items=${photos.length}`, ErrorLevel.INFO);
             
             if (photos.length > 0) {
                 this.currentIndex = 0;
@@ -59,12 +80,13 @@ export class HomeManager {
         return await photoService.getPhotoAsBase64(this.currentIndex);
     }
 
-    getCurrentPhotoMeta() {
-        const photo = photoService.getPhoto(this.currentIndex);
+    async getCurrentPhotoMeta() {
+        const photo = await photoService.ensurePhotoSummary(this.currentIndex, { includeFileSize: false });
         if (!photo) return {};
         const asset = photo.rawAsset;
         return {
             Make: "Apple iPhone",
+            date: asset.creationDate ? asset.creationDate.split('T')[0] : '',
             DateTime: asset.creationDate,
             pixelWidth: asset.pixelWidth,
             pixelHeight: asset.pixelHeight,
@@ -75,7 +97,10 @@ export class HomeManager {
                 formatted: photo.location
             } : null,
             _isNative: true,
-            curationScore: photo.score
+            curationScore: photo.score,
+            assetId: photo.id,
+            dayKey: photo.dayKey,
+            curationReasons: asset.curationReasons || []
         };
     }
 
@@ -115,6 +140,32 @@ export class HomeManager {
         });
     }
 
+    _setupDailyCurationListener() {
+        if (typeof window === 'undefined') return;
+        window.addEventListener('daily-curation-updated', () => {
+            const photos = photoService.getPhotos();
+            const visibleMax = Math.min(photos.length, 3);
+
+            if (photos.length > 0) {
+                this.error = null;
+                if (this.currentIndex >= visibleMax) {
+                    this.currentIndex = Math.max(0, visibleMax - 1);
+                }
+            } else if (!this.isLoading) {
+                this.error = '사진첩에 분석할 수 있는 사진이 없습니다.';
+                this.currentIndex = 0;
+            }
+
+            const isVisible = this.container &&
+                !this.container.classList.contains('hidden') &&
+                this.container.style.display !== 'none';
+
+            if (isVisible) {
+                this.render();
+            }
+        });
+    }
+
     async _handleDelete() {
         const photos = photoService.getPhotos();
         const current = photos[this.currentIndex];
@@ -122,8 +173,27 @@ export class HomeManager {
 
         const performDelete = async () => {
             try {
+                const actionDayKey = current.dayKey;
                 const success = await photoService.deletePhoto(this.currentIndex);
                 if (success) {
+                    await photoService.recordCurationAction({
+                        assetId: current.id,
+                        action: 'deleted',
+                        dayKey: actionDayKey
+                    });
+
+                    try {
+                        // 삭제 직후에는 force refresh로 pending/today 후보를 반영한다.
+                        const { photos: refreshed } = await photoService.refreshDailyCurationAfterMutation({
+                            limit: 3,
+                            thumbSize: 300,
+                            transport: 'base64'
+                        });
+                        this.currentIndex = 0;
+                    } catch (refreshError) {
+                        console.warn('HomeManager: daily refresh after mutation failed', refreshError);
+                    }
+
                     // 삭제 후 데이터 갱신 및 UI 리렌더링 (목록이 바뀌므로 이때는 리렌더링 필요)
                     if (this.currentIndex >= photoService.getPhotos().length) {
                         this.currentIndex = Math.max(0, photoService.getPhotos().length - 1);

@@ -18,6 +18,7 @@ import { StateManager, store } from './src/state/StateManager.js';
 import { GeminiService } from './src/services/GeminiService.js';
 import { supabase } from './src/services/supabase.js';
 import { Router } from './src/services/Router.js';
+import { photoService } from './src/services/PhotoService.js';
 
 // Capacitor Plugins
 import { App } from '@capacitor/app';
@@ -188,12 +189,17 @@ const homeManager = new HomeManager('home-view', {
     confirmModal: editConfirmModal,
     onPreciousClick: async () => {
         // 선택된 사진을 input-view에 표시 (QW-0: base64 직접 전달, File/FileReader 왕복 제거)
-        const base64 = await homeManager.getCurrentPhotoBase64();
-        const meta = homeManager.getCurrentPhotoMeta();
+        const [base64, meta] = await Promise.all([
+            homeManager.getCurrentPhotoBase64(),
+            homeManager.getCurrentPhotoMeta()
+        ]);
 
-        if (base64) {
-            inputManager.setPreviewImage(`data:image/jpeg;base64,${base64}`, meta);
+        if (!base64) {
+            showToast(UI_MESSAGES.ERROR_NO_IMAGE, ErrorLevel.WARN);
+            return;
         }
+
+        inputManager.setPreviewImage(`data:image/jpeg;base64,${base64}`, meta);
         router.navigate('input');
     }
 });
@@ -288,6 +294,23 @@ els.genBtn.onclick = async () => {
             metadata: metadata
         };
         store.setResult(result);
+
+        if (metadata?._isNative && metadata?.assetId && metadata?.dayKey) {
+            photoService.recordCurationAction({
+                assetId: metadata.assetId,
+                action: 'recorded',
+                dayKey: metadata.dayKey
+            }).then(() => {
+                return photoService.refreshDailyCurationAfterMutation({
+                    limit: 3,
+                    thumbSize: 300,
+                    transport: 'base64'
+                });
+            }).catch((refreshError) => {
+                console.warn('Main: daily refresh after record failed', refreshError);
+                showToast('홈 추천 갱신이 지연되고 있습니다. 홈에서 다시 시도해 주세요.', ErrorLevel.WARN);
+            });
+        }
 
         router.navigate('result');
         // Router handles visibility, but Input View specific hiding might be needed if Router doesn't cover it
