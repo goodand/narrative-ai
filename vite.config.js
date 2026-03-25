@@ -1,8 +1,11 @@
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
   // 환경변수 로드
   const env = loadEnv(mode, process.cwd(), '');
+  const rootDir = fileURLToPath(new URL('.', import.meta.url));
 
   // 백엔드 포트 (환경변수 또는 기본값 8000)
   const backendPort = env.VITE_BACKEND_PORT || '8000';
@@ -18,6 +21,11 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       sourcemap: true,
+      rollupOptions: {
+        input: {
+          app: resolve(rootDir, 'index.html')
+        }
+      },
       commonjsOptions: {
         // 2. CommonJS 라이브러리(exif-js 등) 호환성 해결
         transformMixedEsModules: true,

@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: macos-15
@@ -21,6 +24,10 @@ jobs:
         run: npm ci
 
       - name: Build web assets
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: test-anon-key
+          VITE_API_BASE_URL: http://127.0.0.1:8000
         run: npm run build
 
       - name: Sync iOS project
@@ -28,13 +35,12 @@ jobs:
 
       - name: Build for iOS Simulator (Universal Release)
         run: |
-          cd ios/App
           xcodebuild \
             -scheme App \
-            -project App.xcodeproj \
+            -workspace ios/App/App.xcworkspace \
             -sdk iphonesimulator \
             -configuration Release \
-            -derivedDataPath ./build \
+            -derivedDataPath ios/App/build \
             -destination "generic/platform=iOS Simulator" \
             ARCHS="arm64 x86_64" \
             ONLY_ACTIVE_ARCH=NO \
@@ -43,31 +49,24 @@ jobs:
 
       - name: Find and zip .app for Appetize.io
         run: |
-          # 1. 빌드된 .app 경로 찾기
-          APP_PATH=$(find ios/App/build -maxdepth 6 -name "*.app" -type d | head -1)
+          APP_PATH="$(find ios/App/build/Build/Products -type d -name 'App.app' -print -quit)"
 
           if [ -z "$APP_PATH" ]; then
             echo "Error: .app folder not found!"
-            find ios/App/build -type d -maxdepth 6
+            find ios/App/build/Build/Products -maxdepth 6 -type d
             exit 1
           fi
 
           echo "Found .app at: $APP_PATH"
-          
-          # 아키텍처 확인 로그 추가
+          chmod +x "$APP_PATH/App"
           echo "=== Binary Architecture Check ==="
           lipo -info "$APP_PATH/App"
 
-          # 2. 실행 권한 부여
-          chmod +x "$APP_PATH/App"
-          
-          # 3. 압축 (폴더 자체를 포함)
           PARENT_DIR=$(dirname "$APP_PATH")
           APP_NAME=$(basename "$APP_PATH")
           cd "$PARENT_DIR"
           zip -r "$GITHUB_WORKSPACE/NarrativeAI.zip" "$APP_NAME"
 
-          # 4. 검증 로그 강화
           echo "=== Zip Structure Verification ==="
           unzip -l "$GITHUB_WORKSPACE/NarrativeAI.zip" | head -20
 
