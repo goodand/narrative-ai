@@ -1,0 +1,22 @@
+appId: com.narrativeai.appv
+name: pr2-track2-recorded-home
+tags:
+  - ios
+  - runtime
+  - pr2
+---
+- assertVisible: "좋은 아침이에요."
+- takeScreenshot: pr2-track2-home-before
+- tapOn:
+    point: "77%,84%"
+- assertVisible: "Meaning"
+- takeScreenshot: pr2-track2-input
+- tapOn: "기억 분석하기"
+- extendedWaitUntil:
+    visible: "리코코 기록 결과"
+    timeout: 90000
+- takeScreenshot: pr2-track2-result
+- tapOn: "홈"
+- waitForAnimationToEnd
+- assertVisible: "좋은 아침이에요."
+- takeScreenshot: pr2-track2-home-after-record

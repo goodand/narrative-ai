@@ -33,6 +33,15 @@ npm run maestro:test:ios
 - 삭제 후 리포트 반영
 - `소중해` 기록 후 홈 refresh
 
+현재 follow-up 기준 canonical flow:
+
+- `.maestro/flows/ios/pr2-track2-recorded-home.yaml`
+  - post-login home 상태에서 `소중해 -> 기억 분석하기 -> 리코코 기록 결과 -> 홈`을 검증합니다.
+- `.maestro/flows/ios/pr2-track3-delete-report.yaml`
+  - post-login home 상태에서 `고마웠어 -> 비우기 -> iOS Delete 확인 -> 리포트 -> 홈`을 검증합니다.
+
+두 flow 모두 로그인과 권한 부여 이후의 안정된 home 화면을 시작점으로 가정합니다.
+
 ## Record Your Flow
 
 공식 문서의 `maestro record --local` 흐름을 그대로 사용합니다.
