@@ -1,0 +1,26 @@
+appId: com.narrativeai.appv
+name: pr2-track3-delete-report
+tags:
+  - ios
+  - runtime
+  - pr2
+---
+- assertVisible: "좋은 아침이에요."
+- takeScreenshot: pr2-track3-home-before-delete
+- tapOn:
+    point: "23%,84%"
+- assertVisible: "비우기"
+- tapOn: "비우기"
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 30000
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "이번 주 비움 리포트"
+    timeout: 60000
+- takeScreenshot: pr2-track3-report-after-system-delete
+- tapOn: "홈"
+- extendedWaitUntil:
+    visible: "좋은 아침이에요."
+    timeout: 10000
+- takeScreenshot: pr2-track3-home-after-delete
