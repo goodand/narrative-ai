@@ -1,0 +1,1 @@
+../../control/project_agent_ops/resources/material/task_packets/issued/2026-04-01-16-58_caption-optimization-implementation-packet.md

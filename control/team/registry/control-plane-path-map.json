@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "runtime_plane_root": ".",
+  "control_plane_root": "control",
+  "canonical_structure": {
+    "project_meanings": [
+      "project_domain",
+      "project_agent_ops",
+      "user_decisions",
+      "team"
+    ],
+    "action_units": [
+      "resources",
+      "registry",
+      "archive"
+    ],
+    "resource_secondary_kinds": [
+      "reference",
+      "evidence",
+      "material"
+    ]
+  },
+  "legacy_entry_surfaces": {
+    "plans": {
+      "type": "legacy_shim",
+      "canonical_plane": "control"
+    },
+    "docs": {
+      "type": "legacy_shim",
+      "canonical_plane": "control"
+    }
+  },
+  "runtime_plane_exceptions": {
+    ".gemini": {
+      "plane": "root",
+      "type": "runtime_control_surface",
+      "source_of_truth": ".gemini"
+    }
+  },
+  "control_buckets": {
+    "project_agent_ops": {
+      "resources": "control/project_agent_ops/resources",
+      "registry": "control/project_agent_ops/registry",
+      "archive": "control/project_agent_ops/archive"
+    },
+    "project_domain": {
+      "resources": "control/project_domain/resources",
+      "registry": "control/project_domain/registry",
+      "archive": "control/project_domain/archive"
+    },
+    "user_decisions": {
+      "resources": "control/user_decisions/resources",
+      "registry": "control/user_decisions/registry",
+      "archive": "control/user_decisions/archive"
+    },
+    "team": {
+      "resources": "control/team/resources",
+      "registry": "control/team/registry",
+      "archive": "control/team/archive"
+    }
+  },
+  "notes": [
+    "registry stores synchronization metadata, not runtime bodies",
+    "direct resource buckets under resources are compatibility shims when present",
+    "new control artifacts should be placed through reference, evidence, or material"
+  ]
+}
