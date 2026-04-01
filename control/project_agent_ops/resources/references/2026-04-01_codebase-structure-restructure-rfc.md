@@ -144,9 +144,12 @@ backend/app/
 ### PR-1: Control Registry Closure And Local Surface Policy
 - Objective:
   - close canonical tool/skill registry under [`control/project_agent_ops/registry/tools`](/Users/jaehyuntak/Desktop/Project_____현재_진행중인/narrative-ai/control/project_agent_ops/registry/tools)
+  - align `project_agent_ops/resources` operator reference buckets with the `my-image-parser` control pattern
   - codify local-only vs canonical surface policy
 - Include:
   - [`control/project_agent_ops/registry/tools/**`](/Users/jaehyuntak/Desktop/Project_____현재_진행중인/narrative-ai/control/project_agent_ops/registry/tools)
+  - [`control/project_agent_ops/resources/references/**`](/Users/jaehyuntak/Desktop/Project_____현재_진행중인/narrative-ai/control/project_agent_ops/resources/references)
+  - [`control/project_agent_ops/resources/tools_inventory/**`](/Users/jaehyuntak/Desktop/Project_____현재_진행중인/narrative-ai/control/project_agent_ops/resources/tools_inventory)
   - supporting control docs or rules only
 - Exclude:
   - runtime code
@@ -156,6 +159,7 @@ backend/app/
   - low
 - Success criteria:
   - tool registry is tracked
+  - `project_agent_ops/resources/references` and `project_agent_ops/resources/tools_inventory` are canonical direct buckets
   - docs/plans shim-only rule is explicit
   - `.history` / `.user` / `.worktrees` are clearly documented as non-canonical
 

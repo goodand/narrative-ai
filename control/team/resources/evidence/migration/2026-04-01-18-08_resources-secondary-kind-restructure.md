@@ -22,9 +22,9 @@ The old top-level resource buckets were moved under one of the three secondary k
   - `contracts`
   - `experiment_plans`
   - `handoffs`
-  - `references`
+  - compatibility shim only for `references`
+  - compatibility shim only for `tools_inventory`
   - `skill_candidates`
-  - `tools_inventory`
   - `troubleshooting`
 - `evidence/`
   - `feedback`
@@ -33,6 +33,9 @@ The old top-level resource buckets were moved under one of the three secondary k
 - `material/`
   - `manifests`
   - `task_packets`
+- direct canonical buckets aligned with `my-image-parser`
+  - `references`
+  - `tools_inventory`
 
 ### `project_domain/resources`
 - `reference/`
@@ -79,11 +82,17 @@ The old top-level resource buckets were moved under one of the three secondary k
 
 ## Legacy Compatibility
 Old resource paths are preserved as symlink shims so existing references keep working.
+For `project_agent_ops/resources`, the original secondary-kind placement for
+`reference/references` and `reference/tools_inventory` was later flattened back to
+top-level canonical buckets to match the operator-facing access pattern.
 
 Examples:
-- `control/project_agent_ops/resources/references` -> `control/project_agent_ops/resources/reference/references`
+- `control/project_agent_ops/resources/reference/references` -> `control/project_agent_ops/resources/references`
+- `control/project_agent_ops/resources/reference/tools_inventory` -> `control/project_agent_ops/resources/tools_inventory`
 - `control/project_domain/resources/checklists` -> `control/project_domain/resources/reference/checklists`
 
 ## Rule After Migration
 - New control artifacts should be placed through `reference / evidence / material`
+- Exception: `project_agent_ops/resources/references` and `project_agent_ops/resources/tools_inventory`
+  are canonical direct buckets, and `project_agent_ops/resources/reference/*` is compatibility-only
 - old direct bucket names under `resources/` are compatibility surfaces only

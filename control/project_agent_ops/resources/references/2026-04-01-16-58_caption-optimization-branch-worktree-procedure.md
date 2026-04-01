@@ -42,7 +42,7 @@ Expected result:
 ## Step 4. Lock scope before editing
 Open these three canonical documents first:
 - `control/project_agent_ops/resources/material/task_packets/issued/2026-04-01-16-58_caption-optimization-implementation-packet.md`
-- `control/project_agent_ops/resources/reference/references/2026-04-01-16-58_caption-optimization-pr-scope-checklist.md`
+- `control/project_agent_ops/resources/references/2026-04-01-16-58_caption-optimization-pr-scope-checklist.md`
 - `control/project_agent_ops/resources/evidence/reports/main-worktree-verification-for-caption-optimization.md`
 
 Before writing code, verify that the intended changes stay inside:

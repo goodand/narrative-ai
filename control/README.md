@@ -29,6 +29,16 @@ These are not live runtime bodies.
 - `material/`
   - manifests, task packets, assets, templates, context packages, concrete reusable materials
 
+Operator-facing artifacts under `project_agent_ops/resources/` may keep direct canonical
+top-level buckets when that shape is the stable access surface used across workspaces.
+Current canonical examples:
+- `control/project_agent_ops/resources/references/`
+- `control/project_agent_ops/resources/tools_inventory/`
+
+In that case:
+- `control/project_agent_ops/resources/reference/*` is a compatibility shim surface
+- direct operator buckets are the canonical source of truth
+
 ### `registry/`
 Synchronization surfaces.
 This is where state references, indices, path maps, and metadata used for coordination are managed.

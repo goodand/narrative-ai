@@ -1,1 +1,1 @@
-../../control/project_agent_ops/resources/reference/tools_inventory/2026-04-01-17-48_caption-optimization-tool-and-xcode-strategy.md
+../../control/project_agent_ops/resources/tools_inventory/2026-04-01-17-48_caption-optimization-tool-and-xcode-strategy.md

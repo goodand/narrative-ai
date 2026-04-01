@@ -16,11 +16,11 @@ Move `plans/` and `docs/` content into a `control/` structure aligned with the c
 - `plans/gemini/2026-04-01-16-58_caption-optimization-implementation-packet.md`
   -> `control/project_agent_ops/resources/material/task_packets/issued/2026-04-01-16-58_caption-optimization-implementation-packet.md`
 - `plans/gemini/2026-04-01-16-58_caption-optimization-pr-scope-checklist.md`
-  -> `control/project_agent_ops/resources/reference/references/2026-04-01-16-58_caption-optimization-pr-scope-checklist.md`
+  -> `control/project_agent_ops/resources/references/2026-04-01-16-58_caption-optimization-pr-scope-checklist.md`
 - `plans/gemini/2026-04-01-16-58_caption-optimization-branch-worktree-procedure.md`
-  -> `control/project_agent_ops/resources/reference/references/2026-04-01-16-58_caption-optimization-branch-worktree-procedure.md`
+  -> `control/project_agent_ops/resources/references/2026-04-01-16-58_caption-optimization-branch-worktree-procedure.md`
 - `plans/gemini/2026-04-01-17-48_caption-optimization-tool-and-xcode-strategy.md`
-  -> `control/project_agent_ops/resources/reference/tools_inventory/2026-04-01-17-48_caption-optimization-tool-and-xcode-strategy.md`
+  -> `control/project_agent_ops/resources/tools_inventory/2026-04-01-17-48_caption-optimization-tool-and-xcode-strategy.md`
 
 ### Docs
 - `docs/release-checklist.md`
@@ -32,17 +32,18 @@ Move `plans/` and `docs/` content into a `control/` structure aligned with the c
 - `docs/perf/worktree-experiment-plan.md`
   -> `control/project_domain/resources/reference/experiment_plans/worktree-experiment-plan.md`
 - `docs/testing/maestro.md`
-  -> `control/project_agent_ops/resources/reference/references/maestro.md`
+  -> `control/project_agent_ops/resources/references/maestro.md`
 
 ## Legacy Strategy
 Old `plans/` and `docs/` file paths are preserved as symlink shims.
 This keeps existing references stable while making `control/` the source of truth.
 
-The direct bucket names that appeared before the secondary-kind restructure
-(for example `resources/references` or `resources/checklists`) may still resolve
-through compatibility shims, but they are no longer canonical.
+For `project_agent_ops/resources`, the operator-facing direct buckets
+`resources/references` and `resources/tools_inventory` are canonical again,
+aligned with the `my-image-parser` control pattern.
+`resources/reference/*` remains as a compatibility shim surface only.
 
 ## Rule
-- New operational planning docs go under `control/project_agent_ops/resources/{reference,evidence,material}/...`
+- New operational planning docs for agent-ops references go under `control/project_agent_ops/resources/{references,tools_inventory,evidence,material}/...`
 - New project-domain checklists and experiment plans go under `control/project_domain/resources/{reference,evidence,material}/...`
 - `plans/` and `docs/` should be treated as legacy entry surfaces unless a future cleanup removes the shims
