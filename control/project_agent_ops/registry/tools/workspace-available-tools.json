@@ -1,0 +1,372 @@
+{
+  "generated_at": "2026-04-01",
+  "generated_by": "narrative-ai-system-maker",
+  "workspace": {
+    "name": "narrative-ai",
+    "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/narrative-ai",
+    "workspace_config_source": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/narrative-ai/.mcp.json"
+  },
+  "related_catalogs": {
+    "skills_catalog_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/narrative-ai/control/project_agent_ops/registry/tools/workspace-available-skills.json",
+    "skills_source_root": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project",
+    "external_skills_catalog_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/narrative-ai/control/project_agent_ops/registry/tools/workspace-available-skills.json",
+    "my_image_parser_verified_tool_catalog_json": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/narrative-ai/control/project_agent_ops/registry/tools/my-image-parser-tool-list-verified.json",
+    "my_image_parser_canonical_tool_inventory_json": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/control/project_agent_ops/registry/tools/tool_inventory.json",
+    "my_image_parser_canonical_mcp_reference_md": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/control/project_agent_ops/resources/tools_inventory/REFERENCE_mcp_setup.md",
+    "my_image_parser_skills_root": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills",
+    "my_image_parser_mcp_scripts_root": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp",
+    "my_image_parser_mcp_vendor_root": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/vendor/mcp"
+  },
+  "notes": [
+    "Sensitive values from .mcp.json are redacted.",
+    "Status distinguishes between configured in workspace and verified in this session."
+  ],
+  "status_legend": {
+    "configured": "Declared in workspace config but not directly verified in this session.",
+    "verified": "Observed as accessible in this session.",
+    "runtime_issue": "Tool group is exposed, but an actual call failed in this session."
+  },
+  "workspace_configured_mcp_servers": [
+    {
+      "name": "github",
+      "status": "verified",
+      "transport": "remote_http",
+      "configured_via": ".mcp.json",
+      "auth": "bearer token via env var",
+      "scope": [
+        "repository access",
+        "pull requests",
+        "issues",
+        "code search",
+        "file operations"
+      ],
+      "session_evidence": [
+        "github MCP resource templates were listed in this session"
+      ]
+    },
+    {
+      "name": "git",
+      "status": "verified",
+      "transport": "stdio",
+      "configured_via": ".mcp.json",
+      "command": "npx @cyanheads/git-mcp-server@latest",
+      "scope": [
+        "local git status",
+        "diff",
+        "branch",
+        "commit",
+        "worktree",
+        "history"
+      ],
+      "session_evidence": [
+        "git MCP resource git://working-directory was listed in this session",
+        "git MCP resource template git-working-directory was listed in this session"
+      ]
+    },
+    {
+      "name": "weather_server",
+      "status": "configured",
+      "transport": "stdio",
+      "configured_via": ".mcp.json",
+      "command": "uv run --python 3.11 weather_server.py",
+      "scope": [
+        "weather lookup"
+      ]
+    },
+    {
+      "name": "chrome-devtools",
+      "status": "configured",
+      "transport": "stdio",
+      "configured_via": ".mcp.json",
+      "command": "npx chrome-devtools-mcp@latest",
+      "scope": [
+        "browser inspection",
+        "DOM and network debugging"
+      ]
+    },
+    {
+      "name": "playwright",
+      "status": "configured",
+      "transport": "stdio",
+      "configured_via": ".mcp.json",
+      "command": "npx @playwright/mcp@latest",
+      "scope": [
+        "browser automation",
+        "E2E interaction",
+        "visual verification"
+      ]
+    },
+    {
+      "name": "figma",
+      "status": "configured",
+      "transport": "stdio",
+      "configured_via": ".mcp.json",
+      "command": "npx figma-developer-mcp --figma-api-key=<redacted> --stdio",
+      "scope": [
+        "Figma design access",
+        "developer handoff"
+      ]
+    },
+    {
+      "name": "mcp-server-firecrawl",
+      "status": "configured",
+      "transport": "stdio",
+      "configured_via": ".mcp.json",
+      "command": "npx firecrawl-mcp",
+      "auth": "API key configured locally and redacted here",
+      "scope": [
+        "site crawl",
+        "web extraction"
+      ]
+    },
+    {
+      "name": "youtube-transcript",
+      "status": "configured",
+      "transport": "stdio",
+      "configured_via": ".mcp.json",
+      "command": "npx @kimtaeyoon83/mcp-server-youtube-transcript",
+      "scope": [
+        "YouTube transcript retrieval"
+      ]
+    }
+  ],
+  "core_session_tool_groups": [
+    {
+      "name": "web",
+      "status": "verified",
+      "scope": [
+        "internet search",
+        "page open and navigation",
+        "image query",
+        "finance",
+        "weather",
+        "sports",
+        "time"
+      ]
+    },
+    {
+      "name": "shell_exec",
+      "status": "verified",
+      "scope": [
+        "terminal command execution",
+        "pty sessions",
+        "incremental stdin writes"
+      ],
+      "tool_names": [
+        "functions.exec_command",
+        "functions.write_stdin"
+      ]
+    },
+    {
+      "name": "mcp_resource_introspection",
+      "status": "verified",
+      "scope": [
+        "list MCP resources",
+        "list MCP resource templates",
+        "read MCP resources"
+      ],
+      "tool_names": [
+        "functions.list_mcp_resources",
+        "functions.list_mcp_resource_templates",
+        "functions.read_mcp_resource"
+      ]
+    },
+    {
+      "name": "filesystem",
+      "status": "verified",
+      "scope": [
+        "read files",
+        "write files",
+        "search files",
+        "directory tree",
+        "file metadata"
+      ],
+      "tool_namespace": "functions.mcp__filesystem__*"
+    },
+    {
+      "name": "git_structured",
+      "status": "verified",
+      "scope": [
+        "git status",
+        "diff",
+        "log",
+        "branch",
+        "checkout",
+        "commit",
+        "push",
+        "worktree"
+      ],
+      "tool_namespace": "functions.mcp__git__*"
+    },
+    {
+      "name": "github_structured",
+      "status": "verified",
+      "scope": [
+        "repo metadata",
+        "issues",
+        "pull requests",
+        "review comments",
+        "search",
+        "file content",
+        "PR creation and updates"
+      ],
+      "tool_namespace": "functions.mcp__github__*"
+    },
+    {
+      "name": "github_connector_extended",
+      "status": "verified",
+      "scope": [
+        "additional GitHub search and PR helpers",
+        "review reactions",
+        "compare commits",
+        "blob and tree operations"
+      ],
+      "tool_namespace": "functions.mcp__codex_apps__github_*"
+    },
+    {
+      "name": "patch_editing",
+      "status": "verified",
+      "scope": [
+        "manual file patch application"
+      ],
+      "tool_names": [
+        "functions.apply_patch"
+      ]
+    },
+    {
+      "name": "sub_agents",
+      "status": "verified",
+      "scope": [
+        "spawn agent",
+        "send input",
+        "wait",
+        "resume",
+        "close"
+      ],
+      "tool_names": [
+        "functions.spawn_agent",
+        "functions.send_input",
+        "functions.wait_agent",
+        "functions.resume_agent",
+        "functions.close_agent"
+      ]
+    },
+    {
+      "name": "workspace_context_memory",
+      "status": "verified",
+      "scope": [
+        "product context",
+        "active context",
+        "decisions",
+        "progress",
+        "custom data",
+        "semantic search"
+      ],
+      "tool_namespace": "functions.mcp__conport__*"
+    },
+    {
+      "name": "task_manager",
+      "status": "runtime_issue",
+      "scope": [
+        "task create",
+        "task lock",
+        "session start",
+        "subtask tracking",
+        "checkpoints"
+      ],
+      "tool_namespace": "functions.mcp__agent_task_manager__*",
+      "observed_issue": "better-sqlite3 binary version mismatch during task_list call"
+    },
+    {
+      "name": "image_and_metadata",
+      "status": "verified",
+      "scope": [
+        "image captioning",
+        "alt text",
+        "dense caption",
+        "EXIF read/write/remove"
+      ],
+      "tool_namespaces": [
+        "functions.mcp__cv_mcp__*",
+        "functions.mcp__exiftool__*"
+      ]
+    },
+    {
+      "name": "canva",
+      "status": "verified",
+      "scope": [
+        "design generation",
+        "design search",
+        "content read",
+        "comments",
+        "export",
+        "resize"
+      ],
+      "tool_namespace": "functions.mcp__canva__*"
+    }
+  ],
+  "known_runtime_issues": [
+    {
+      "tool_group": "task_manager",
+      "status": "runtime_issue",
+      "issue": "better-sqlite3 was compiled against a different Node.js module version",
+      "impact": "Do not rely on task-manager state until the local module is rebuilt or reinstalled."
+    }
+  ],
+  "external_workspace_references": [
+    {
+      "workspace_name": "my-image-parser",
+      "workspace_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser",
+      "verified_tool_catalog_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/narrative-ai/control/project_agent_ops/registry/tools/my-image-parser-tool-list-verified.json",
+      "skills_root": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills",
+      "canonical_tool_list_paths": {
+        "tool_inventory_json": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/control/project_agent_ops/registry/tools/tool_inventory.json",
+        "reference_mcp_setup_md": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/control/project_agent_ops/resources/tools_inventory/REFERENCE_mcp_setup.md"
+      },
+      "mcp_paths": {
+        "scripts_root": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp",
+        "vendor_root": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/vendor/mcp",
+        "launcher_scripts": [
+          "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-agent-task-manager-mcp.sh",
+          "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-conport-mcp.sh",
+          "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-cv-mcp.sh",
+          "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-exiftool-mcp.sh",
+          "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-filesystem-mcp.sh",
+          "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-imagesorcery-mcp.sh",
+          "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-macos-ocr-mcp.sh",
+          "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-paddleocr-mcp.sh"
+        ],
+        "vendor_directories": [
+          "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/vendor/mcp/imagesorcery-mcp",
+          "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/vendor/mcp/macos-ocr-mcp",
+          "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/vendor/mcp/paddleocr-mcp",
+          "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/vendor/mcp/tigaweb-image-edit-sample-mcp"
+        ]
+      },
+      "canonical_inventory_summary": {
+        "generated_at": "2026-03-29",
+        "scope": "All tools available to the current Codex agent in this environment, plus workspace MCP servers and installed workflow skills.",
+        "workspace_mcp_servers": [
+          "agent-task-manager",
+          "canva",
+          "conport",
+          "cv-mcp",
+          "exiftool",
+          "filesystem",
+          "imagesorcery-mcp",
+          "macos-ocr-mcp",
+          "paddleocr-mcp",
+          "tigaweb-image-edit-sample-mcp"
+        ]
+      },
+      "verified_refresh_summary": {
+        "verified_by": "direct_file_read_and_cross_check",
+        "verified_at": "2026-04-01",
+        "launcher_scripts_read": 9,
+        "inventory_servers_read": 10,
+        "global_codex_registrations_confirmed": 6,
+        "vscode_registrations_confirmed": 4
+      }
+    }
+  ]
+}
