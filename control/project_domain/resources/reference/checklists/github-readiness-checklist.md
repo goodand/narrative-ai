@@ -23,7 +23,7 @@
 - [x] `.gitignore`에 build, log, temp, env variant, Maestro temp ignore가 있다.
 - [ ] tracked 텍스트 파일의 로컬 절대경로·개인 메모 흔적을 정리한다.
 - [x] README wording이 현재 private GitHub CI 목표와 맞는다.
-- [x] `.maestro/` flow와 `control/project_agent_ops/resources/reference/references/maestro.md`가 필요하다면 tracked 상태로 포함한다.
+- [x] `.maestro/` flow와 `control/project_agent_ops/resources/references/maestro.md`가 필요하다면 tracked 상태로 포함한다.
 - [ ] GitHub에 올릴 변경만 남도록 working tree를 정리한다.
 
 ## Hard Stop

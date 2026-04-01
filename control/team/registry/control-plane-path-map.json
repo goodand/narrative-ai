@@ -41,7 +41,15 @@
     "project_agent_ops": {
       "resources": "control/project_agent_ops/resources",
       "registry": "control/project_agent_ops/registry",
-      "archive": "control/project_agent_ops/archive"
+      "archive": "control/project_agent_ops/archive",
+      "canonical_direct_buckets": [
+        "references",
+        "tools_inventory"
+      ],
+      "compatibility_shim_buckets": [
+        "reference/references",
+        "reference/tools_inventory"
+      ]
     },
     "project_domain": {
       "resources": "control/project_domain/resources",
@@ -61,7 +69,8 @@
   },
   "notes": [
     "registry stores synchronization metadata, not runtime bodies",
-    "direct resource buckets under resources are compatibility shims when present",
-    "new control artifacts should be placed through reference, evidence, or material"
+    "new control artifacts should be placed through reference, evidence, or material",
+    "project_agent_ops/resources/references and project_agent_ops/resources/tools_inventory are canonical direct buckets aligned with the my-image-parser control pattern",
+    "project_agent_ops/resources/reference/* is a compatibility shim surface only"
   ]
 }

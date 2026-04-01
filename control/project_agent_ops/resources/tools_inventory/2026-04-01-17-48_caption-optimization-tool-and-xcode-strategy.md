@@ -6,8 +6,8 @@ Define the implementation-time tool strategy for the caption-generation optimiza
 ## Inputs
 This strategy is aligned with:
 - `control/project_agent_ops/resources/material/task_packets/issued/2026-04-01-16-58_caption-optimization-implementation-packet.md`
-- `control/project_agent_ops/resources/reference/references/2026-04-01-16-58_caption-optimization-pr-scope-checklist.md`
-- `control/project_agent_ops/resources/reference/references/2026-04-01-16-58_caption-optimization-branch-worktree-procedure.md`
+- `control/project_agent_ops/resources/references/2026-04-01-16-58_caption-optimization-pr-scope-checklist.md`
+- `control/project_agent_ops/resources/references/2026-04-01-16-58_caption-optimization-branch-worktree-procedure.md`
 - `control/project_agent_ops/resources/evidence/reports/main-worktree-verification-for-caption-optimization.md`
 - `.user/workspace-available-tools.json`
 - `.user/workspace-available-skills.json`

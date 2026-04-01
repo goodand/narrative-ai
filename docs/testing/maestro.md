@@ -1,1 +1,1 @@
-../../control/project_agent_ops/resources/reference/references/maestro.md
+../../control/project_agent_ops/resources/references/maestro.md

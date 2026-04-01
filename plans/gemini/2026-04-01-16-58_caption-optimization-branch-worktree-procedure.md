@@ -1,1 +1,1 @@
-../../control/project_agent_ops/resources/reference/references/2026-04-01-16-58_caption-optimization-branch-worktree-procedure.md
+../../control/project_agent_ops/resources/references/2026-04-01-16-58_caption-optimization-branch-worktree-procedure.md
