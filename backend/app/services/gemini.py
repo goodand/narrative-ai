@@ -11,7 +11,7 @@ import httpx
 from typing import Optional
 
 from ..config import get_settings
-from ..models.schemas import NarrativeContext, NarrativeResponse, SynonymsResponse, SynonymItem, DeleteRecommendationResponse
+from ..models.schemas import NarrativeContext, NarrativeResponse, SynonymsResponse, SynonymItem, DeleteRecommendationResponse, BatchDeleteRecommendationResponse
 from ..utils.prompts import build_story_prompt, build_synonyms_prompt, DEFAULT_SYSTEM_PROMPT
 from .geocoding import get_address_from_coords
 
@@ -385,6 +385,10 @@ class GeminiService:
         
         system_prompt = "너는 디지털 미니멀리즘을 도와주는 친절한 어시스턴트 리코코야. 사용자의 추억 비우기 과정을 죄책감 들지 않고 기분 좋게 격려해야 해."
 
+        logger.info(f"--- [GEMINI-TRACE] Single Delete Recommendation ---")
+        logger.info(f"Criteria: {criteria_str}")
+        logger.info(f"Target Prompt: {prompt}")
+
         payload = {
             "contents": [{
                 "parts": [
@@ -432,7 +436,98 @@ class GeminiService:
                 usedCriteria=[]
             )
 
+    async def generate_batch_delete_recommendation(
+        self,
+        images_base64: list[str],
+        metadatas: Optional[list[dict]],
+        filtering_criteria_list: Optional[list[list]],
+        language: str,
+        tone: str,
+        max_length: int
+    ) -> BatchDeleteRecommendationResponse:
+        """
+        여러 장의 사진을 동시에 분석하여 비교 우위 기반의 삭제 추천 사유 생성
+        """
+        await asyncio.sleep(0.5)
+
+        num_images = len(images_base64)
+        
+        # Build comparative prompt for a single common semantic reason
+        prompt = (
+            f"제시된 {num_images}장의 이미지는 현재 사용자의 기기에서 '정리 대상'으로 분류되었습니다.\n"
+            f"이미지들을 관찰하고 전문가의 관점에서 **이 사진들을 비우기로(삭제) 추천하는 공통된 원인을 한 문장으로 간결하게** 알려주세요.\n"
+            f"화질 저하, 중복성, 내용의 일시성, 구도의 불안정 등 시각적이고 구체적인 이유를 들어 설득력 있게 작성해야 합니다.\n"
+            f"어조: {tone}, 언어: {language}, 최대 길이: {max_length}자 이내.\n"
+            f"결과는 JSON 형식으로 'commonReason' 필드에 담아 반환해주세요."
+        )
+        
+        system_prompt = "너는 디지털 미니멀리즘 리코코야. 사용자가 이미 알고 있는 메타데이터 정보보다는 사진의 시각적 품질과 담긴 내용의 맥락을 분석하여 명확한 삭제 근거를 제시해줘."
+
+        logger.info(f"--- [GEMINI-TRACE] Hybrid Batch Analysis ({num_images} images) ---")
+        logger.info(f"Hybrid Prompt: {prompt}")
+
+        parts = [{"text": prompt}]
+        for i, img in enumerate(images_base64):
+            parts.append({"text": f"--- Photo {i+1} ---"})
+            parts.append({"inlineData": {"mimeType": "image/jpeg", "data": img}})
+
+        payload = {
+            "contents": [{"parts": parts}],
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseSchema": {
+                    "type": "object",
+                    "properties": {
+                        "commonReason": {"type": "string"},
+                        "shortReason": {"type": "string"}
+                    },
+                    "required": ["commonReason", "shortReason"]
+                },
+                "temperature": 0.4,
+                "topP": 0.90
+            }
+        }
+
+        try:
+            data = await self._fetch_with_key_failover(self.settings.gemini_story_model, payload)
+            return self._parse_hybrid_batch_response(data, num_images)
+        except Exception as e:
+            logger.error(f"Failed to generate hybrid batch recommendation: {e}")
+            fallback_items = [
+                DeleteRecommendationResponse(reason="정리하기 좋은 기록입니다.", shortReason="정리 추천", usedCriteria=[])
+                for _ in range(num_images)
+            ]
+            return BatchDeleteRecommendationResponse(recommendations=fallback_items)
+
+    def _parse_hybrid_batch_response(self, data: dict, expected_count: int) -> BatchDeleteRecommendationResponse:
+        try:
+            result_text = data["candidates"][0]["content"]["parts"][0]["text"]
+            cleaned_text = result_text.replace("```json", "").replace("```", "").strip()
+            parsed = json.loads(cleaned_text)
+            
+            common_reason = parsed.get("commonReason", "정리하기 좋은 기록입니다.")
+            short_reason = parsed.get("shortReason", "정리 추천")
+            
+            recs = [
+                DeleteRecommendationResponse(
+                    reason=common_reason,
+                    shortReason=short_reason,
+                    usedCriteria=[]
+                ) for _ in range(expected_count)
+            ]
+                
+            return BatchDeleteRecommendationResponse(recommendations=recs)
+        except Exception as e:
+            logger.error(f"Hybrid batch parse error: {e}")
+            fallback_items = [
+                DeleteRecommendationResponse(reason="정리하기 좋은 기록입니다.", shortReason="정리 추천", usedCriteria=[])
+                for _ in range(expected_count)
+            ]
+            return BatchDeleteRecommendationResponse(recommendations=fallback_items)
+
     def _parse_delete_recommendation_response(self, data: dict) -> DeleteRecommendationResponse:
+
         try:
             result_text = data["candidates"][0]["content"]["parts"][0]["text"]
             cleaned_text = result_text.replace("```json", "").replace("```", "").strip()

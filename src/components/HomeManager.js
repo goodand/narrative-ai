@@ -216,7 +216,7 @@ export class HomeManager {
                 <div class="py-4 shrink-0 px-1">
                     <h1 class="text-white text-xl font-bold leading-tight tracking-tight">
                         좋은 아침이에요.<br/>
-                        <span class="text-muted-lavender font-normal text-sm">기기에서 찾아낸 비우기 좋은 기록들입니다.</span>
+                        <span id="curation-header-desc" class="text-muted-lavender font-normal text-sm">기기에서 찾아낸 비우기 좋은 기록들입니다.</span>
                     </h1>
                 </div>
 

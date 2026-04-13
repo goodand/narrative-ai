@@ -12,7 +12,7 @@ import httpx
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from PIL import Image, ImageOps
 
-from ..models.schemas import NarrativeContext, NarrativeResponse, ErrorResponse, DeleteRecommendationRequest, DeleteRecommendationResponse
+from ..models.schemas import NarrativeContext, NarrativeResponse, ErrorResponse, DeleteRecommendationRequest, DeleteRecommendationResponse, BatchDeleteRecommendationRequest, BatchDeleteRecommendationResponse
 from ..services.gemini import GeminiService
 
 logger = logging.getLogger(__name__)
@@ -133,6 +133,8 @@ async def get_delete_recommendation(
         client = request.app.state.http_client
         gemini_service = GeminiService(client)
 
+        logger.info(f"--- [ROUTER-TRACE] Delete Recommendation Request Received ---")
+        
         result = await gemini_service.generate_delete_recommendation(
             image_base64=payload.image,
             metadata=payload.metadata,
@@ -142,8 +144,41 @@ async def get_delete_recommendation(
             max_length=payload.maxLength
         )
 
+        logger.info(f"--- [ROUTER-TRACE] Delete Recommendation Result: {result.shortReason} ---")
+
         return result
 
     except Exception as e:
         logger.error(f"Delete recommendation failed (Exception): {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"추천 이유 생성 중 오류가 발생했습니다: {str(e)}")
+@router.post(
+    "/delete-recommendation/batch",
+    response_model=BatchDeleteRecommendationResponse,
+    summary="이미지 묶음 삭제 추천 이유 생성",
+    description="여러 장의 이미지를 동시에 분석하여 비교 우위 기반의 삭제 사유를 생성합니다."
+)
+async def get_batch_delete_recommendation(
+    request: Request,
+    payload: BatchDeleteRecommendationRequest
+):
+    try:
+        logger.info(f"--- [ROUTER-TRACE] Batch Delete Recommendation Request: {len(payload.images)} images ---")
+        
+        client = request.app.state.http_client
+        gemini_service = GeminiService(client)
+
+        result = await gemini_service.generate_batch_delete_recommendation(
+            images_base64=payload.images,
+            metadatas=payload.metadatas,
+            filtering_criteria_list=payload.filteringCriteriaList,
+            language=payload.language,
+            tone=payload.tone,
+            max_length=payload.maxLength
+        )
+
+        logger.info(f"--- [ROUTER-TRACE] Batch Recommendation Completed ---")
+        return result
+
+    except Exception as e:
+        logger.error(f"Batch recommendation failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"묶음 추천 이유 생성 중 오류가 발생했습니다: {str(e)}")

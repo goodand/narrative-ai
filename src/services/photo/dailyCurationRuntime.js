@@ -34,7 +34,7 @@ export async function fetchDailyCuration(service, { limit = 6, thumbSize = 420, 
             imageUrl: item.thumb || null,
             date: service.currentDayKey || '',
             location: '위치 정보 없음',
-            contextMessage: generateDailyContextMessage(item.flags || []),
+            contextMessage: null,
             rawAsset: {
                 id: item.assetId,
                 curationReasons: item.flags || []

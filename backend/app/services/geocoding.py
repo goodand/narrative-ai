@@ -13,19 +13,19 @@ def get_address_from_coords(lat: float, lon: float) -> str:
     api_key = settings.google_cloud_api_key
     
     if not api_key:
-        logger.warning("GOOGLE_CLOUD_API_KEY is not set. Skipping geocoding.")
+        logger.warning("--- [GEO-TRACE] GOOGLE_CLOUD_API_KEY is not set. Reverse geocoding skipped. ---")
         return ""
 
     url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lon}&key={api_key}&language=ko"
     
     try:
-        logger.info(f"Requesting reverse geocoding for {lat}, {lon}")
+        logger.info(f"--- [GEO-TRACE] Requesting reverse geocoding for {lat}, {lon} ---")
         response = requests.get(url)
         data = response.json()
         
         status = data.get("status")
         if status != "OK":
-            logger.error(f"Geocoding API error status: {status}. Error Message: {data.get('error_message', 'No message')}")
+            logger.error(f"--- [GEO-TRACE] API error status: {status}. Message: {data.get('error_message', 'No message')} ---")
             return ""
 
         if not data.get("results"):
@@ -59,7 +59,7 @@ def get_address_from_coords(lat: float, lon: float) -> str:
 
         # 우선순위: 동 -> 동네 -> 구 -> 시
         result = dong or neighborhood or gu or city
-        logger.info(f"Successfully resolved address: {result}")
+        logger.info(f"--- [GEO-TRACE] Successfully resolved address: {result} ---")
         return result
 
     except Exception as e:

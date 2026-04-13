@@ -66,6 +66,17 @@ class DeleteRecommendationRequest(BaseModel):
     maxLength: int = 120
 
 
+class BatchDeleteRecommendationRequest(BaseModel):
+    """POST /api/v1/delete-recommendation/batch 요청 스키마"""
+    images: list[str] = Field(..., min_items=1, max_items=5, description="List of base64 images")
+    metadatas: Optional[list[Union[ImageMetadata, dict]]] = None
+    filteringCriteriaList: Optional[list[list[Any]]] = None
+    language: str = "Korean"
+    tone: str = "gentle"
+    maxLength: int = 120
+
+
+
 # ============== Response Schemas ==============
 
 class NarrativeResponse(BaseModel):
@@ -90,6 +101,12 @@ class DeleteRecommendationResponse(BaseModel):
     reason: str
     shortReason: str
     usedCriteria: list[str]
+
+
+class BatchDeleteRecommendationResponse(BaseModel):
+    """POST /api/v1/delete-recommendation/batch 응답 스키마"""
+    recommendations: list[DeleteRecommendationResponse]
+
 
 
 class ErrorResponse(BaseModel):

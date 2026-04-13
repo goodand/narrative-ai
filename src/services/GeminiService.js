@@ -141,6 +141,42 @@ export class GeminiService {
     }
 
     /**
+     * Generate batch delete recommendations via backend proxy
+     * @param {Object} params
+     * @param {string[]} params.images - Array of base64 encoded image strings
+     * @param {Object[]} params.metadatas
+     * @param {Object[][]} params.filteringCriteriaList
+     * @returns {Promise<{recommendations: Array}>}
+     */
+    async generateBatchDeleteRecommendations({ images, metadatas, filteringCriteriaList, language = 'Korean', tone = 'gentle', maxLength = 120 }) {
+        console.info(`[RECOCO-TRACE] Requesting batch analysis for ${images.length} images`);
+        
+        const response = await fetchWithRetry(
+            `${this.baseUrl}/api/v1/delete-recommendation/batch`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    images,
+                    metadatas,
+                    filteringCriteriaList,
+                    language,
+                    tone,
+                    maxLength
+                })
+            }
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`batch-delete-recommendation API error ${response.status}: ${errorText}`);
+        }
+
+        return await response.json();
+    }
+
+
+    /**
      * Get synonyms for keywords via backend proxy
      * @param {string[]} keywords - Keywords to get synonyms for
      * @param {string} language - Language for synonyms
