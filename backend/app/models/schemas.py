@@ -56,6 +56,16 @@ class SynonymsRequest(BaseModel):
     language: str = "Korean"
 
 
+class DeleteRecommendationRequest(BaseModel):
+    """POST /api/v1/delete-recommendation 요청 스키마"""
+    image: str = Field(..., description="Base64 encoded image data")
+    metadata: Optional[Union[ImageMetadata, dict]] = Field(default_factory=dict)
+    filteringCriteria: Optional[list[Any]] = None
+    language: str = "Korean"
+    tone: str = "gentle"
+    maxLength: int = 120
+
+
 # ============== Response Schemas ==============
 
 class NarrativeResponse(BaseModel):
@@ -73,6 +83,13 @@ class SynonymItem(BaseModel):
 class SynonymsResponse(BaseModel):
     """POST /api/v1/synonyms 응답 스키마"""
     suggestions: list[SynonymItem]
+
+
+class DeleteRecommendationResponse(BaseModel):
+    """POST /api/v1/delete-recommendation 응답 스키마"""
+    reason: str
+    shortReason: str
+    usedCriteria: list[str]
 
 
 class ErrorResponse(BaseModel):

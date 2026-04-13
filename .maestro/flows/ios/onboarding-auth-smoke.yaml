@@ -6,9 +6,10 @@ tags:
 ---
 - launchApp:
     clearState: true
-- assertVisible: "비움으로 선명해지는 당신의 기록"
+- assertVisible: "다음"
 - tapOn: "다음"
 - tapOn: "다음"
+- assertVisible: "시작하기"
 - tapOn: "시작하기"
 - assertVisible: "Google 계정으로 계속하기"
 - takeScreenshot: onboarding-auth-smoke

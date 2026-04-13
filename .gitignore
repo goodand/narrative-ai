@@ -10,6 +10,7 @@ node_modules
 # Capacitor iOS
 ios/App/Pods/
 ios/App/App/public/
+ios/App/App/credentials.plist
 ios/App/DerivedData/
 npm-debug.log*
 yarn-debug.log*

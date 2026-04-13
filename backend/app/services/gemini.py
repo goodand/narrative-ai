@@ -11,7 +11,7 @@ import httpx
 from typing import Optional
 
 from ..config import get_settings
-from ..models.schemas import NarrativeContext, NarrativeResponse, SynonymsResponse, SynonymItem
+from ..models.schemas import NarrativeContext, NarrativeResponse, SynonymsResponse, SynonymItem, DeleteRecommendationResponse
 from ..utils.prompts import build_story_prompt, build_synonyms_prompt, DEFAULT_SYSTEM_PROMPT
 from .geocoding import get_address_from_coords
 
@@ -363,4 +363,88 @@ class GeminiService:
         except (KeyError, json.JSONDecodeError):
             return SynonymsResponse(
                 suggestions=[SynonymItem(word=w, alternatives=[]) for w in original_keywords]
+            )
+
+    async def generate_delete_recommendation(
+        self,
+        image_base64: str,
+        metadata: dict,
+        filtering_criteria: list,
+        language: str,
+        tone: str,
+        max_length: int
+    ) -> DeleteRecommendationResponse:
+        await asyncio.sleep(0.5)
+
+        # Build prompt
+        criteria_str = ", ".join([str(c) for c in filtering_criteria]) if filtering_criteria else "분석 결과"
+        prompt = (f"사용자가 사진첩 정리를 위해 사진을 삭제하려고 합니다. "
+                  f"주어진 사진과 기준({criteria_str})을 보고, 이 사진을 비우면(삭제하면) 좋은 이유를 "
+                  f"매우 간결하고 부드러운 어조({tone})로 {language}로 ⚠️딱 한 문장(1 sentence)⚠️으로만 작성해주세요. "
+                  f"길이는 {max_length}자 이내여야 합니다. 불필요한 부연 설명은 빼주세요.")
+        
+        system_prompt = "너는 디지털 미니멀리즘을 도와주는 친절한 어시스턴트 리코코야. 사용자의 추억 비우기 과정을 죄책감 들지 않고 기분 좋게 격려해야 해."
+
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {"inlineData": {"mimeType": "image/jpeg", "data": image_base64}}
+                ]
+            }],
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseSchema": {
+                    "type": "object",
+                    "properties": {
+                        "reason": {
+                            "type": "string",
+                            "description": "Full gentle reason for deletion"
+                        },
+                        "shortReason": {
+                            "type": "string",
+                            "description": "Very short 2-3 word summary"
+                        },
+                        "usedCriteria": {
+                            "type": "array",
+                            "items": {"type": "string"}
+                        }
+                    },
+                    "required": ["reason", "shortReason", "usedCriteria"]
+                },
+                "temperature": 0.7,
+                "topP": 0.90
+            }
+        }
+
+        try:
+            data = await self._fetch_with_key_failover(
+                self.settings.gemini_story_model,
+                payload
+            )
+            return self._parse_delete_recommendation_response(data)
+        except Exception as e:
+            logger.error(f"Failed to generate delete recommendation: {e}")
+            return DeleteRecommendationResponse(
+                reason="오늘 비워내기 좋은 기록입니다.",
+                shortReason="정리 추천",
+                usedCriteria=[]
+            )
+
+    def _parse_delete_recommendation_response(self, data: dict) -> DeleteRecommendationResponse:
+        try:
+            result_text = data["candidates"][0]["content"]["parts"][0]["text"]
+            cleaned_text = result_text.replace("```json", "").replace("```", "").strip()
+            parsed = json.loads(cleaned_text)
+            return DeleteRecommendationResponse(
+                reason=parsed.get("reason", "오늘 비워내기 좋은 기록입니다."),
+                shortReason=parsed.get("shortReason", "정리 추천"),
+                usedCriteria=parsed.get("usedCriteria", [])
+            )
+        except (KeyError, IndexError, json.JSONDecodeError):
+            return DeleteRecommendationResponse(
+                reason="오늘 비워내기 좋은 기록입니다.",
+                shortReason="정리 추천",
+                usedCriteria=[]
             )

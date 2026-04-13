@@ -5,6 +5,7 @@
 
 import { Modal } from './Modal.js';
 import { Camera } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
 
 export class PermissionModal extends Modal {
     constructor(element) {
@@ -17,6 +18,12 @@ export class PermissionModal extends Modal {
      * Check permission status and open modal only if needed
      */
     async checkAndOpen() {
+        if (!Capacitor.isNativePlatform()) {
+            console.log('Skipping photo permissions on web environment');
+            if (this.onComplete) this.onComplete();
+            return;
+        }
+
         try {
             const status = await Camera.checkPermissions();
             console.log('Current permission status:', status.photos);

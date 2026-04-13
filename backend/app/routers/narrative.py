@@ -12,7 +12,7 @@ import httpx
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from PIL import Image, ImageOps
 
-from ..models.schemas import NarrativeContext, NarrativeResponse, ErrorResponse
+from ..models.schemas import NarrativeContext, NarrativeResponse, ErrorResponse, DeleteRecommendationRequest, DeleteRecommendationResponse
 from ..services.gemini import GeminiService
 
 logger = logging.getLogger(__name__)
@@ -110,3 +110,40 @@ async def generate_narrative(
     except Exception as e:
         logger.error(f"Narrative generation failed (Exception): {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"스토리 생성 중 오류가 발생했습니다: {str(e)}")
+
+
+@router.post(
+    "/delete-recommendation",
+    response_model=DeleteRecommendationResponse,
+    responses={
+        400: {"model": ErrorResponse, "description": "Bad Request"},
+        500: {"model": ErrorResponse, "description": "Internal Server Error"}
+    },
+    summary="이미지 삭제 추천 이유 생성",
+    description="이미지와 메타데이터를 기반으로 삭제를 추천하는 이유를 생성합니다."
+)
+async def get_delete_recommendation(
+    request: Request,
+    payload: DeleteRecommendationRequest
+):
+    try:
+        # payload.image is expected to be a valid base64 string (handled by frontend)
+        # we pass it directly to the service
+        
+        client = request.app.state.http_client
+        gemini_service = GeminiService(client)
+
+        result = await gemini_service.generate_delete_recommendation(
+            image_base64=payload.image,
+            metadata=payload.metadata,
+            filtering_criteria=payload.filteringCriteria,
+            language=payload.language,
+            tone=payload.tone,
+            max_length=payload.maxLength
+        )
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Delete recommendation failed (Exception): {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"추천 이유 생성 중 오류가 발생했습니다: {str(e)}")

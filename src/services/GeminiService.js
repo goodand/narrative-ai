@@ -100,6 +100,47 @@ export class GeminiService {
     }
 
     /**
+     * Generate delete recommendation reason from image via backend proxy
+     * @param {Object} params
+     * @param {string} params.imageBase64 - Base64 encoded image string
+     * @param {Object} params.metadata - Photo metadata
+     * @param {Object[]} params.filteringCriteria - Curation criteria with labels/descriptions
+     * @param {string} [params.language='Korean']
+     * @param {string} [params.tone='gentle']
+     * @param {number} [params.maxLength=120]
+     * @returns {Promise<{reason: string, shortReason: string, usedCriteria: string[]}>}
+     */
+    async generateDeleteRecommendation({ imageBase64, metadata, filteringCriteria, language = 'Korean', tone = 'gentle', maxLength = 120 }) {
+        const response = await fetchWithRetry(
+            `${this.baseUrl}/api/v1/delete-recommendation`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image: imageBase64,
+                    metadata,
+                    filteringCriteria,
+                    language,
+                    tone,
+                    maxLength
+                })
+            }
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`delete-recommendation API error ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return {
+            reason: data.reason,
+            shortReason: data.shortReason,
+            usedCriteria: data.usedCriteria
+        };
+    }
+
+    /**
      * Get synonyms for keywords via backend proxy
      * @param {string[]} keywords - Keywords to get synonyms for
      * @param {string} language - Language for synonyms

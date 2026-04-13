@@ -5,7 +5,9 @@
 
 import { supabase } from '../services/supabase.js';
 import { photoService } from '../services/PhotoService.js';
-import { handleError, showToast, ErrorLevel } from '../utils/errorHandler.js';
+import { loadRealPhotos, setupDailyCurationListener } from './home/homeLoadRuntime.js';
+import { handleDelete } from './home/homeDeleteRuntime.js';
+import { loadAndReflectImages, setupCarouselSnap } from './home/homeImageRuntime.js';
 
 export class HomeManager {
     constructor(containerId, options = {}) {
@@ -19,57 +21,11 @@ export class HomeManager {
         this.error = null;
         
         this._setupEventDelegation();
-        this._setupDailyCurationListener();
+        setupDailyCurationListener(this);
     }
 
-    /**
-     * 실제 사진 목록 로드 및 큐레이션 (PhotoService 위임)
-     */
     async loadRealPhotos() {
-        console.log('HomeManager: Starting loadRealPhotos...');
-        const startedAt = performance.now();
-        this.isLoading = true;
-        this.error = null;
-        this.render();
-
-        try {
-            // Launch path는 전체 스캔을 피하고, 네이티브 daily cache 결과만 즉시 받는다.
-            const { photos, totalCount, dayKey, fromCache, needsRefresh } = await photoService.fetchDailyCuration({
-                // 홈 첫 진입 p95 개선: 실제 캐러셀 표시 수(최대 3장)에 맞춰 페이로드를 최소화
-                limit: 3,
-                thumbSize: 300,
-                transport: 'base64'
-            });
-            
-            const elapsed = Math.round(performance.now() - startedAt);
-            console.log(`[PERF] launch_to_carousel_ms=${elapsed} dayKey=${dayKey} fromCache=${fromCache} needsRefresh=${needsRefresh}`);
-            console.log(`HomeManager: 데일리 큐레이션 조회 성공 — ${photos.length}장`);
-            // 빈 결과여도 성능 측정값은 남겨야 p95/p99 분석에서 샘플 누락이 없다.
-            const perfEntry = {
-                ts: new Date().toISOString(),
-                launch_to_carousel_ms: elapsed,
-                dayKey,
-                fromCache,
-                needsRefresh,
-                daily_items_count: photos.length
-            };
-            const prev = JSON.parse(localStorage.getItem('perf_runs') || '[]');
-            prev.push(perfEntry);
-            localStorage.setItem('perf_runs', JSON.stringify(prev.slice(-50)));
-            showToast(`[PERF] ${elapsed}ms cache=${fromCache ? 'Y' : 'N'} refresh=${needsRefresh ? 'Y' : 'N'} items=${photos.length}`, ErrorLevel.INFO);
-            
-            if (photos.length > 0) {
-                this.currentIndex = 0;
-            } else {
-                this.error = '사진첩에 분석할 수 있는 사진이 없습니다.';
-            }
-        } catch (error) {
-            handleError(error, 'HomeManager');
-            this.error = '사진첩 접근 권한이 필요합니다.';
-        } finally {
-            this.isLoading = false;
-            this.render();
-        }
+        return loadRealPhotos(this);
     }
 
     async getCurrentImageAsFile() {
@@ -119,7 +75,7 @@ export class HomeManager {
                 if (this.onPreciousClick) await this.onPreciousClick();
             } else if (thanksBtn) {
                 e.preventDefault();
-                await this._handleDelete();
+                await handleDelete(this);
             } else if (retryBtn) {
                 e.preventDefault();
                 this.loadRealPhotos();
@@ -138,85 +94,6 @@ export class HomeManager {
                 }
             }
         });
-    }
-
-    _setupDailyCurationListener() {
-        if (typeof window === 'undefined') return;
-        window.addEventListener('daily-curation-updated', () => {
-            const photos = photoService.getPhotos();
-            const visibleMax = Math.min(photos.length, 3);
-
-            if (photos.length > 0) {
-                this.error = null;
-                if (this.currentIndex >= visibleMax) {
-                    this.currentIndex = Math.max(0, visibleMax - 1);
-                }
-            } else if (!this.isLoading) {
-                this.error = '사진첩에 분석할 수 있는 사진이 없습니다.';
-                this.currentIndex = 0;
-            }
-
-            const isVisible = this.container &&
-                !this.container.classList.contains('hidden') &&
-                this.container.style.display !== 'none';
-
-            if (isVisible) {
-                this.render();
-            }
-        });
-    }
-
-    async _handleDelete() {
-        const photos = photoService.getPhotos();
-        const current = photos[this.currentIndex];
-        if (!current) return;
-
-        const performDelete = async () => {
-            try {
-                const actionDayKey = current.dayKey;
-                const success = await photoService.deletePhoto(this.currentIndex);
-                if (success) {
-                    await photoService.recordCurationAction({
-                        assetId: current.id,
-                        action: 'deleted',
-                        dayKey: actionDayKey
-                    });
-
-                    try {
-                        // 삭제 직후에는 force refresh로 pending/today 후보를 반영한다.
-                        const { photos: refreshed } = await photoService.refreshDailyCurationAfterMutation({
-                            limit: 3,
-                            thumbSize: 300,
-                            transport: 'base64'
-                        });
-                        this.currentIndex = 0;
-                    } catch (refreshError) {
-                        console.warn('HomeManager: daily refresh after mutation failed', refreshError);
-                    }
-
-                    // 삭제 후 데이터 갱신 및 UI 리렌더링 (목록이 바뀌므로 이때는 리렌더링 필요)
-                    if (this.currentIndex >= photoService.getPhotos().length) {
-                        this.currentIndex = Math.max(0, photoService.getPhotos().length - 1);
-                    }
-                    console.log('HomeManager: 사진 삭제 성공 및 통계 기록 완료');
-                    showToast('사진이 정리되었습니다.', ErrorLevel.INFO);
-                    this.render();
-                }
-            } catch (err) {
-                handleError(err, 'PhotoDelete');
-            }
-        };
-
-        if (this.confirmModal) {
-            this.confirmModal.show({
-                title: '사진을 비울까요?',
-                message: '이 사진을 기기에서 삭제하고 비움 기록을 남깁니다.',
-                confirmText: '비우기',
-                onConfirm: performDelete
-            });
-        } else if (confirm('이 사진을 사진첩에서 삭제하시겠습니까?')) {
-            await performDelete();
-        }
     }
 
     async render() {
@@ -368,10 +245,10 @@ export class HomeManager {
 
                     <!-- Meta Info & Buttons (마진 축소) -->
                     <div class="px-6 mx-6 shrink-0 max-w-md mx-auto w-full">
-                        <div id="photo-meta-info" class="mb-3 h-12 flex flex-col items-center justify-center">
-                            <p class="text-white text-[14px] font-medium leading-relaxed text-center break-keep">
+                        <div id="photo-meta-info" class="mb-5 min-h-[4rem] flex flex-col items-center justify-start transition-all duration-300">
+                            <p class="text-white text-[14px] font-medium leading-relaxed text-center break-keep w-full">
                                 <span id="meta-date">${currentPhoto?.date || ''}</span> | <span id="meta-location">${currentPhoto?.location || ''}</span><br/>
-                                <span id="meta-context" class="text-primary text-xs font-bold">${currentPhoto?.contextMessage || ''}</span>
+                                <span id="meta-context" class="text-primary text-[13px] font-bold block mt-1 leading-snug">${currentPhoto?.contextMessage || ''}</span>
                             </p>
                         </div>
 
@@ -398,104 +275,11 @@ export class HomeManager {
             if (wrapper) {
                 const centerItem = wrapper.children[1];
                 if (centerItem) centerItem.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
-                this._setupCarouselSnap(wrapper);
+                setupCarouselSnap(this, wrapper);
             }
         });
 
         // 이미지 로딩 실행 (병렬 처리)
-        this._loadAndReflectImages(this.currentIndex, prevIdx, nextIdx, isFirst, isLast);
+        loadAndReflectImages(this, this.currentIndex, prevIdx, nextIdx, isFirst, isLast);
     }
-
-    async _loadAndReflectImages(currIdx, prevIdx, nextIdx, isFirst, isLast) {
-        // 1. 현재 사진 우선 로드 (UX)
-        await this._loadSingleImageAndUpdate(currIdx, 'img-curr');
-
-        // 2. 이전/다음 사진 병렬 로드 (경계일 때는 해당 방향 스킵)
-        const sideLoads = [];
-        if (!isFirst) sideLoads.push(this._loadSingleImageAndUpdate(prevIdx, 'img-prev'));
-        if (!isLast) sideLoads.push(this._loadSingleImageAndUpdate(nextIdx, 'img-next'));
-        await Promise.all(sideLoads);
-
-        // 3. 나머지 사진 백그라운드 프리페치
-        const loaded = new Set([currIdx]);
-        if (prevIdx !== null) loaded.add(prevIdx);
-        if (nextIdx !== null) loaded.add(nextIdx);
-        this._prefetchRemaining(loaded);
-    }
-
-    /**
-     * 캐러셀에 표시되지 않는 나머지 사진들을 백그라운드로 점진 로드.
-     * 2장씩 배치 처리하여 네이티브 브릿지/네트워크 포화 방지.
-     */
-    async _prefetchRemaining(loadedSet) {
-        const photos = photoService.getPhotos();
-        const remaining = [];
-        for (let i = 0; i < photos.length; i++) {
-            if (!loadedSet.has(i)) remaining.push(i);
-        }
-
-        const BATCH = 2;
-        for (let b = 0; b < remaining.length; b += BATCH) {
-            const batch = remaining.slice(b, b + BATCH);
-            await Promise.all(batch.map(i => photoService.loadPhotoDetails(i)));
-        }
-    }
-
-    /**
-     * 캐러셀 스와이프 스냅 감지: 스크롤 종료 후 중앙 카드를 찾아 currentIndex 갱신
-     */
-    _setupCarouselSnap(wrapper) {
-        let scrollTimer;
-        wrapper.addEventListener('scroll', () => {
-            clearTimeout(scrollTimer);
-            scrollTimer = setTimeout(() => {
-                const items = wrapper.querySelectorAll('.carousel-item');
-                const wrapperCenter = wrapper.scrollLeft + wrapper.offsetWidth / 2;
-
-                let closestVisualIdx = 0;
-                let closestDist = Infinity;
-                items.forEach((item, i) => {
-                    const dist = Math.abs((item.offsetLeft + item.offsetWidth / 2) - wrapperCenter);
-                    if (dist < closestDist) {
-                        closestDist = dist;
-                        closestVisualIdx = i;
-                    }
-                });
-
-                // carousel items: [prev(0), current(1), next(2)]
-                if (closestVisualIdx === 1) return; // 이미 중앙
-
-                const photos = photoService.getPhotos();
-                const visibleMax = Math.min(photos.length, 3);
-                if (closestVisualIdx === 0 && this.currentIndex > 0) {
-                    this.currentIndex--;
-                    this.render();
-                } else if (closestVisualIdx === 2 && this.currentIndex < visibleMax - 1) {
-                    this.currentIndex++;
-                    this.render();
-                }
-            }, 120);
-        }, { passive: true });
-    }
-
-    async _loadSingleImageAndUpdate(index, elementId) {
-        try {
-            const photo = await photoService.loadPhotoDetails(index);
-            const el = document.getElementById(elementId);
-
-            if (el && photo && photo.imageUrl) {
-                el.style.backgroundImage = `url("${photo.imageUrl}")`;
-
-                if (elementId === 'img-curr') {
-                    const locEl = document.getElementById('meta-location');
-                    if (locEl) locEl.innerText = photo.location || '위치 정보 없음';
-                }
-            } else if (el) {
-                el.style.backgroundImage = 'none';
-            }
-        } catch (error) {
-            console.error(`HomeManager: Failed to load image at index ${index}:`, error);
-        }
-    }
-
 }

@@ -6,6 +6,7 @@
 import { Modal } from './Modal.js';
 import { supabase } from '../services/supabase.js';
 import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 import { showToast, ErrorLevel } from '../utils/errorHandler.js';
 
 export class AuthModal extends Modal {
@@ -29,7 +30,7 @@ export class AuthModal extends Modal {
     async _handleGoogleLogin() {
         try {
             console.log('[AUTH] Google 로그인 시작...');
-            const isCapacitor = window.Capacitor !== undefined;
+            const isCapacitor = Capacitor.isNativePlatform();
 
             // Xcode 설정(Info.plist)과 일치하는 정확한 주소: com.narrativeai.appv
             const redirectUrl = isCapacitor

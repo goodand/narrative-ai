@@ -1,4 +1,4 @@
-import { registerPlugin } from '@capacitor/core';
+import { registerPlugin, Capacitor } from '@capacitor/core';
 
 export interface PhotoAsset {
   id: string;
@@ -61,6 +61,40 @@ export interface RecocolPhotosPlugin {
   deletePhoto(options: { assetId: string }): Promise<{ success: boolean }>;
 }
 
-const RecocolPhotos = registerPlugin<RecocolPhotosPlugin>('RecocolPhotos');
+const NativePlugin = registerPlugin<RecocolPhotosPlugin>('RecocolPhotos');
+
+const mockBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+const MockPlugin: RecocolPhotosPlugin = {
+  fetchPhotos: async () => ({ photos: [], totalCount: 0 }),
+  getDailyCuration: async (options) => {
+    console.log('[MOCK] getDailyCuration called on web');
+    const limit = options.limit || 3;
+    return {
+      dayKey: new Date().toISOString().split('T')[0],
+      fromCache: false,
+      needsRefresh: false,
+      items: Array(limit).fill(null).map((_, i) => ({
+        assetId: `mock-web-${i}`,
+        score: 60 + i,
+        flags: ['mocked_for_web', 'screenshot'],
+        thumb: `https://picsum.photos/seed/recoco${i}/400/600`
+      }))
+    };
+  },
+  recordCurationAction: async () => ({ ok: true }),
+  getPhotoSummary: async (options) => ({
+    id: options.assetId,
+    creationDate: new Date().toISOString(),
+    pixelWidth: 800,
+    pixelHeight: 600,
+    location: null
+  }),
+  getPhotoMetadata: async () => ({}),
+  loadImageData: async () => ({ base64: mockBase64 }),
+  deletePhoto: async () => ({ success: true })
+};
+
+const RecocolPhotos = Capacitor.isNativePlatform() ? NativePlugin : MockPlugin;
 
 export default RecocolPhotos;

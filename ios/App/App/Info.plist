@@ -59,6 +59,14 @@
 				<string>com.narrativeai.appv</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>GoogleSignIn</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.297818295452-t39vignvo7gpulagn61ahkn0kbneqaf5</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>
