@@ -251,93 +251,91 @@ supabase.auth.onAuthStateChange((event, session) => {
 /**
  * Generate Button Click Handler
  */
-els.genBtn.onclick = async () => {
-    const imageData = store.getState('base64') || store.getState('dataUrl');
-    if (!imageData) {
-        showToast(UI_MESSAGES.ERROR_NO_IMAGE, ErrorLevel.WARN);
-        return;
-    }
+    if (els.genBtn) {
+        els.genBtn.onclick = async () => {
+            const imageData = store.getState('base64') || store.getState('dataUrl');
+            if (!imageData) {
+                showToast(UI_MESSAGES.ERROR_NO_IMAGE, ErrorLevel.WARN);
+                return;
+            }
 
-    setLoading(true);
+            setLoading(true);
 
-    const inputData = inputManager.getInputData();
-    const context = {
-        sns: 'Instagram', // Default
-        mood: 'emotional', // Default
-        temp: 'Lukewarm', // Default
-        language: 'Korean', // Default
-        meaning: inputData.meaning, // Updated
-        tags: inputData.tags, // Updated
-        activity: '',
-        bodyState: '',
-        relationship: '',
-        metadata: store.getState('metadata'),
-        systemPrompt: store.getState('systemPrompt')
-    };
+            const inputData = inputManager.getInputData();
+            const context = {
+                sns: 'Instagram', 
+                mood: 'emotional', 
+                temp: 'Lukewarm', 
+                language: 'Korean', 
+                meaning: inputData.meaning, 
+                tags: inputData.tags, 
+                activity: '',
+                bodyState: '',
+                relationship: '',
+                metadata: store.getState('metadata'),
+                systemPrompt: store.getState('systemPrompt')
+            };
 
-    try {
-        const storyResult = await geminiService.generateStory(imageData, context);
-        els.btnText.innerText = UI_MESSAGES.FINDING_SYNONYMS;
+            try {
+                const storyResult = await geminiService.generateStory(imageData, context);
+                if (els.btnText) els.btnText.innerText = UI_MESSAGES.FINDING_SYNONYMS;
 
-        const keywordsWithSuggestions = await geminiService.getSynonyms(
-            storyResult.keywords,
-            context.language
-        );
+                const keywordsWithSuggestions = await geminiService.getSynonyms(
+                    storyResult.keywords,
+                    context.language
+                );
 
-        const metadata = store.getState('metadata');
-        const displayImage = store.getState('dataUrl');
+                const metadata = store.getState('metadata');
+                const displayImage = store.getState('dataUrl');
 
-        const result = {
-            original_caption: storyResult.original_caption,
-            keywords: keywordsWithSuggestions,
-            image: displayImage,
-            metadata: metadata
-        };
-        store.setResult(result);
+                const result = {
+                    original_caption: storyResult.original_caption,
+                    keywords: keywordsWithSuggestions,
+                    image: displayImage,
+                    metadata: metadata
+                };
+                store.setResult(result);
 
-        if (metadata?._isNative && metadata?.assetId && metadata?.dayKey) {
-            photoService.recordCurationAction({
-                assetId: metadata.assetId,
-                action: 'recorded',
-                dayKey: metadata.dayKey
-            }).then(() => {
-                // 홈 매니저에게 해당 사진이 소비되었음을 알림 (인덱스 기반이 아닌 ID 기반인 경우 검색 필요)
-                // 현재는 단일 세션이므로 currentIndex를 사용하거나, 안전하게 photos 배열에서 ID로 찾음
-                const photos = homeManager.photos || [];
-                const targetIdx = photos.findIndex(p => p.id === metadata.assetId);
-                if (targetIdx !== -1) {
-                    homeManager.consumePhoto(targetIdx);
-                } else {
-                    // 이미 삭제되었거나 다른 이유로 없는 경우, 전역 리프레시 시도 (Fallback)
-                    return photoService.refreshDailyCurationAfterMutation({ limit: 3 });
+                if (metadata?._isNative && metadata?.assetId && metadata?.dayKey) {
+                    photoService.recordCurationAction({
+                        assetId: metadata.assetId,
+                        action: 'recorded',
+                        dayKey: metadata.dayKey
+                    }).then(() => {
+                        const photos = homeManager.photos || [];
+                        const targetIdx = photos.findIndex(p => p.id === metadata.assetId);
+                        if (targetIdx !== -1) {
+                            homeManager.consumePhoto(targetIdx);
+                        } else {
+                            return photoService.refreshDailyCurationAfterMutation({ limit: 3 });
+                        }
+                    }).catch((recordError) => {
+                        console.warn('Main: record action or home sync failed', recordError);
+                    });
                 }
-            }).catch((recordError) => {
-                console.warn('Main: record action or home sync failed', recordError);
-            });
-        }
 
-        router.navigate('result');
-        // Router handles visibility, but Input View specific hiding might be needed if Router doesn't cover it
-        // Router.navigate hides all views including inputView, so this is handled.
-        
-        els.header.classList.remove('hidden');
-        els.headerTitle.innerText = '리코코 기록 결과';
+                router.navigate('result');
+                if (els.header) els.header.classList.remove('hidden');
+                if (els.headerTitle) els.headerTitle.innerText = '리코코 기록 결과';
 
-        const resultDate = document.getElementById('result-date');
-        const resultLoc = document.getElementById('result-location');
-        if (resultDate && metadata?.date) resultDate.innerText = metadata.date;
-        if (resultLoc && metadata?.gps) resultLoc.innerText = metadata.gps.formatted;
+                const resultDate = document.getElementById('result-date');
+                const resultLoc = document.getElementById('result-location');
+                if (resultDate && metadata?.date) resultDate.innerText = metadata.date;
+                if (resultLoc && metadata?.gps) resultLoc.innerText = metadata.gps.formatted;
 
-        resultViewer.show();
-        resultViewer.renderCaption(result);
-        resultViewer.scrollIntoView();
+                if (typeof resultViewer !== 'undefined') {
+                    resultViewer.show();
+                    resultViewer.renderCaption(result);
+                    resultViewer.scrollIntoView();
+                }
 
-    } catch (error) {
-        handleError(error, 'AI');
-    } finally {
-        setLoading(false);
+            } catch (error) {
+                handleError(error, 'AI');
+            } finally {
+                setLoading(false);
+            }
+        };
     }
-};
 
 function setLoading(isLoading) {
     els.genBtn.disabled = isLoading;
