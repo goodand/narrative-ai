@@ -17,23 +17,11 @@ export async function handleDelete(manager) {
                     dayKey: actionDayKey
                 });
 
-                try {
-                    await photoService.refreshDailyCurationAfterMutation({
-                        limit: 3,
-                        thumbSize: 300,
-                        transport: 'base64'
-                    });
-                    manager.currentIndex = 0;
-                } catch (refreshError) {
-                    console.warn('HomeManager: daily refresh after mutation failed', refreshError);
-                }
-
-                if (manager.currentIndex >= photoService.getPhotos().length) {
-                    manager.currentIndex = Math.max(0, photoService.getPhotos().length - 1);
-                }
+                const deletedIdx = manager.currentIndex;
+                await manager.consumePhoto(deletedIdx);
+                
                 console.log('HomeManager: 사진 삭제 성공 및 통계 기록 완료');
                 showToast('사진이 정리되었습니다.', ErrorLevel.INFO);
-                manager.render();
             }
         } catch (err) {
             handleError(err, 'PhotoDelete');

@@ -44,8 +44,20 @@ def _normalize_image_bytes(image_bytes: bytes) -> bytes:
             img.save(out, format="JPEG", quality=JPEG_QUALITY, optimize=True)
             return out.getvalue()
     except Exception as e:
+        logger.error(f"이미지 정규화 실패: {str(e)}")
         raise ValueError(f"이미지 정규화 실패: {str(e)}")
 
+def _normalize_base64_image(image_base64: str) -> str:
+    """
+    Base64 이미지를 디코딩하여 정규화한 뒤 다시 Base64로 인코딩합니다.
+    """
+    try:
+        image_bytes = base64.b64decode(image_base64)
+        normalized_bytes = _normalize_image_bytes(image_bytes)
+        return base64.b64encode(normalized_bytes).decode("utf-8")
+    except Exception as e:
+        logger.warning(f"이미지 정규화 실패 (원본 사용): {str(e)}")
+        return image_base64
 
 @router.post(
     "/narrative",
@@ -135,8 +147,11 @@ async def get_delete_recommendation(
 
         logger.info(f"--- [ROUTER-TRACE] Delete Recommendation Request Received ---")
         
+        # 이미지 정규화 적용
+        normalized_image = _normalize_base64_image(payload.image)
+        
         result = await gemini_service.generate_delete_recommendation(
-            image_base64=payload.image,
+            image_base64=normalized_image,
             metadata=payload.metadata,
             filtering_criteria=payload.filteringCriteria,
             language=payload.language,
@@ -167,8 +182,11 @@ async def get_batch_delete_recommendation(
         client = request.app.state.http_client
         gemini_service = GeminiService(client)
 
+        # 이미지들 정규화 적용
+        normalized_images = [_normalize_base64_image(img) for img in payload.images]
+
         result = await gemini_service.generate_batch_delete_recommendation(
-            images_base64=payload.images,
+            images_base64=normalized_images,
             metadatas=payload.metadatas,
             filtering_criteria_list=payload.filteringCriteriaList,
             language=payload.language,

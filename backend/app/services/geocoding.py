@@ -1,12 +1,12 @@
-import requests
+import httpx
 import logging
 from ..config import get_settings
 
 logger = logging.getLogger(__name__)
 
-def get_address_from_coords(lat: float, lon: float) -> str:
+async def get_address_from_coords(client: httpx.AsyncClient, lat: float, lon: float) -> str:
     """
-    Reverse Geocoding using Google Maps API.
+    Reverse Geocoding using Google Maps API (Async).
     동(Dong) -> 구(Gu) -> 시(City/Province) 순으로 주소를 추출합니다.
     """
     settings = get_settings()
@@ -20,7 +20,7 @@ def get_address_from_coords(lat: float, lon: float) -> str:
     
     try:
         logger.info(f"--- [GEO-TRACE] Requesting reverse geocoding for {lat}, {lon} ---")
-        response = requests.get(url)
+        response = await client.get(url)
         data = response.json()
         
         status = data.get("status")

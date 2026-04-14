@@ -24,6 +24,11 @@ export class PhotoService {
         return fetchDailyCuration(this, { limit, thumbSize, transport, forceRefresh });
     }
 
+    async fetchCurationBatch(options = {}) {
+        const { fetchCurationBatch } = await import('./photo/dailyCurationRuntime.js');
+        return fetchCurationBatch(options);
+    }
+
     async refreshDailyCurationAfterMutation(options = {}) {
         return refreshDailyCurationAfterMutation(this, options);
     }

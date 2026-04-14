@@ -18,7 +18,29 @@ function generateDailyContextMessage(flags) {
         : '오늘 정리하기 좋은 항목이에요.';
 }
 
-export async function fetchDailyCuration(service, { limit = 6, thumbSize = 420, transport = 'base64', forceRefresh = false } = {}) {
+/**
+ * 네이티브 아이템을 앱에서 사용하는 사진 모델로 변환합니다.
+ */
+function mapToPhotoModel(item, dayKey) {
+    return {
+        id: item.assetId,
+        imageUrl: item.thumb || null,
+        date: dayKey || '',
+        location: '위치 정보 없음',
+        contextMessage: null,
+        rawAsset: {
+            id: item.assetId,
+            curationReasons: item.flags || []
+        },
+        score: item.score || 0,
+        dayKey: dayKey
+    };
+}
+
+/**
+ * 전용 상태를 변경하지 않고 순수하게 데이터만 가져오고 가공합니다. (Buffering 용)
+ */
+export async function fetchCurationBatch({ limit = 3, thumbSize = 420, transport = 'base64', forceRefresh = false } = {}) {
     try {
         const daily = await RecocolPhotos.getDailyCuration({
             limit,
@@ -27,29 +49,28 @@ export async function fetchDailyCuration(service, { limit = 6, thumbSize = 420, 
             forceRefresh
         });
 
+        const dayKey = daily?.dayKey || null;
         const items = Array.isArray(daily?.items) ? daily.items : [];
-        service.currentDayKey = daily?.dayKey || null;
-        service.photos = items.map((item) => ({
-            id: item.assetId,
-            imageUrl: item.thumb || null,
-            date: service.currentDayKey || '',
-            location: '위치 정보 없음',
-            contextMessage: null,
-            rawAsset: {
-                id: item.assetId,
-                curationReasons: item.flags || []
-            },
-            score: item.score || 0,
-            dayKey: service.currentDayKey
-        }));
+        const photos = items.map(item => mapToPhotoModel(item, dayKey));
 
         return {
-            photos: service.photos,
-            totalCount: service.photos.length,
-            dayKey: service.currentDayKey,
-            fromCache: Boolean(daily?.fromCache),
-            needsRefresh: Boolean(daily?.needsRefresh)
+            photos,
+            dayKey,
+            totalCount: photos.length,
+            fromCache: Boolean(daily?.fromCache)
         };
+    } catch (error) {
+        console.error('PhotoService: fetchCurationBatch failed', error);
+        throw error;
+    }
+}
+
+export async function fetchDailyCuration(service, options = {}) {
+    try {
+        const result = await fetchCurationBatch(options);
+        service.currentDayKey = result.dayKey;
+        service.photos = result.photos;
+        return result;
     } catch (error) {
         console.error('PhotoService: Daily curation fetch failed', error);
         throw error;

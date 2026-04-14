@@ -7,7 +7,13 @@ export async function loadAndReflectImages(manager, currIdx, prevIdx, nextIdx, i
     console.info(`[RECOCO-TRACE] Transition to index ${currIdx}. Focusing...`);
     
     const photos = photoService.getPhotos();
-    const batchIndices = [currIdx, prevIdx, nextIdx].filter(i => i !== null);
+    let batchIndices = [currIdx, prevIdx, nextIdx].filter(i => i !== null);
+    
+    // [최적화] 첫 번째 사진 로드 시, 세 번째 사진(Index 2)까지 미리 한꺼번에 배치 분석
+    // 이렇게 하면 1번의 API 호출로 상단 3장을 모두 커버할 수 있습니다.
+    if (currIdx === 0 && photos.length >= 3 && !batchIndices.includes(2)) {
+        batchIndices.push(2);
+    }
     
     // 1. 배치 대상 사진들을 동기적으로 마킹 (개별 분석 방지)
     const batchTargets = batchIndices.filter(idx => {
@@ -35,36 +41,29 @@ export async function loadAndReflectImages(manager, currIdx, prevIdx, nextIdx, i
     if (nextIdx !== null) loaded.add(nextIdx);
     await prefetchRemaining(loaded);
 }
-
 /**
  * 특정 이미지들에 대해 한 번에 AI 분석을 요청하여 비교 분석 결과를 확보합니다.
- * @param {boolean} preMarked - true면 이미 _aiReasonFetching 마킹 완료 상태
  */
-async function triggerBatchAnalysis(manager, indices, preMarked = false) {
+export async function triggerBatchAnalysis(manager, targets) {
     const photos = photoService.getPhotos();
-    
-    let targets;
-    if (preMarked) {
-        targets = indices; // 이미 필터링 및 마킹 완료
-    } else {
-        targets = indices.filter(idx => {
-            const p = photos[idx];
-            return p && !p.contextMessage && !p._aiReasonFetching;
-        });
-        if (targets.length < 2) return;
-        targets.forEach(idx => { 
-            if (photos[idx]) photos[idx]._aiReasonFetching = true; 
-        });
-    }
-
     console.info(`[RECOCO-TRACE] Triggering batch analysis for indices: ${targets}`);
+    await performBatchAnalysis(photos, targets, manager);
+}
+
+/**
+ * 실제로 AI 분석을 수행하고 결과를 사진 객체에 반영합니다. (인덱스 기반이 아닌 전체 배열 기반)
+ */
+export async function performBatchAnalysis(photos, targets, manager) {
+    if (!targets || targets.length === 0) return;
     
     // 1. 공통 필터(Rule-base) 추출 및 헤더 반영
     const commonReasons = calculateCommonFilter(targets, photos);
-    updateCurationHeader(manager, commonReasons);
+    
+    // 메인 UI 업데이트 (manager가 있고 현재 보고 있는 인덱스가 포함된 경우에만)
+    if (manager) updateCurationHeader(manager, commonReasons);
 
     const metaContextEl = document.getElementById('meta-context');
-    const currIdx = manager.currentIndex;
+    const currIdx = manager?.currentIndex;
 
     try {
         if (targets.includes(currIdx) && metaContextEl) {
@@ -225,64 +224,68 @@ export async function loadSingleImageAndUpdate(index, elementId) {
     try {
         const photo = await photoService.loadPhotoDetails(index);
         const el = document.getElementById(elementId);
+        if (!el) return;
 
-        if (el && photo && photo.imageUrl) {
-            el.style.backgroundImage = `url("${photo.imageUrl}")`;
-
-            if (elementId === 'img-curr') {
-                const locEl = document.getElementById('meta-location');
-                if (locEl) locEl.innerText = photo.location || '위치 정보 없음';
-
-                const metaContextEl = document.getElementById('meta-context');
-                if (metaContextEl) {
-                    // 캐시된 결과가 있으면 즉시 표시
-                    if (photo.contextMessage) {
-                        metaContextEl.innerText = photo.contextMessage;
-                        metaContextEl.classList.remove('animate-pulse');
-                        return;
-                    }
-
-                        // 배치 분석이 진행 중이거나 결과가 올 때까지 대기
-                        if (photo._aiReasonFetching) {
-                            metaContextEl.innerText = 'AI 분석 중...';
-                            metaContextEl.classList.add('animate-pulse');
-                            return;
-                        }
-
-                        photo._aiReasonFetching = true;
-                        metaContextEl.innerText = 'AI 분석 중...';
-                        metaContextEl.classList.add('animate-pulse');
-
-                        console.info(`[RECOCO-TRACE] Starting individual analysis for index ${index}`);
-
-                        try {
-                            const base64 = await photoService.getPhotoAsBase64(index);
-                            const result = await geminiService.generateDeleteRecommendation({
-                                imageBase64: base64,
-                                metadata: photo.rawAsset || {},
-                                filteringCriteria: photo.rawAsset?.curationReasons || [],
-                                language: 'Korean',
-                                tone: 'gentle',
-                                maxLength: 60
-                            });
-                            metaContextEl.innerText = result.reason;
-                            photo.contextMessage = result.reason;
-                            console.info(`[RECOCO-TRACE] Individual result for index ${index}: ${result.shortReason}`);
-                        } catch (error) {
-                            console.error('[RECOCO-TRACE] Individual analysis failed:', error);
-                            photo.contextMessage = null;
-                            metaContextEl.innerText = '오늘 정리하기 좋은 항목이에요.';
-                        } finally {
-                            photo._aiReasonFetching = false;
-                            metaContextEl.classList.remove('animate-pulse');
-                        }
-                }
-            }
-
-        } else if (el) {
+        if (!photo || !photo.imageUrl) {
             el.style.backgroundImage = 'none';
+            return;
         }
+
+        el.style.backgroundImage = `url("${photo.imageUrl}")`;
+        if (elementId !== 'img-curr') return;
+
+        // 현재 이미지 전용 메타데이터 업데이트
+        const locEl = document.getElementById('meta-location');
+        if (locEl) locEl.innerText = photo.location || '위치 정보 없음';
+
+        const metaContextEl = document.getElementById('meta-context');
+        if (!metaContextEl) return;
+
+        // AI 결과 처리 로직 분리
+        await handleAIContextDisplay(photo, index, metaContextEl);
     } catch (error) {
         console.error(`HomeManager: Failed to load image at index ${index}:`, error);
+    }
+}
+
+async function handleAIContextDisplay(photo, index, metaContextEl) {
+    // 1. 이미 결과가 있는 경우
+    if (photo.contextMessage) {
+        metaContextEl.innerText = photo.contextMessage;
+        metaContextEl.classList.remove('animate-pulse');
+        return;
+    }
+
+    // 2. 현재 분석이 진행 중인 경우
+    if (photo._aiReasonFetching) {
+        metaContextEl.innerText = 'AI 분석 중...';
+        metaContextEl.classList.add('animate-pulse');
+        return;
+    }
+
+    // 3. 신규 분석 시작
+    photo._aiReasonFetching = true;
+    metaContextEl.innerText = 'AI 분석 중...';
+    metaContextEl.classList.add('animate-pulse');
+
+    try {
+        const base64 = await photoService.getPhotoAsBase64(index);
+        const result = await geminiService.generateDeleteRecommendation({
+            imageBase64: base64,
+            metadata: photo.rawAsset || {},
+            filteringCriteria: photo.rawAsset?.curationReasons || [],
+            language: 'Korean',
+            tone: 'gentle',
+            maxLength: 60
+        });
+        metaContextEl.innerText = result.reason;
+        photo.contextMessage = result.reason;
+    } catch (error) {
+        console.error('[RECOCO-TRACE] Individual analysis failed:', error);
+        photo.contextMessage = null;
+        metaContextEl.innerText = '오늘 정리하기 좋은 항목이에요.';
+    } finally {
+        photo._aiReasonFetching = false;
+        metaContextEl.classList.remove('animate-pulse');
     }
 }

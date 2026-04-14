@@ -41,6 +41,7 @@ class GeminiService:
             self.settings.gemini_api_key,
             self.settings.gemini_api_key_sub,
             self.settings.gemini_api_key_insu,
+            self.settings.google_cloud_api_key,
         ]:
             if key and key not in keys:
                 keys.append(key)
@@ -190,7 +191,7 @@ class GeminiService:
         lat, lon = self._extract_gps(context.metadata)
         if lat is not None and lon is not None:
             try:
-                address = get_address_from_coords(lat, lon)
+                address = await get_address_from_coords(self.client, lat, lon)
                 if address:
                     logger.info(f"Address resolved: {address}")
                     if isinstance(context.metadata, dict):

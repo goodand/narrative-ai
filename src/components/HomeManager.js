@@ -5,9 +5,7 @@
 
 import { supabase } from '../services/supabase.js';
 import { photoService } from '../services/PhotoService.js';
-import { loadRealPhotos, setupDailyCurationListener } from './home/homeLoadRuntime.js';
-import { handleDelete } from './home/homeDeleteRuntime.js';
-import { loadAndReflectImages, setupCarouselSnap } from './home/homeImageRuntime.js';
+import { loadAndReflectImages, setupCarouselSnap, triggerBatchAnalysis } from './home/homeImageRuntime.js';
 
 export class HomeManager {
     constructor(containerId, options = {}) {
@@ -16,16 +14,23 @@ export class HomeManager {
         this.onThanksClick = options.onThanksClick || null;
         this.confirmModal = options.confirmModal || null;
         this.user = null;
-        this.currentIndex = 0;
-        this.isLoading = false;
         this.error = null;
+        this.headerMessage = '기기에서 찾아낸 비우기 좋은 기록들입니다.';
+        
+        // --- 버퍼링 및 상태 관리 ---
+        this.photos = [];
+        this._nextBatch = null;
+        this._isRefilling = false;
         
         this._setupEventDelegation();
         setupDailyCurationListener(this);
     }
 
     async loadRealPhotos() {
-        return loadRealPhotos(this);
+        const { loadRealPhotos } = await import('./home/homeLoadRuntime.js');
+        const result = await loadRealPhotos(this);
+        this.photos = [...photoService.getPhotos()];
+        return result;
     }
 
     async getCurrentImageAsFile() {
@@ -37,8 +42,8 @@ export class HomeManager {
     }
 
     async getCurrentPhotoMeta() {
-        const photo = await photoService.ensurePhotoSummary(this.currentIndex, { includeFileSize: false });
-        if (!photo) return {};
+        if (this.currentIndex < 0 || this.currentIndex >= this.photos.length) return {};
+        const photo = this.photos[this.currentIndex];
         const asset = photo.rawAsset;
         return {
             Make: "Apple iPhone",
@@ -68,13 +73,14 @@ export class HomeManager {
             const retryBtn = e.target.closest('#retry-btn');
             const prevImg = e.target.closest('#img-prev');
             const nextImg = e.target.closest('#img-next');
-            const photos = photoService.getPhotos();
+            const photos = this.photos;
 
             if (preciousBtn) {
                 e.preventDefault();
                 if (this.onPreciousClick) await this.onPreciousClick();
             } else if (thanksBtn) {
                 e.preventDefault();
+                const { handleDelete } = await import('./home/homeDeleteRuntime.js');
                 await handleDelete(this);
             } else if (retryBtn) {
                 e.preventDefault();
@@ -154,7 +160,7 @@ export class HomeManager {
             return;
         }
 
-        const photos = photoService.getPhotos();
+        const photos = this.photos;
 
         if (photos.length === 0) {
             this.container.innerHTML = `
@@ -216,7 +222,7 @@ export class HomeManager {
                 <div class="py-4 shrink-0 px-1">
                     <h1 class="text-white text-xl font-bold leading-tight tracking-tight">
                         좋은 아침이에요.<br/>
-                        <span id="curation-header-desc" class="text-muted-lavender font-normal text-sm">기기에서 찾아낸 비우기 좋은 기록들입니다.</span>
+                        <span id="curation-header-desc" class="text-muted-lavender font-normal text-sm">${this.headerMessage}</span>
                     </h1>
                 </div>
 
@@ -281,5 +287,69 @@ export class HomeManager {
 
         // 이미지 로딩 실행 (병렬 처리)
         loadAndReflectImages(this, this.currentIndex, prevIdx, nextIdx, isFirst, isLast);
+    }
+
+    /**
+     * 사진 1장을 소비(삭제/기록)하고 다음 상태를 결정합니다.
+     */
+    async consumePhoto(index) {
+        if (index < 0 || index >= this.photos.length) return;
+        
+        console.log(`[RECOCO-TRACE] Consuming photo at index ${index}. Remaining: ${this.photos.length - 1}`);
+        this.photos.splice(index, 1);
+
+        // 마지막 1장 남았을 때 백그라운드 리필 트리거
+        if (this.photos.length === 1 && !this._nextBatch && !this._isRefilling) {
+            this.triggerBackgroundRefill();
+        }
+
+        if (this.photos.length === 0) {
+            await this.switchToNextBatch();
+        } else {
+            if (this.currentIndex >= this.photos.length) {
+                this.currentIndex = Math.max(0, this.photos.length - 1);
+            }
+            this.render();
+        }
+    }
+
+    /**
+     * 백그라운드 리필 엔진 작동
+     */
+    async triggerBackgroundRefill() {
+        if (this._isRefilling) return;
+        this._isRefilling = true;
+        console.info('[RECOCO-TRACE] Triggering background refill...');
+        
+        try {
+            const { triggerBackgroundPrefetch } = await import('./home/homeRefillRuntime.js');
+            this._nextBatch = await triggerBackgroundPrefetch(this);
+            console.info('[RECOCO-TRACE] Background refill prepared.');
+        } catch (error) {
+            console.error('[RECOCO-TRACE] Background refill failed:', error);
+        } finally {
+            this._isRefilling = false;
+        }
+    }
+
+    /**
+     * 다음 묶음으로 교체
+     */
+    async switchToNextBatch() {
+        if (this._nextBatch && this._nextBatch.length > 0) {
+            console.info('[RECOCO-TRACE] Switching to even-ready next batch.');
+            this.photos = [...this._nextBatch];
+            this._nextBatch = null;
+            this.currentIndex = 0;
+            this.render();
+        } else {
+            console.info('[RECOCO-TRACE] Batch empty and no buffer ready. Hard refreshing...');
+            this.isLoading = true;
+            this.render();
+            await this.loadRealPhotos();
+            this.isLoading = false;
+            this.currentIndex = 0;
+            this.render();
+        }
     }
 }

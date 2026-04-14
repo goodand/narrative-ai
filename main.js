@@ -301,14 +301,18 @@ els.genBtn.onclick = async () => {
                 action: 'recorded',
                 dayKey: metadata.dayKey
             }).then(() => {
-                return photoService.refreshDailyCurationAfterMutation({
-                    limit: 3,
-                    thumbSize: 300,
-                    transport: 'base64'
-                });
-            }).catch((refreshError) => {
-                console.warn('Main: daily refresh after record failed', refreshError);
-                showToast('홈 추천 갱신이 지연되고 있습니다. 홈에서 다시 시도해 주세요.', ErrorLevel.WARN);
+                // 홈 매니저에게 해당 사진이 소비되었음을 알림 (인덱스 기반이 아닌 ID 기반인 경우 검색 필요)
+                // 현재는 단일 세션이므로 currentIndex를 사용하거나, 안전하게 photos 배열에서 ID로 찾음
+                const photos = homeManager.photos || [];
+                const targetIdx = photos.findIndex(p => p.id === metadata.assetId);
+                if (targetIdx !== -1) {
+                    homeManager.consumePhoto(targetIdx);
+                } else {
+                    // 이미 삭제되었거나 다른 이유로 없는 경우, 전역 리프레시 시도 (Fallback)
+                    return photoService.refreshDailyCurationAfterMutation({ limit: 3 });
+                }
+            }).catch((recordError) => {
+                console.warn('Main: record action or home sync failed', recordError);
             });
         }
 
