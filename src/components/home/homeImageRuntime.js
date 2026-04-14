@@ -6,18 +6,29 @@ const geminiService = new GeminiService();
 export async function loadAndReflectImages(manager, currIdx, prevIdx, nextIdx, isFirst, isLast) {
     console.info(`[RECOCO-TRACE] Transition to index ${currIdx}. Focusing...`);
     
-    // 로딩 우선순위: 현재 이미지를 먼저 보여주고 나머지를 배경으로 로드
+    const photos = photoService.getPhotos();
+    const batchIndices = [currIdx, prevIdx, nextIdx].filter(i => i !== null);
+    
+    // 1. 배치 대상 사진들을 동기적으로 마킹 (개별 분석 방지)
+    const batchTargets = batchIndices.filter(idx => {
+        const p = photos[idx];
+        return p && !p.contextMessage && !p._aiReasonFetching;
+    });
+    
+    if (batchTargets.length >= 2) {
+        batchTargets.forEach(idx => { photos[idx]._aiReasonFetching = true; });
+        console.info(`[RECOCO-TRACE] Batch-marked indices: ${batchTargets}`);
+        // 비동기로 배치 분석 시작 (마킹은 이미 완료)
+        triggerBatchAnalysis(manager, batchTargets, true);
+    }
+
+    // 2. 현재 이미지를 먼저 보여주고 나머지를 배경으로 로드
     await loadSingleImageAndUpdate(currIdx, 'img-curr');
 
     const sideLoads = [];
     if (!isFirst) sideLoads.push(loadSingleImageAndUpdate(prevIdx, 'img-prev'));
     if (!isLast) sideLoads.push(loadSingleImageAndUpdate(nextIdx, 'img-next'));
-    
-    // 배치 분석 시도 (현재 + 주변부 3장을 같이 분석하여 비교 우위 확보)
-    // 개별 분석(loadSingleImageAndUpdate) 전에 실행하여 경합 방지
-    await triggerBatchAnalysis(manager, [currIdx, prevIdx, nextIdx].filter(i => i !== null));
-
-    await loadSingleImageAndUpdate(currIdx, 'img-curr');
+    await Promise.all(sideLoads);
 
     const loaded = new Set([currIdx]);
     if (prevIdx !== null) loaded.add(prevIdx);
@@ -27,26 +38,30 @@ export async function loadAndReflectImages(manager, currIdx, prevIdx, nextIdx, i
 
 /**
  * 특정 이미지들에 대해 한 번에 AI 분석을 요청하여 비교 분석 결과를 확보합니다.
+ * @param {boolean} preMarked - true면 이미 _aiReasonFetching 마킹 완료 상태
  */
-async function triggerBatchAnalysis(manager, indices) {
+async function triggerBatchAnalysis(manager, indices, preMarked = false) {
     const photos = photoService.getPhotos();
-    const targets = indices.filter(idx => {
-        const p = photos[idx];
-        return p && !p.contextMessage && !p._aiReasonFetching;
-    });
-
-    if (targets.length < 2) return; 
+    
+    let targets;
+    if (preMarked) {
+        targets = indices; // 이미 필터링 및 마킹 완료
+    } else {
+        targets = indices.filter(idx => {
+            const p = photos[idx];
+            return p && !p.contextMessage && !p._aiReasonFetching;
+        });
+        if (targets.length < 2) return;
+        targets.forEach(idx => { 
+            if (photos[idx]) photos[idx]._aiReasonFetching = true; 
+        });
+    }
 
     console.info(`[RECOCO-TRACE] Triggering batch analysis for indices: ${targets}`);
     
     // 1. 공통 필터(Rule-base) 추출 및 헤더 반영
     const commonReasons = calculateCommonFilter(targets, photos);
-    updateCurationHeader(commonReasons);
-
-    // 낙관적 상태 업데이트 (중복 요청 방지)
-    targets.forEach(idx => { 
-        if (photos[idx]) photos[idx]._aiReasonFetching = true; 
-    });
+    updateCurationHeader(manager, commonReasons);
 
     const metaContextEl = document.getElementById('meta-context');
     const currIdx = manager.currentIndex;
@@ -114,7 +129,7 @@ function calculateCommonFilter(indices, photos) {
 /**
  * 공통 사유에 기초하여 상단 헤더 문구를 업데이트합니다.
  */
-function updateCurationHeader(commonReasons) {
+function updateCurationHeader(manager, commonReasons) {
     const headerEl = document.getElementById('curation-header-desc');
     if (!headerEl) return;
 
@@ -123,23 +138,38 @@ function updateCurationHeader(commonReasons) {
         return;
     }
 
+    // 영문 flags (native plugin) + 한글 reasons (CurationEngine) 모두 지원
     const mapping = {
+        // 영문 (dailyCurationRuntime / native plugin flags)
+        'unorganized': '앨범에 정리되지 않은 사진들이에요.',
+        'screenshot':  '스크린샷 기록들이에요.',
+        'large':       '공간을 많이 차지하는 대용량 파일들이에요.',
+        'old':         '1년 이상 된 오래된 사진들이에요.',
+        'burst_day':   '비슷한 사진이 많은 날의 기록들이에요.',
+        'icloud_only': 'iCloud에만 저장된 사진들이에요.',
+        // 한글 (CurationEngine reasons)
         '앨범 미분류': '앨범에 정리되지 않은 사진들이에요.',
-        '스크린샷': '스크린샷 기록들이에요.',
+        '스크린샷':    '스크린샷 기록들이에요.',
         '대용량 파일': '공간을 많이 차지하는 대용량 파일들이에요.',
         '오래된 사진': '1년 이상 된 오래된 사진들이에요.',
         '즐겨찾기 됨': '특별히 아꼈던 기록들이에요.'
     };
 
-    // 여러 공통점이 있을 경우 첫 번째 혹은 조합하여 노출
+    // 여러 공통점이 있을 경우 조합 우선, 아니면 첫 번째 매칭
+    const has = (k) => commonReasons.includes(k);
     const primary = commonReasons[0];
-    let message = mapping[primary] || '비우기 좋은 기록들입니다.';
+    let message = mapping[primary] || '정리하기 좋은 기록들을 모아봤어요.';
 
-    if (commonReasons.includes('오래된 사진') && commonReasons.includes('앨범 미분류')) {
+    // 복합 조건: 오래됨 + 미분류
+    if ((has('old') || has('오래된 사진')) && (has('unorganized') || has('앨범 미분류'))) {
         message = '1년 넘게 앨범에 정리되지 않은 사진들이에요.';
     }
 
-    headerEl.innerText = message;
+    // 상태 업데이트 (Re-render 시 유지용)
+    if (manager) manager.headerMessage = message;
+    
+    // 즉시 반영
+    if (headerEl) headerEl.innerText = message;
     console.info(`[RECOCO-TRACE] Header updated to: ${message}`);
 }
 
