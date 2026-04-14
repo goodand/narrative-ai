@@ -83,7 +83,8 @@ class NarrativeResponse(BaseModel):
     """POST /api/v1/narrative 응답 스키마"""
     original_caption: str
     keywords: list[str]
-    source: str = "ai"
+    source: Literal["ai", "fallback"] = "ai"
+    error_detail: Optional[str] = None
 
 
 class SynonymItem(BaseModel):
@@ -102,7 +103,8 @@ class DeleteRecommendationResponse(BaseModel):
     reason: str
     shortReason: str
     usedCriteria: list[str]
-    source: str = "ai"
+    source: Literal["ai", "fallback"] = "ai"
+    error_detail: Optional[str] = None
 
 
 class BatchDeleteRecommendationResponse(BaseModel):

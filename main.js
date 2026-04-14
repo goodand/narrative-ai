@@ -142,17 +142,14 @@ const router = new Router(els);
 
 // --- Component Initializations ---
 
-// 1. Critical Modals & Core Managers
-suggestionModal = safeInit('suggestionModal', () => new SuggestionModal('suggestion-modal', 'suggestion-list'));
-settingsModal = safeInit('settingsModal', () => new SettingsModal('settings-modal', 'system-prompt-input'));
-editConfirmModal = safeInit('editConfirmModal', () => new ConfirmModal('edit-confirm-modal'));
+// 1. Critical Modals & Core Managers (Needed for first frame)
 permissionModal = safeInit('permissionModal', () => new PermissionModal('permission-modal'));
+editConfirmModal = safeInit('editConfirmModal', () => new ConfirmModal('edit-confirm-modal'));
 authModal = safeInit('authModal', () => new AuthModal('auth-modal'));
 onboardingModal = safeInit('onboardingModal', () => new OnboardingModal('onboarding-modal', {
     onComplete: () => authModal?.open('signup')
 }));
 
-// 2. Main View Managers
 homeManager = safeInit('homeManager', () => new HomeManager('home-view', {
     confirmModal: editConfirmModal,
     onPreciousClick: async () => {
@@ -166,49 +163,101 @@ homeManager = safeInit('homeManager', () => new HomeManager('home-view', {
     }
 }));
 
-reportManager = safeInit('reportManager', () => new ReportManager('report-view'));
-mypageManager = safeInit('mypageManager', () => new MyPageManager('mypage-view', { 
-    onLogout: () => window.location.reload() 
-}));
-noticeManager = safeInit('noticeManager', () => new NoticeManager('notice-view'));
-
-// 3. Delayed/Lazy Components (Minimized for initial boot stability)
-inputManager = safeInit('inputManager', () => new InputManager('input-view'));
-resultViewer = safeInit('resultViewer', () => new ResultViewer({
-    resultArea: 'result-view',
-    interactiveCaption: 'caption-interactive',
-    editCaption: 'caption-edit',
-    editBtn: 'edit-btn',
-    saveBtn: 'save-btn',
-    copyBtn: 'copy-btn',
-    shareBtn: 'share-btn',
-    resultImage: 'result-image',
-    onKeywordClick: (wordData) => {
-        if (suggestionModal) suggestionModal.renderSuggestions(wordData, handleSuggestionSelect);
-    },
-    onSave: (newText) => {
-        const currentResult = store.getState('currentResult');
-        if (currentResult) {
-            currentResult.original_caption = newText;
-            store.setResult(currentResult);
-        }
-    },
-    onShare: async (captionText) => {
-        try {
-            const { shareWithImage, shareCaption } = await import('./src/services/ShareService.js');
-            const imageBase64 = store.getState('base64');
-            if (imageBase64) await shareWithImage({ imageBase64, caption: captionText });
-            else await shareCaption(captionText);
-        } catch (err) { handleError(err, 'Share'); }
-    }
-}));
-
-// Register Managers to Router (only those that initialized successfully)
+// 2. Register Initial Critical Managers
 if (homeManager) router.registerManager('home', homeManager);
-if (reportManager) router.registerManager('report', reportManager);
-if (mypageManager) router.registerManager('mypage', mypageManager);
-if (noticeManager) router.registerManager('notice', noticeManager);
-if (inputManager) router.registerManager('input', inputManager);
+
+// 3. Lazy Manager Factories (Initialized on first navigation)
+const managerFactories = {
+    report: () => new ReportManager('report-view'),
+    mypage: () => new MyPageManager('mypage-view', { onLogout: () => window.location.reload() }),
+    notice: () => new NoticeManager('notice-view'),
+    input: () => new InputManager('input-view'),
+    result: () => {
+        return new ResultViewer({
+            resultArea: 'result-view',
+            interactiveCaption: 'caption-interactive',
+            editCaption: 'caption-edit',
+            editBtn: 'edit-btn',
+            saveBtn: 'save-btn',
+            copyBtn: 'copy-btn',
+            shareBtn: 'share-btn',
+            resultImage: 'result-image',
+            onKeywordClick: (wordData) => {
+                const suggestionModal = getSuggestionModal();
+                if (suggestionModal) suggestionModal.renderSuggestions(wordData, (s, o) => {
+                    const currentResult = store.getState('currentResult');
+                    if (!currentResult) return;
+                    currentResult.original_caption = currentResult.original_caption.replace(o, s);
+                    const keyword = currentResult.keywords.find(k => k.word === o);
+                    if (keyword) keyword.word = s;
+                    store.setResult(currentResult);
+                    const viewer = getManager('result');
+                    if (viewer) viewer.renderCaption(currentResult);
+                });
+            },
+            onSave: (newText) => {
+                const currentResult = store.getState('currentResult');
+                if (currentResult) {
+                    currentResult.original_caption = newText;
+                    store.setResult(currentResult);
+                }
+            },
+            onShare: async (captionText) => {
+                try {
+                    const { shareWithImage, shareCaption } = await import('./src/services/ShareService.js');
+                    const imageBase64 = store.getState('base64');
+                    if (imageBase64) await shareWithImage({ imageBase64, caption: captionText });
+                    else await shareCaption(captionText);
+                } catch (err) { handleError(err, 'Share'); }
+            }
+        });
+    }
+};
+
+const lazyModals = {
+    suggestionModal: () => new SuggestionModal('suggestion-modal', 'suggestion-list'),
+    settingsModal: () => new SettingsModal('settings-modal', 'system-prompt-input')
+};
+
+const managers = {};
+const modals = {};
+
+function getManager(name) {
+    if (managers[name]) return managers[name];
+    if (managerFactories[name]) {
+        console.log(`[BOOT-LAZY] Lazily initializing manager: ${name}`);
+        managers[name] = safeInit(name, managerFactories[name]);
+        if (managers[name]) router.registerManager(name, managers[name]);
+        return managers[name];
+    }
+    return null;
+}
+
+function getSuggestionModal() {
+    if (modals.suggestionModal) return modals.suggestionModal;
+    console.log(`[BOOT-LAZY] Lazily initializing Modal: suggestionModal`);
+    modals.suggestionModal = safeInit('suggestionModal', lazyModals.suggestionModal);
+    return modals.suggestionModal;
+}
+
+// 4. Update Event Listeners to use Lazy Getters
+if (els.navHome) els.navHome.onclick = () => router.navigate('home');
+if (els.navReport) els.navReport.onclick = () => {
+    getManager('report');
+    router.navigate('report');
+};
+if (els.navMypage) els.navMypage.onclick = () => {
+    getManager('mypage');
+    router.navigate('mypage');
+};
+
+// --- View Redirection for Notice ---
+window.addEventListener('nav-change', (e) => {
+    if (e.detail) {
+        if (managerFactories[e.detail]) getManager(e.detail);
+        router.navigate(e.detail);
+    }
+});
 
 // --- Utility Functions ---
 

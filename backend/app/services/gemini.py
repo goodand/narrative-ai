@@ -453,12 +453,14 @@ class GeminiService:
             )
             return self._parse_delete_recommendation_response(data)
         except Exception as e:
-            logger.error(f"Failed to generate delete recommendation: {e}")
+            error_msg = str(e)
+            logger.error(f"Failed to generate delete recommendation: {error_msg}")
             return DeleteRecommendationResponse(
                 reason="오늘 비워내기 좋은 기록입니다.",
                 shortReason="정리 추천",
                 usedCriteria=[],
-                source="fallback"
+                source="fallback",
+                error_detail=error_msg
             )
 
     async def generate_batch_delete_recommendation(
@@ -518,9 +520,16 @@ class GeminiService:
             data = await self._fetch_with_key_failover(self.settings.gemini_story_model, payload)
             return self._parse_hybrid_batch_response(data, num_images)
         except Exception as e:
-            logger.error(f"Failed to generate hybrid batch recommendation: {e}")
+            error_msg = str(e)
+            logger.error(f"Failed to generate hybrid batch recommendation: {error_msg}")
             fallback_items = [
-                DeleteRecommendationResponse(reason="정리하기 좋은 기록입니다.", shortReason="정리 추천", usedCriteria=[], source="fallback")
+                DeleteRecommendationResponse(
+                    reason="정리하기 좋은 기록입니다.", 
+                    shortReason="정리 추천", 
+                    usedCriteria=[], 
+                    source="fallback",
+                    error_detail=error_msg
+                )
                 for _ in range(num_images)
             ]
             return BatchDeleteRecommendationResponse(recommendations=fallback_items)
@@ -545,9 +554,16 @@ class GeminiService:
                 
             return BatchDeleteRecommendationResponse(recommendations=recs)
         except Exception as e:
-            logger.error(f"Hybrid batch parse error: {e}")
+            error_msg = f"Hybrid batch parse error: {str(e)}"
+            logger.error(error_msg)
             fallback_items = [
-                DeleteRecommendationResponse(reason="정리하기 좋은 기록입니다.", shortReason="정리 추천", usedCriteria=[], source="fallback")
+                DeleteRecommendationResponse(
+                    reason="정리하기 좋은 기록입니다.", 
+                    shortReason="정리 추천", 
+                    usedCriteria=[], 
+                    source="fallback",
+                    error_detail=error_msg
+                )
                 for _ in range(expected_count)
             ]
             return BatchDeleteRecommendationResponse(recommendations=fallback_items)
@@ -564,10 +580,12 @@ class GeminiService:
                 usedCriteria=parsed.get("usedCriteria", []),
                 source="ai"
             )
-        except (KeyError, IndexError, json.JSONDecodeError):
+        except (KeyError, IndexError, json.JSONDecodeError) as e:
+            error_msg = f"Parse error: {str(e)}"
             return DeleteRecommendationResponse(
                 reason="오늘 비워내기 좋은 기록입니다.",
                 shortReason="정리 추천",
                 usedCriteria=[],
-                source="fallback"
+                source="fallback",
+                error_detail=error_msg
             )
