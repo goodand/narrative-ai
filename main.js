@@ -97,16 +97,11 @@ App.addListener('appStateChange', ({ isActive }) => {
 
 // DOM Elements
 const els = {
-    genBtn: document.getElementById('generate-btn'),
-    btnText: document.getElementById('btn-text'),
-    loader: document.getElementById('btn-loader'),
     navHome: document.getElementById('nav-home'),
     navReport: document.getElementById('nav-report'),
     navMypage: document.getElementById('nav-mypage'),
     homeView: document.getElementById('home-view'),
     reportView: document.getElementById('report-view'),
-    inputView: document.getElementById('input-view'),
-    resultView: document.getElementById('result-view'),
     header: document.querySelector('header'),
     headerTitle: document.getElementById('header-title'),
     backBtn: document.getElementById('back-btn'),
@@ -188,19 +183,16 @@ const onboardingModal = new OnboardingModal('onboarding-modal', {
 const homeManager = new HomeManager('home-view', {
     confirmModal: editConfirmModal,
     onPreciousClick: async () => {
-        // 선택된 사진을 input-view에 표시 (QW-0: base64 직접 전달, File/FileReader 왕복 제거)
-        const [base64, meta] = await Promise.all([
-            homeManager.getCurrentPhotoBase64(),
-            homeManager.getCurrentPhotoMeta()
-        ]);
-
-        if (!base64) {
-            showToast(UI_MESSAGES.ERROR_NO_IMAGE, ErrorLevel.WARN);
-            return;
+        // 현재 사진의 ID를 가져와서 소비(Consume) 처리만 수행 (다음 버전에서 상세 설정을 사용함)
+        const photoMeta = await homeManager.getCurrentPhotoMeta();
+        if (photoMeta) {
+            showToast("소중한 기억으로 기록되었습니다.", ErrorLevel.INFO);
+            const photos = homeManager.photos || [];
+            const targetIdx = photos.findIndex(p => p.id === photoMeta.assetId);
+            if (targetIdx !== -1) {
+                homeManager.consumePhoto(targetIdx);
+            }
         }
-
-        inputManager.setPreviewImage(`data:image/jpeg;base64,${base64}`, meta);
-        router.navigate('input');
     }
 });
 const reportManager = new ReportManager('report-view');
@@ -248,99 +240,8 @@ supabase.auth.onAuthStateChange((event, session) => {
     }
 });
 
-/**
- * Generate Button Click Handler
- */
-    if (els.genBtn) {
-        els.genBtn.onclick = async () => {
-            const imageData = store.getState('base64') || store.getState('dataUrl');
-            if (!imageData) {
-                showToast(UI_MESSAGES.ERROR_NO_IMAGE, ErrorLevel.WARN);
-                return;
-            }
-
-            setLoading(true);
-
-            const inputData = inputManager.getInputData();
-            const context = {
-                sns: 'Instagram', 
-                mood: 'emotional', 
-                temp: 'Lukewarm', 
-                language: 'Korean', 
-                meaning: inputData.meaning, 
-                tags: inputData.tags, 
-                activity: '',
-                bodyState: '',
-                relationship: '',
-                metadata: store.getState('metadata'),
-                systemPrompt: store.getState('systemPrompt')
-            };
-
-            try {
-                const storyResult = await geminiService.generateStory(imageData, context);
-                if (els.btnText) els.btnText.innerText = UI_MESSAGES.FINDING_SYNONYMS;
-
-                const keywordsWithSuggestions = await geminiService.getSynonyms(
-                    storyResult.keywords,
-                    context.language
-                );
-
-                const metadata = store.getState('metadata');
-                const displayImage = store.getState('dataUrl');
-
-                const result = {
-                    original_caption: storyResult.original_caption,
-                    keywords: keywordsWithSuggestions,
-                    image: displayImage,
-                    metadata: metadata
-                };
-                store.setResult(result);
-
-                if (metadata?._isNative && metadata?.assetId && metadata?.dayKey) {
-                    photoService.recordCurationAction({
-                        assetId: metadata.assetId,
-                        action: 'recorded',
-                        dayKey: metadata.dayKey
-                    }).then(() => {
-                        const photos = homeManager.photos || [];
-                        const targetIdx = photos.findIndex(p => p.id === metadata.assetId);
-                        if (targetIdx !== -1) {
-                            homeManager.consumePhoto(targetIdx);
-                        } else {
-                            return photoService.refreshDailyCurationAfterMutation({ limit: 3 });
-                        }
-                    }).catch((recordError) => {
-                        console.warn('Main: record action or home sync failed', recordError);
-                    });
-                }
-
-                router.navigate('result');
-                if (els.header) els.header.classList.remove('hidden');
-                if (els.headerTitle) els.headerTitle.innerText = '리코코 기록 결과';
-
-                const resultDate = document.getElementById('result-date');
-                const resultLoc = document.getElementById('result-location');
-                if (resultDate && metadata?.date) resultDate.innerText = metadata.date;
-                if (resultLoc && metadata?.gps) resultLoc.innerText = metadata.gps.formatted;
-
-                if (typeof resultViewer !== 'undefined') {
-                    resultViewer.show();
-                    resultViewer.renderCaption(result);
-                    resultViewer.scrollIntoView();
-                }
-
-            } catch (error) {
-                handleError(error, 'AI');
-            } finally {
-                setLoading(false);
-            }
-        };
-    }
-
 function setLoading(isLoading) {
-    els.genBtn.disabled = isLoading;
-    els.loader?.classList.toggle('hidden', !isLoading);
-    els.btnText.innerText = isLoading ? UI_MESSAGES.LOADING : UI_MESSAGES.GENERATE_BUTTON;
+    // Current version focus (Daily Curation) manages loading in individual managers
 }
 
 /**
