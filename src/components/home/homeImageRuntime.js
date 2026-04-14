@@ -62,6 +62,11 @@ export async function performBatchAnalysis(photos, targets, manager) {
     // 메인 UI 업데이트 (manager가 있고 현재 보고 있는 인덱스가 포함된 경우에만)
     if (manager) updateCurationHeader(manager, commonReasons);
 
+    // 2. 대상 사진들 분석 락킹 (중복 개별 호출 방지)
+    targets.forEach(idx => {
+        if (photos[idx]) photos[idx]._aiReasonFetching = true;
+    });
+
     const metaContextEl = document.getElementById('meta-context');
     const currIdx = manager?.currentIndex;
 
@@ -74,7 +79,7 @@ export async function performBatchAnalysis(photos, targets, manager) {
         const images = await Promise.all(targets.map(idx => photoService.getPhotoAsBase64(idx)));
         const metadatas = targets.map(idx => photos[idx].rawAsset || {});
         
-        // 2. 공통 필터 소거 (AI 컨텍스트 최적화)
+        // 3. 공통 필터 소거 (AI 컨텍스트 최적화)
         const cleanedCriteriaList = targets.map(idx => {
             const original = photos[idx].rawAsset?.curationReasons || [];
             return original.filter(r => !commonReasons.includes(r));
@@ -207,7 +212,7 @@ export function setupCarouselSnap(manager, wrapper) {
 
             if (closestVisualIdx === 1) return;
 
-            const photos = photoService.getPhotos();
+            const photos = manager.photos;
             const visibleMax = Math.min(photos.length, 3);
             if (closestVisualIdx === 0 && manager.currentIndex > 0) {
                 manager.currentIndex--;

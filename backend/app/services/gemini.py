@@ -453,16 +453,16 @@ class GeminiService:
 
         num_images = len(images_base64)
         
-        # Build comparative prompt for a single common semantic reason
+        # Build comparative prompt for a warm, friendly batch reason
         prompt = (
-            f"제시된 {num_images}장의 이미지는 현재 사용자의 기기에서 '정리 대상'으로 분류되었습니다.\n"
-            f"이미지들을 관찰하고 전문가의 관점에서 **이 사진들을 비우기로(삭제) 추천하는 공통된 원인을 한 문장으로 간결하게** 알려주세요.\n"
-            f"화질 저하, 중복성, 내용의 일시성, 구도의 불안정 등 시각적이고 구체적인 이유를 들어 설득력 있게 작성해야 합니다.\n"
-            f"어조: {tone}, 언어: {language}, 최대 길이: {max_length}자 이내.\n"
-            f"결과는 JSON 형식으로 'commonReason' 필드에 담아 반환해주세요."
+            f"제시된 {num_images}장의 사진들은 현재 사진첩 정리를 위해 선정된 기록들입니다.\n"
+            f"이 사진들을 분석하여, 사용자가 이 사진들을 비워내도(삭제해도) 괜찮은 공통된 이유를 "
+            f"매우 부드러운 어조({tone})로 {language}로 ⚠️딱 한 문장(1 sentence)⚠️으로만 작성해주세요.\n"
+            f"사진의 시각적 느낌이나 담긴 내용의 맥락을 살펴보고, 사용자가 기분 좋게 비울 수 있도록 격려하는 이유여야 합니다.\n"
+            f"길이는 {max_length}자 이내여야 하며, 결과는 'commonReason' 필드에 담아 JSON으로 반환해주세요."
         )
         
-        system_prompt = "너는 디지털 미니멀리즘 리코코야. 사용자가 이미 알고 있는 메타데이터 정보보다는 사진의 시각적 품질과 담긴 내용의 맥락을 분석하여 명확한 삭제 근거를 제시해줘."
+        system_prompt = "너는 디지털 미니멀리즘을 도와주는 친절한 어시스턴트 리코코야. 사용자의 추억 비우기 과정을 죄책감 들지 않고 기분 좋게 격려해야 해. 전문가적인 차가운 분석보다는 친구 같은 따뜻한 조언을 해줘."
 
         logger.info(f"--- [GEMINI-TRACE] Hybrid Batch Analysis ({num_images} images) ---")
         logger.info(f"Hybrid Prompt: {prompt}")
