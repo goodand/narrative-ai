@@ -7,9 +7,11 @@ import base64
 import io
 import json
 import logging
+import asyncio
 
 import httpx
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from PIL import Image, ImageOps
 
 from ..models.schemas import NarrativeContext, NarrativeResponse, ErrorResponse, DeleteRecommendationRequest, DeleteRecommendationResponse, BatchDeleteRecommendationRequest, BatchDeleteRecommendationResponse
@@ -88,7 +90,7 @@ async def generate_narrative(
             raise ValueError(f"context JSON 파싱 실패: {str(e)}")
 
         raw_image_bytes = await image.read()
-        normalized_image_bytes = _normalize_image_bytes(raw_image_bytes)
+        normalized_image_bytes = await run_in_threadpool(_normalize_image_bytes, raw_image_bytes)
         image_base64 = base64.b64encode(normalized_image_bytes).decode("utf-8")
 
         logger.info(f"Narrative request received - SNS: {context_obj.sns}, Language: {context_obj.language}")
@@ -148,7 +150,7 @@ async def get_delete_recommendation(
         logger.info(f"--- [ROUTER-TRACE] Delete Recommendation Request Received ---")
         
         # 이미지 정규화 적용
-        normalized_image = _normalize_base64_image(payload.image)
+        normalized_image = await run_in_threadpool(_normalize_base64_image, payload.image)
         
         result = await gemini_service.generate_delete_recommendation(
             image_base64=normalized_image,
@@ -183,7 +185,7 @@ async def get_batch_delete_recommendation(
         gemini_service = GeminiService(client)
 
         # 이미지들 정규화 적용
-        normalized_images = [_normalize_base64_image(img) for img in payload.images]
+        normalized_images = await asyncio.gather(*[run_in_threadpool(_normalize_base64_image, img) for img in payload.images])
 
         result = await gemini_service.generate_batch_delete_recommendation(
             images_base64=normalized_images,

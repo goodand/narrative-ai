@@ -14,6 +14,21 @@ export class PhotoService {
     constructor() {
         this.photos = [];
         this.currentDayKey = null;
+        this.analysisRegistry = new Map(); // assetId -> Promise
+    }
+
+    getAnalysis(assetId) {
+        return this.analysisRegistry.get(assetId);
+    }
+
+    registerAnalysis(assetId, promise) {
+        this.analysisRegistry.set(assetId, promise);
+        // Remove from registry once settled to allow re-analysis if needed later
+        promise.finally(() => {
+            if (this.analysisRegistry.get(assetId) === promise) {
+                this.analysisRegistry.delete(assetId);
+            }
+        });
     }
 
     async fetchAndRankPhotos(limit = 30) {

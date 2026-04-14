@@ -39,7 +39,11 @@ export async function loadRealPhotos(manager) {
         }
     } catch (error) {
         handleError(error, 'HomeManager');
-        manager.error = '사진첩 접근 권한이 필요합니다.';
+        if (error.name === 'TimeoutError') {
+            manager.error = '사진 분석 응답 시간이 초과되었습니다. 잠시 후 아래의 [다시 시도하기] 버튼을 눌러주세요.';
+        } else {
+            manager.error = '사진첩 접근 권한이 없거나 분석 중 오류가 발생했습니다.';
+        }
     } finally {
         manager.isLoading = false;
         manager.render();

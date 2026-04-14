@@ -42,12 +42,21 @@ function mapToPhotoModel(item, dayKey) {
  */
 export async function fetchCurationBatch({ limit = 3, thumbSize = 420, transport = 'base64', forceRefresh = false } = {}) {
     try {
-        const daily = await RecocolPhotos.getDailyCuration({
-            limit,
-            thumbSize,
-            transport,
-            forceRefresh
-        });
+        // [안정화] 네이티브 응답이 10초 이상 지연될 경우 타임아웃 처리
+        const timeoutMs = 10000;
+        const daily = await Promise.race([
+            RecocolPhotos.getDailyCuration({
+                limit,
+                thumbSize,
+                transport,
+                forceRefresh
+            }),
+            new Promise((_, reject) => setTimeout(() => {
+                const err = new Error('사진 라이브러리 분석 응답 시간이 초과되었습니다.');
+                err.name = 'TimeoutError';
+                reject(err);
+            }, timeoutMs))
+        ]);
 
         const dayKey = daily?.dayKey || null;
         const items = Array.isArray(daily?.items) ? daily.items : [];

@@ -6,6 +6,7 @@
 import { supabase } from '../services/supabase.js';
 import { photoService } from '../services/PhotoService.js';
 import { loadAndReflectImages, setupCarouselSnap, triggerBatchAnalysis } from './home/homeImageRuntime.js';
+import { setupDailyCurationListener } from './home/homeLoadRuntime.js';
 
 export class HomeManager {
     constructor(containerId, options = {}) {
@@ -22,6 +23,7 @@ export class HomeManager {
         this._nextBatch = null;
         this._isRefilling = false;
         
+        this.currentIndex = 0;
         this._setupEventDelegation();
         setupDailyCurationListener(this);
     }
@@ -163,8 +165,15 @@ export class HomeManager {
         const photos = this.photos;
 
         if (photos.length === 0) {
+            const displayContent = this.error 
+                ? `<p class="text-error font-medium text-sm text-center px-8">${this.error}</p>`
+                : `
+                    <div class="loader"></div>
+                    <p class="text-muted-lavender text-xs">사진 데이터를 분석하고 있습니다...</p>
+                `;
+
             this.container.innerHTML = `
-                <div class="flex flex-col px-6">
+                <div class="flex flex-col px-6 h-full">
                     <header class="flex items-center bg-transparent py-3 shrink-0" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
                         <div class="text-primary flex size-8 shrink-0 items-center justify-center">
                             <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
@@ -173,12 +182,10 @@ export class HomeManager {
                         <div class="w-8"></div>
                     </header>
                     <div class="flex-1 flex flex-col items-center justify-center space-y-4 pb-32">
-                        <div class="loader"></div>
-                        <p class="text-muted-lavender text-xs">사진 데이터를 분석하고 있습니다...</p>
+                        ${displayContent}
                     </div>
                 </div>
             `;
-            this.loadRealPhotos();
             return;
         }
 

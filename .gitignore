@@ -93,3 +93,7 @@ plugin_backup/
 .maestro/*.png
 
 .user
+
+# Build artifacts
+build-temp/
+control/

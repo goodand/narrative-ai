@@ -14,31 +14,46 @@ export class PermissionModal extends Modal {
         this.contentElement = this.element.querySelector('#permission-content');
     }
 
-    /**
-     * Check permission status and open modal only if needed
-     */
     async checkAndOpen() {
         if (!Capacitor.isNativePlatform()) {
-            console.log('Skipping photo permissions on web environment');
+            console.log('[PERM] Skipping photo permissions on web environment');
             if (this.onComplete) this.onComplete();
             return;
         }
 
-        try {
-            const status = await Camera.checkPermissions();
-            console.log('Current permission status:', status.photos);
-
-            if (status.photos === 'granted' || status.photos === 'limited') {
-                console.log('Permission already granted, skipping modal');
+        let isCompleted = false;
+        
+        // Safety timeout: 2.5 seconds to prevent boot hang
+        const timeout = setTimeout(() => {
+            if (!isCompleted) {
+                console.warn('[PERM] Permission check timed out. Proceeding to unblock boot.');
+                isCompleted = true;
                 if (this.onComplete) this.onComplete();
-                return;
             }
-            
-            // If not granted, show the modal
-            this.open();
+        }, 2500);
+
+        try {
+            console.log('[PERM] Checking permissions...');
+            const status = await Camera.checkPermissions();
+            console.log('[PERM] Status:', status.photos);
+
+            if (!isCompleted) {
+                clearTimeout(timeout);
+                isCompleted = true;
+                
+                if (status.photos === 'granted' || status.photos === 'limited') {
+                    if (this.onComplete) this.onComplete();
+                    return;
+                }
+                this.open();
+            }
         } catch (error) {
-            console.error('Error checking permissions:', error);
-            this.open(); // Fallback
+            console.error('[PERM] Error checking permissions:', error);
+            if (!isCompleted) {
+                clearTimeout(timeout);
+                isCompleted = true;
+                this.open();
+            }
         }
     }
 

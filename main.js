@@ -41,6 +41,30 @@ import { NoticeManager } from './src/components/NoticeManager.js';
 // Initialize Core Services
 const geminiService = new GeminiService();
 
+// Global Manager References (declared early to avoid ReferenceErrors)
+let homeManager, reportManager, mypageManager, noticeManager;
+let inputManager, resultViewer, suggestionModal, settingsModal, editConfirmModal;
+let permissionModal, authModal, onboardingModal;
+
+// Failure Tracking
+window.__bootErrors = {};
+
+/**
+ * safeInit - Initializes a component safely and tracks failures
+ */
+function safeInit(name, factory) {
+    try {
+        console.log(`[BOOT] Initializing ${name}...`);
+        const instance = factory();
+        console.log(`[BOOT] ${name} initialized successfully.`);
+        return instance;
+    } catch (err) {
+        console.error(`[BOOT] ${name} failed to initialize:`, err);
+        window.__bootErrors[name] = err.message;
+        return null;
+    }
+}
+
 /**
  * Handle Deep Links (OAuth Callback)
  */
@@ -102,6 +126,8 @@ const els = {
     navMypage: document.getElementById('nav-mypage'),
     homeView: document.getElementById('home-view'),
     reportView: document.getElementById('report-view'),
+    inputView: document.getElementById('input-view'),
+    resultView: document.getElementById('result-view'),
     header: document.querySelector('header'),
     headerTitle: document.getElementById('header-title'),
     backBtn: document.getElementById('back-btn'),
@@ -111,34 +137,44 @@ const els = {
 };
 
 // Initialize Router
+console.log('[BOOT] Initializing elements and router...');
 const router = new Router(els);
 
 // --- Component Initializations ---
-const inputManager = new InputManager('input-view');
 
-// SelectionGroup instances for sns and temp are no longer needed as they are removed from UI
-// keeping them if they are used elsewhere, but ideally cleaning up if exclusively for input view
+// 1. Critical Modals & Core Managers
+suggestionModal = safeInit('suggestionModal', () => new SuggestionModal('suggestion-modal', 'suggestion-list'));
+settingsModal = safeInit('settingsModal', () => new SettingsModal('settings-modal', 'system-prompt-input'));
+editConfirmModal = safeInit('editConfirmModal', () => new ConfirmModal('edit-confirm-modal'));
+permissionModal = safeInit('permissionModal', () => new PermissionModal('permission-modal'));
+authModal = safeInit('authModal', () => new AuthModal('auth-modal'));
+onboardingModal = safeInit('onboardingModal', () => new OnboardingModal('onboarding-modal', {
+    onComplete: () => authModal?.open('signup')
+}));
 
-const suggestionModal = new SuggestionModal('suggestion-modal', 'suggestion-list');
-
-// 유의어 선택 핸들러
-function handleSuggestionSelect(suggestion, originalWord) {
-    const currentResult = store.getState('currentResult');
-    if (!currentResult) return;
-
-    const newCaption = currentResult.original_caption.replace(originalWord, suggestion);
-    currentResult.original_caption = newCaption;
-
-    const keyword = currentResult.keywords.find(k => k.word === originalWord);
-    if (keyword) {
-        keyword.word = suggestion;
+// 2. Main View Managers
+homeManager = safeInit('homeManager', () => new HomeManager('home-view', {
+    confirmModal: editConfirmModal,
+    onPreciousClick: async () => {
+        const photoMeta = await homeManager.getCurrentPhotoMeta();
+        if (photoMeta) {
+            showToast("소중한 기억으로 기록되었습니다.", ErrorLevel.INFO);
+            const photos = homeManager.photos || [];
+            const targetIdx = photos.findIndex(p => p.id === photoMeta.assetId);
+            if (targetIdx !== -1) homeManager.consumePhoto(targetIdx);
+        }
     }
+}));
 
-    store.setResult(currentResult);
-    resultViewer.renderCaption(currentResult);
-}
+reportManager = safeInit('reportManager', () => new ReportManager('report-view'));
+mypageManager = safeInit('mypageManager', () => new MyPageManager('mypage-view', { 
+    onLogout: () => window.location.reload() 
+}));
+noticeManager = safeInit('noticeManager', () => new NoticeManager('notice-view'));
 
-const resultViewer = new ResultViewer({
+// 3. Delayed/Lazy Components (Minimized for initial boot stability)
+inputManager = safeInit('inputManager', () => new InputManager('input-view'));
+resultViewer = safeInit('resultViewer', () => new ResultViewer({
     resultArea: 'result-view',
     interactiveCaption: 'caption-interactive',
     editCaption: 'caption-edit',
@@ -148,7 +184,7 @@ const resultViewer = new ResultViewer({
     shareBtn: 'share-btn',
     resultImage: 'result-image',
     onKeywordClick: (wordData) => {
-        suggestionModal.renderSuggestions(wordData, handleSuggestionSelect);
+        if (suggestionModal) suggestionModal.renderSuggestions(wordData, handleSuggestionSelect);
     },
     onSave: (newText) => {
         const currentResult = store.getState('currentResult');
@@ -161,59 +197,52 @@ const resultViewer = new ResultViewer({
         try {
             const { shareWithImage, shareCaption } = await import('./src/services/ShareService.js');
             const imageBase64 = store.getState('base64');
-            if (imageBase64) {
-                await shareWithImage({ imageBase64, caption: captionText });
-            } else {
-                await shareCaption(captionText);
-            }
-        } catch (err) {
-            handleError(err, 'Share');
-        }
+            if (imageBase64) await shareWithImage({ imageBase64, caption: captionText });
+            else await shareCaption(captionText);
+        } catch (err) { handleError(err, 'Share'); }
     }
-});
-const settingsModal = new SettingsModal('settings-modal', 'system-prompt-input');
-const editConfirmModal = new ConfirmModal('edit-confirm-modal');
+}));
 
-const permissionModal = new PermissionModal('permission-modal');
-const authModal = new AuthModal('auth-modal');
-const onboardingModal = new OnboardingModal('onboarding-modal', {
-    onComplete: () => authModal.open('signup')
-});
+// Register Managers to Router (only those that initialized successfully)
+if (homeManager) router.registerManager('home', homeManager);
+if (reportManager) router.registerManager('report', reportManager);
+if (mypageManager) router.registerManager('mypage', mypageManager);
+if (noticeManager) router.registerManager('notice', noticeManager);
+if (inputManager) router.registerManager('input', inputManager);
 
-const homeManager = new HomeManager('home-view', {
-    confirmModal: editConfirmModal,
-    onPreciousClick: async () => {
-        // 현재 사진의 ID를 가져와서 소비(Consume) 처리만 수행 (다음 버전에서 상세 설정을 사용함)
-        const photoMeta = await homeManager.getCurrentPhotoMeta();
-        if (photoMeta) {
-            showToast("소중한 기억으로 기록되었습니다.", ErrorLevel.INFO);
-            const photos = homeManager.photos || [];
-            const targetIdx = photos.findIndex(p => p.id === photoMeta.assetId);
-            if (targetIdx !== -1) {
-                homeManager.consumePhoto(targetIdx);
-            }
-        }
+// --- Utility Functions ---
+
+function handleSuggestionSelect(suggestion, originalWord) {
+    const currentResult = store.getState('currentResult');
+    if (!currentResult) return;
+
+    const newCaption = currentResult.original_caption.replace(originalWord, suggestion);
+    currentResult.original_caption = newCaption;
+
+    const keyword = currentResult.keywords.find(k => k.word === originalWord);
+    if (keyword) keyword.word = suggestion;
+
+    store.setResult(currentResult);
+    if (resultViewer) resultViewer.renderCaption(currentResult);
+}
+
+const navigateToHome = () => {
+    console.log('[BOOT] Navigating to home shell...');
+    router.navigate('home');
+    // render() side-effect removal requires explicit load here
+    if (homeManager && homeManager.photos.length === 0) {
+        homeManager.loadRealPhotos();
     }
-});
-const reportManager = new ReportManager('report-view');
-const mypageManager = new MyPageManager('mypage-view', { onLogout: () => window.location.reload() });
-const noticeManager = new NoticeManager('notice-view');
-
-// Register Managers to Router
-router.registerManager('home', homeManager);
-router.registerManager('report', reportManager);
-router.registerManager('mypage', mypageManager);
-router.registerManager('notice', noticeManager);
-router.registerManager('input', inputManager);
+};
 
 // 뒤로가기 버튼 이벤트 연결
 if (els.backBtn) {
     els.backBtn.onclick = () => router.goBack();
 }
 
-els.navHome.onclick = () => router.navigate('home');
-els.navReport.onclick = () => router.navigate('report');
-els.navMypage.onclick = () => router.navigate('mypage');
+if (els.navHome) els.navHome.onclick = () => router.navigate('home');
+if (els.navReport) els.navReport.onclick = () => router.navigate('report');
+if (els.navMypage) els.navMypage.onclick = () => router.navigate('mypage');
 
 // MyPageManager의 뒤로가기 이벤트 처리
 window.addEventListener('nav-change', (e) => {
@@ -226,17 +255,14 @@ window.addEventListener('nav-change', (e) => {
 supabase.auth.onAuthStateChange((event, session) => {
     console.log(`[AUTH] Event: ${event}`);
     if (event === 'SIGNED_IN') {
-        authModal.close();
-        onboardingModal.element.classList.add('hidden');
-        permissionModal.onComplete = () => {
-            router.navigate('home');
-            if (localStorage.getItem('notificationEnabled') === 'true') {
-                scheduleDailyNotification();
-            }
-        };
-        permissionModal.checkAndOpen();
+        authModal?.close();
+        onboardingModal?.element?.classList?.add('hidden');
+        
+        // Post-login/signup always unblocks to home, permission check is parallel
+        navigateToHome();
+        permissionModal?.checkAndOpen();
     } else if (event === 'SIGNED_OUT') {
-        onboardingModal.open();
+        onboardingModal?.open();
     }
 });
 
@@ -248,25 +274,33 @@ function setLoading(isLoading) {
  * App Initialization
  */
 async function initApp() {
-    store.checkAndResetDaily();
-    setupActionListener(router);
+    console.log('[BOOT] Starting initApp...');
+    try {
+        store.checkAndResetDaily();
+        setupActionListener(router);
 
-    const launchUrl = await App.getLaunchUrl();
-    if (launchUrl?.url) await handleUrl(launchUrl.url);
+        const launchUrl = await App.getLaunchUrl();
+        if (launchUrl?.url) await handleUrl(launchUrl.url);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-        onboardingModal.open();
-    } else {
-        onboardingModal.element.classList.add('hidden');
-        authModal.close();
-        permissionModal.onComplete = () => {
-            router.navigate('home');
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('[BOOT] Initial session check:', session ? 'Found' : 'Not Found');
+
+        if (!session) {
+            onboardingModal?.open();
+        } else {
+            // Already logged in: unblock view first, then handle permissions in parallel
+            navigateToHome();
+            
             if (localStorage.getItem('notificationEnabled') === 'true') {
                 scheduleDailyNotification();
             }
-        };
-        permissionModal.checkAndOpen();
+            
+            // Trigger permission flow but don't block navigation
+            permissionModal?.checkAndOpen();
+        }
+    } catch (err) {
+        console.error('[BOOT] Critical initApp failure:', err);
+        navigateToHome();
     }
 }
 

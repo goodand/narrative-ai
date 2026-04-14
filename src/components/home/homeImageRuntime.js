@@ -67,52 +67,65 @@ export async function performBatchAnalysis(photos, targets, manager) {
         if (photos[idx]) photos[idx]._aiReasonFetching = true;
     });
 
-    const metaContextEl = document.getElementById('meta-context');
-    const currIdx = manager?.currentIndex;
-
-    try {
-        if (targets.includes(currIdx) && metaContextEl) {
-            metaContextEl.innerText = '비교 분석 중...';
-            metaContextEl.classList.add('animate-pulse');
-        }
-
-        const images = await Promise.all(targets.map(idx => photoService.getPhotoAsBase64(idx)));
-        const metadatas = targets.map(idx => photos[idx].rawAsset || {});
-        
-        // 3. 공통 필터 소거 (AI 컨텍스트 최적화)
-        const cleanedCriteriaList = targets.map(idx => {
-            const original = photos[idx].rawAsset?.curationReasons || [];
-            return original.filter(r => !commonReasons.includes(r));
-        });
-
-        const result = await geminiService.generateBatchDeleteRecommendations({
-            images,
-            metadatas,
-            filteringCriteriaList: cleanedCriteriaList,
-            maxLength: 60
-        });
-
-        // 3. AI 결과 반영 (동일한 공통 사유를 묶음에 적용)
-        result.recommendations.forEach((rec, i) => {
-            const idx = targets[i];
-            const p = photos[idx];
-            if (p) {
-                // Batch API가 3개 응답을 주지만, 묶음의 비중을 높이기 위해 첫 번째(혹은 통합된) 사유를 공유
-                p.contextMessage = rec.reason;
-                p._aiReasonFetching = false;
-                
-                if (idx === manager.currentIndex && metaContextEl) {
-                    metaContextEl.innerText = rec.reason;
-                    metaContextEl.classList.remove('animate-pulse');
-                }
-            }
-        });
-    } catch (error) {
-        console.error('[RECOCO-TRACE] Batch analysis failed:', error);
-        targets.forEach(idx => { 
-            if (photos[idx]) photos[idx]._aiReasonFetching = false; 
-        });
+    const registryKey = targets.join(',');
+    const existingAnalysis = photoService.getAnalysis(registryKey);
+    if (existingAnalysis) {
+        console.info(`[RECOCO-TRACE] Reusing existing batch analysis for: ${targets}`);
+        return existingAnalysis;
     }
+
+    const analysisPromise = (async () => {
+        const metaContextEl = document.getElementById('meta-context');
+        const currIdx = manager?.currentIndex;
+
+        try {
+            if (targets.includes(currIdx) && metaContextEl) {
+                metaContextEl.innerText = '비교 분석 중...';
+                metaContextEl.classList.add('animate-pulse');
+            }
+
+            const images = await Promise.all(targets.map(idx => photoService.getPhotoAsBase64(idx)));
+            const metadatas = targets.map(idx => photos[idx].rawAsset || {});
+            
+            // 3. 공통 필터 소거 (AI 컨텍스트 최적화)
+            const cleanedCriteriaList = targets.map(idx => {
+                const original = photos[idx].rawAsset?.curationReasons || [];
+                return original.filter(r => !commonReasons.includes(r));
+            });
+
+            const result = await geminiService.generateBatchDeleteRecommendations({
+                images,
+                metadatas,
+                filteringCriteriaList: cleanedCriteriaList,
+                maxLength: 60
+            });
+
+            // 3. AI 결과 반영
+            result.recommendations.forEach((rec, i) => {
+                const idx = targets[i];
+                const p = photos[idx];
+                if (p) {
+                    p.contextMessage = rec.reason;
+                    p._aiReasonFetching = false;
+                    
+                    if (idx === manager?.currentIndex && metaContextEl) {
+                        metaContextEl.innerText = rec.reason;
+                        metaContextEl.classList.remove('animate-pulse');
+                    }
+                }
+            });
+            return result;
+        } catch (error) {
+            console.error('[RECOCO-TRACE] Batch analysis failed:', error);
+            targets.forEach(idx => { 
+                if (photos[idx]) photos[idx]._aiReasonFetching = false; 
+            });
+            throw error;
+        }
+    })();
+
+    photoService.registerAnalysis(registryKey, analysisPromise);
+    return analysisPromise;
 }
 
 /**
@@ -181,8 +194,18 @@ function updateCurationHeader(manager, commonReasons) {
 export async function prefetchRemaining(loadedSet) {
     const photos = photoService.getPhotos();
     const remaining = [];
+    
+    // [최적화] 슬라이딩 윈도우 프리페치 (현재 세트에서 최대 8개까지만 미리 로드)
+    // 리스트가 매우 길 경우(수백 장) 전체 분석 시 메모리 및 과도한 API 호출 방지
+    const MAX_PREFETCH = 8;
+    let count = 0;
+
     for (let i = 0; i < photos.length; i++) {
-        if (!loadedSet.has(i)) remaining.push(i);
+        if (!loadedSet.has(i)) {
+            remaining.push(i);
+            count++;
+            if (count >= MAX_PREFETCH) break;
+        }
     }
 
     const BATCH = 2;
@@ -262,10 +285,25 @@ async function handleAIContextDisplay(photo, index, metaContextEl) {
     }
 
     // 2. 현재 분석이 진행 중인 경우
-    if (photo._aiReasonFetching) {
+    const assetId = photo.id || `idx-${index}`;
+    const existingAnalysis = photoService.getAnalysis(assetId);
+    
+    if (existingAnalysis || photo._aiReasonFetching) {
         metaContextEl.innerText = 'AI 분석 중...';
         metaContextEl.classList.add('animate-pulse');
-        return;
+        
+        if (existingAnalysis) {
+            try {
+                const result = await existingAnalysis;
+                metaContextEl.innerText = result.reason;
+                metaContextEl.classList.remove('animate-pulse');
+                return;
+            } catch (e) {
+                // Fail quietly, move to individual trigger
+            }
+        } else {
+            return;
+        }
     }
 
     // 3. 신규 분석 시작
@@ -273,24 +311,31 @@ async function handleAIContextDisplay(photo, index, metaContextEl) {
     metaContextEl.innerText = 'AI 분석 중...';
     metaContextEl.classList.add('animate-pulse');
 
-    try {
-        const base64 = await photoService.getPhotoAsBase64(index);
-        const result = await geminiService.generateDeleteRecommendation({
-            imageBase64: base64,
-            metadata: photo.rawAsset || {},
-            filteringCriteria: photo.rawAsset?.curationReasons || [],
-            language: 'Korean',
-            tone: 'gentle',
-            maxLength: 60
-        });
-        metaContextEl.innerText = result.reason;
-        photo.contextMessage = result.reason;
-    } catch (error) {
-        console.error('[RECOCO-TRACE] Individual analysis failed:', error);
-        photo.contextMessage = null;
-        metaContextEl.innerText = '오늘 정리하기 좋은 항목이에요.';
-    } finally {
-        photo._aiReasonFetching = false;
-        metaContextEl.classList.remove('animate-pulse');
-    }
+    const individualPromise = (async () => {
+        try {
+            const base64 = await photoService.getPhotoAsBase64(index);
+            const result = await geminiService.generateDeleteRecommendation({
+                imageBase64: base64,
+                metadata: photo.rawAsset || {},
+                filteringCriteria: photo.rawAsset?.curationReasons || [],
+                language: 'Korean',
+                tone: 'gentle',
+                maxLength: 60
+            });
+            metaContextEl.innerText = result.reason;
+            photo.contextMessage = result.reason;
+            return result;
+        } catch (error) {
+            console.error('[RECOCO-TRACE] Individual analysis failed:', error);
+            photo.contextMessage = null;
+            metaContextEl.innerText = '오늘 정리하기 좋은 항목이에요.';
+            throw error;
+        } finally {
+            photo._aiReasonFetching = false;
+            metaContextEl.classList.remove('animate-pulse');
+        }
+    })();
+
+    photoService.registerAnalysis(assetId, individualPromise);
+    await individualPromise;
 }

@@ -64,6 +64,17 @@ class GeminiService:
             return any(m in body for m in markers)
         return False
 
+    def _prepare_base64_data(self, base64_str: str) -> str:
+        """
+        Base64 데이터 접두사 제거 (예: 'data:image/jpeg;base64,')
+        Google Gemini API는 순수 데이터 문자열만 기대합니다.
+        """
+        if not base64_str:
+            return ""
+        if "," in base64_str:
+            return base64_str.split(",")[-1]
+        return base64_str
+
     @staticmethod
     def _extract_gps(metadata) -> tuple:
         """metadata에서 GPS 좌표(lat, lon)를 추출. 없으면 (None, None) 반환."""
@@ -189,9 +200,18 @@ class GeminiService:
         """
         # Geocoding 처리 (위도/경도 -> 주소 변환)
         lat, lon = self._extract_gps(context.metadata)
-        if lat is not None and lon is not None:
+        
+        # 이미 주소가 있거나 좌표가 없는 경우 건너뜀
+        current_address = None
+        if isinstance(context.metadata, dict):
+            current_address = context.metadata.get("location_address")
+        else:
+            current_address = getattr(context.metadata, "location_address", None)
+
+        if not current_address and lat is not None and lon is not None:
             try:
-                address = await get_address_from_coords(self.client, lat, lon)
+                # 타임아웃 3초 설정 (네트워크 대기 최소화)
+                address = await asyncio.wait_for(get_address_from_coords(self.client, lat, lon), timeout=3.0)
                 if address:
                     logger.info(f"Address resolved: {address}")
                     if isinstance(context.metadata, dict):
@@ -200,6 +220,8 @@ class GeminiService:
                         setattr(context.metadata, "location_address", address)
                 else:
                     logger.warning(f"Geocoding returned empty for {lat}, {lon}")
+            except asyncio.TimeoutError:
+                logger.warning(f"Geocoding timed out for {lat}, {lon}")
             except Exception as e:
                 logger.error(f"Failed to resolve address: {e}", exc_info=True)
 
@@ -210,7 +232,7 @@ class GeminiService:
             "contents": [{
                 "parts": [
                     {"text": prompt},
-                    {"inlineData": {"mimeType": "image/jpeg", "data": image_base64}}
+                    {"inlineData": {"mimeType": "image/jpeg", "data": self._prepare_base64_data(image_base64)}}
                 ]
             }],
             "systemInstruction": {"parts": [{"text": system_prompt}]},
@@ -339,7 +361,8 @@ class GeminiService:
             parsed = json.loads(cleaned_text)
             return NarrativeResponse(
                 original_caption=parsed.get("original_caption", ""),
-                keywords=parsed.get("keywords", [])
+                keywords=parsed.get("keywords", []),
+                source="ai"
             )
         except json.JSONDecodeError as e:
             logger.error(f"JSON parse error. Text: {cleaned_text[:500]}")
@@ -394,7 +417,7 @@ class GeminiService:
             "contents": [{
                 "parts": [
                     {"text": prompt},
-                    {"inlineData": {"mimeType": "image/jpeg", "data": image_base64}}
+                    {"inlineData": {"mimeType": "image/jpeg", "data": self._prepare_base64_data(image_base64)}}
                 ]
             }],
             "systemInstruction": {"parts": [{"text": system_prompt}]},
@@ -434,7 +457,8 @@ class GeminiService:
             return DeleteRecommendationResponse(
                 reason="오늘 비워내기 좋은 기록입니다.",
                 shortReason="정리 추천",
-                usedCriteria=[]
+                usedCriteria=[],
+                source="fallback"
             )
 
     async def generate_batch_delete_recommendation(
@@ -470,7 +494,7 @@ class GeminiService:
         parts = [{"text": prompt}]
         for i, img in enumerate(images_base64):
             parts.append({"text": f"--- Photo {i+1} ---"})
-            parts.append({"inlineData": {"mimeType": "image/jpeg", "data": img}})
+            parts.append({"inlineData": {"mimeType": "image/jpeg", "data": self._prepare_base64_data(img)}})
 
         payload = {
             "contents": [{"parts": parts}],
@@ -496,7 +520,7 @@ class GeminiService:
         except Exception as e:
             logger.error(f"Failed to generate hybrid batch recommendation: {e}")
             fallback_items = [
-                DeleteRecommendationResponse(reason="정리하기 좋은 기록입니다.", shortReason="정리 추천", usedCriteria=[])
+                DeleteRecommendationResponse(reason="정리하기 좋은 기록입니다.", shortReason="정리 추천", usedCriteria=[], source="fallback")
                 for _ in range(num_images)
             ]
             return BatchDeleteRecommendationResponse(recommendations=fallback_items)
@@ -514,7 +538,8 @@ class GeminiService:
                 DeleteRecommendationResponse(
                     reason=common_reason,
                     shortReason=short_reason,
-                    usedCriteria=[]
+                    usedCriteria=[],
+                    source="ai"
                 ) for _ in range(expected_count)
             ]
                 
@@ -522,7 +547,7 @@ class GeminiService:
         except Exception as e:
             logger.error(f"Hybrid batch parse error: {e}")
             fallback_items = [
-                DeleteRecommendationResponse(reason="정리하기 좋은 기록입니다.", shortReason="정리 추천", usedCriteria=[])
+                DeleteRecommendationResponse(reason="정리하기 좋은 기록입니다.", shortReason="정리 추천", usedCriteria=[], source="fallback")
                 for _ in range(expected_count)
             ]
             return BatchDeleteRecommendationResponse(recommendations=fallback_items)
@@ -536,11 +561,13 @@ class GeminiService:
             return DeleteRecommendationResponse(
                 reason=parsed.get("reason", "오늘 비워내기 좋은 기록입니다."),
                 shortReason=parsed.get("shortReason", "정리 추천"),
-                usedCriteria=parsed.get("usedCriteria", [])
+                usedCriteria=parsed.get("usedCriteria", []),
+                source="ai"
             )
         except (KeyError, IndexError, json.JSONDecodeError):
             return DeleteRecommendationResponse(
                 reason="오늘 비워내기 좋은 기록입니다.",
                 shortReason="정리 추천",
-                usedCriteria=[]
+                usedCriteria=[],
+                source="fallback"
             )
