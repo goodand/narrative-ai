@@ -11,6 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import get_settings
 from .routers import narrative, synonyms, geo, account
 
+APP_VERSION = "0.6.0"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,7 +35,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="RECOCO API",
     description="RECOCO - AI 스토리텔링 서비스 백엔드 API",
-    version="0.5.0",
+    version=APP_VERSION,
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -73,15 +75,36 @@ async def root():
     return {
         "service": "RECOCO API",
         "status": "healthy",
-        "version": "0.5.0"
+        "version": app.version
     }
 
 
 @app.get("/health", tags=["health"])
 async def health_check():
-    """Detailed Health Check"""
-    return {
-        "status": "healthy",
-        "api_key_configured": bool(settings.gemini_api_key),
-        "model": settings.gemini_story_model
+    """환경에 따라 상세도를 조절하는 진단 엔드포인트."""
+    settings = get_settings()
+    payload = {
+        "status": "ok",
+        "version": app.version,
     }
+
+    if not settings.detailed_health:
+        return payload
+
+    payload.update({
+        "gemini_keys_configured": len(settings.gemini_failover_keys),
+        "active_models": {
+            "story": settings.gemini_story_model,
+            "suggestions": settings.gemini_suggestions_model,
+            "batch": settings.gemini_batch_model
+        },
+        "performance_constraints": {
+            "batch_timeout": settings.batch_timeout,
+            "batch_max_retries": settings.batch_max_retries
+        },
+        "network": {
+            "allow_lan": settings.allow_lan,
+            "port": settings.port
+        }
+    })
+    return payload

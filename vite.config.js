@@ -7,11 +7,10 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const rootDir = fileURLToPath(new URL('.', import.meta.url));
 
-  // 백엔드 포트 (환경변수 또는 기본값 8000)
-  const backendPort = env.VITE_BACKEND_PORT || '8000';
-  const backendUrl = `http://localhost:${backendPort}`;
+  // 백엔드 오리진 (환경변수 또는 로컬 기본값)
+  const backendOrigin = env.VITE_BACKEND_ORIGIN || `http://localhost:${env.VITE_BACKEND_PORT || '8000'}`;
 
-  console.log(`[Vite] Proxy target: ${backendUrl}`);
+  console.log(`[Vite] Proxy target: ${backendOrigin}`);
 
   return {
     // 1. "process is not defined" 에러 방지
@@ -36,7 +35,7 @@ export default defineConfig(({ mode }) => {
       // FastAPI 백엔드 프록시 설정
       proxy: {
         '/api': {
-          target: backendUrl,
+          target: backendOrigin,
           changeOrigin: true,
           secure: false
         }

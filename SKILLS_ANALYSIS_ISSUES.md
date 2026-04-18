@@ -57,17 +57,16 @@
 - 상위 호출에서 넘긴 `timeout`과 재시도 관련 인자가 중간 계층에서 유실되지 않는다.
 - 배치 경로는 일반 스토리 생성과 분리된 설정값을 사용한다.
 
-### 2.4 현재 worktree에만 남아 있는 검증 가능한 변경
-
-아래 두 항목은 아직 별도 코드 커밋으로 정리되지 않았지만, 현재 worktree에서 확인된다.
+### 2.4 런타임 진단 및 개발 오리진 정리
 
 - `backend/app/main.py`
-  - `/health` 응답이 `status`, `version`, `gemini_keys_configured`, `active_models`, `performance_constraints`, `network`를 포함하도록 확장되었다.
+  - `/health`는 기본적으로 `status`, `version`만 반환한다.
+  - `DETAILED_HEALTH=true`일 때만 `gemini_keys_configured`, `active_models`, `performance_constraints`, `network`를 포함한 상세 진단을 노출한다.
 - `vite.config.js`
   - 프록시 타깃이 `VITE_BACKEND_ORIGIN` 우선, 없으면 `http://localhost:${VITE_BACKEND_PORT || 8000}`로 계산되도록 바뀌었다.
 
 의미:
-- 헬스 체크는 모델/키/네트워크 관련 진단 정보를 더 많이 노출한다.
+- 헬스 체크는 운영 노출 범위를 줄이면서도 개발 환경에서 상세 진단을 켤 수 있다.
 - 브라우저 개발 경로의 백엔드 오리진 설정이 단일 환경 변수로 수렴한다.
 
 ---

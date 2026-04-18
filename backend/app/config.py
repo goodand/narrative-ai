@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     # Server Configuration
     port: int = 8000
     allow_lan: bool = Field(default=False, validation_alias="ALLOW_LAN")
+    detailed_health: bool = Field(default=False, validation_alias="DETAILED_HEALTH")
 
     # API Keys & Failover Chain
     gemini_api_key: str = ""
