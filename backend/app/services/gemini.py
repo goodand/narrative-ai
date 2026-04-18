@@ -28,25 +28,9 @@ class GeminiService:
     def _get_gemini_api_keys(self) -> list[str]:
         """
         Gemini API keys in failover order.
-        Priority:
-        1) GEMINI_API_KEYS (comma-separated)
-        2) GEMINI_API_KEY -> GEMINI_API_KEY_SUB -> GEMINI_API_KEY_INSU
+        Consumed from settings property. (User Strategy #5)
         """
-        keys: list[str] = []
-
-        if self.settings.gemini_api_keys:
-            keys.extend([k.strip() for k in self.settings.gemini_api_keys.split(",") if k.strip()])
-
-        for key in [
-            self.settings.gemini_api_key,
-            self.settings.gemini_api_key_sub,
-            self.settings.gemini_api_key_insu,
-            self.settings.google_cloud_api_key,
-        ]:
-            if key and key not in keys:
-                keys.append(key)
-
-        return keys
+        return self.settings.gemini_failover_keys
 
     @staticmethod
     def _is_quota_or_rate_limit_error(status_code: int, error_body: str) -> bool:
@@ -105,13 +89,15 @@ class GeminiService:
         url: str,
         payload: dict,
         max_retries: Optional[int] = None,
-        initial_backoff: Optional[float] = None
+        initial_backoff: Optional[float] = None,
+        **kwargs
     ) -> dict:
         """
         지수 백오프 방식의 재시도 로직이 포함된 API 호출
         """
         max_retries = max_retries or self.settings.max_retries
         initial_backoff = initial_backoff or self.settings.initial_backoff
+        timeout = kwargs.get("timeout", 60.0)
 
         last_error = None
 
@@ -121,7 +107,7 @@ class GeminiService:
                     url,
                     json=payload,
                     headers={"Content-Type": "application/json"},
-                    timeout=60.0
+                    timeout=timeout
                 )
                 response.raise_for_status()
                 return response.json()
@@ -155,6 +141,7 @@ class GeminiService:
         payload: dict,
         max_retries: Optional[int] = None,
         initial_backoff: Optional[float] = None,
+        **kwargs
     ) -> dict:
         keys = self._get_gemini_api_keys()
         if not keys:
@@ -171,6 +158,7 @@ class GeminiService:
                     payload,
                     max_retries=max_retries,
                     initial_backoff=initial_backoff,
+                    **kwargs
                 )
             except httpx.HTTPStatusError as e:
                 last_error = e
@@ -200,7 +188,7 @@ class GeminiService:
         """
         # Geocoding 처리 (위도/경도 -> 주소 변환)
         lat, lon = self._extract_gps(context.metadata)
-        
+
         # 이미 주소가 있거나 좌표가 없는 경우 건너뜀
         current_address = None
         if isinstance(context.metadata, dict):
@@ -406,7 +394,7 @@ class GeminiService:
                   f"주어진 사진과 기준({criteria_str})을 보고, 이 사진을 비우면(삭제하면) 좋은 이유를 "
                   f"매우 간결하고 부드러운 어조({tone})로 {language}로 ⚠️딱 한 문장(1 sentence)⚠️으로만 작성해주세요. "
                   f"길이는 {max_length}자 이내여야 합니다. 불필요한 부연 설명은 빼주세요.")
-        
+
         system_prompt = "너는 디지털 미니멀리즘을 도와주는 친절한 어시스턴트 리코코야. 사용자의 추억 비우기 과정을 죄책감 들지 않고 기분 좋게 격려해야 해."
 
         logger.info(f"--- [GEMINI-TRACE] Single Delete Recommendation ---")
@@ -468,35 +456,43 @@ class GeminiService:
         images_base64: list[str],
         metadatas: Optional[list[dict]],
         filtering_criteria_list: Optional[list[list]],
-        language: str,
-        tone: str,
-        max_length: int
+        language: str = "Korean",
+        tone: str = "gentle",
+        max_length: int = 60
     ) -> BatchDeleteRecommendationResponse:
         """
-        여러 장의 사진을 동시에 분석하여 비교 우위 기반의 삭제 추천 사유 생성
+        여러 장의 사진을 동시에 분석하여 공통된 삭제 추천 사유 생성 (Lean Batch 최적화)
         """
-        await asyncio.sleep(0.5)
-
         num_images = len(images_base64)
+        if num_images == 0:
+            return BatchDeleteRecommendationResponse(recommendations=[])
+
+        # [최적화 User Strategy #1] 대표 이미지 전략: 모든 이미지를 보내는 대신 상위 2장만 시각 정보로 활용
+        representative_indices = [0]
+        if num_images > 1:
+            representative_indices.append(num_images - 1) # 처음과 끝
         
-        # Build comparative prompt for a warm, friendly batch reason
+        # 메타데이터 요약 (페이로드 경량화)
+        meta_summary = []
+        for i, meta in enumerate(metadatas or []):
+            criteria = filtering_criteria_list[i] if filtering_criteria_list and i < len(filtering_criteria_list) else []
+            meta_summary.append(f"Photo {i+1}: Criteria=[{', '.join(map(str, criteria))}]")
+
         prompt = (
-            f"제시된 {num_images}장의 사진들은 현재 사진첩 정리를 위해 선정된 기록들입니다.\n"
-            f"이 사진들을 분석하여, 사용자가 이 사진들을 비워내도(삭제해도) 괜찮은 공통된 이유를 "
+            f"제시된 {num_images}장의 사진들은 현재 사진첩 정리를 위해 선정된 유사한 성격의 기록들입니다.\n"
+            f"다음 메타데이터 정보를 참고하여, 사용자가 이 사진들을 비워내도(삭제해도) 괜찮은 하나의 공통된 이유를 작성해주세요.\n"
+            f"-- 메타데이터 요약 --\n" + "\n".join(meta_summary) + "\n\n"
             f"매우 부드러운 어조({tone})로 {language}로 ⚠️딱 한 문장(1 sentence)⚠️으로만 작성해주세요.\n"
-            f"사진의 시각적 느낌이나 담긴 내용의 맥락을 살펴보고, 사용자가 기분 좋게 비울 수 있도록 격려하는 이유여야 합니다.\n"
             f"길이는 {max_length}자 이내여야 하며, 결과는 'commonReason' 필드에 담아 JSON으로 반환해주세요."
         )
-        
-        system_prompt = "너는 디지털 미니멀리즘을 도와주는 친절한 어시스턴트 리코코야. 사용자의 추억 비우기 과정을 죄책감 들지 않고 기분 좋게 격려해야 해. 전문가적인 차가운 분석보다는 친구 같은 따뜻한 조언을 해줘."
+        system_prompt = "너는 디지털 미니멀리즘을 도와주는 친절한 어시스턴트 리코코야. 여러 사진의 공통점을 찾아 기분 좋게 비울 수 있도록 격려해줘."
 
-        logger.info(f"--- [GEMINI-TRACE] Hybrid Batch Analysis ({num_images} images) ---")
-        logger.info(f"Hybrid Prompt: {prompt}")
+        logger.info(f"--- [GEMINI-TRACE] Lean Batch Analysis ({num_images} images) ---")
 
         parts = [{"text": prompt}]
-        for i, img in enumerate(images_base64):
-            parts.append({"text": f"--- Photo {i+1} ---"})
-            parts.append({"inlineData": {"mimeType": "image/jpeg", "data": self._prepare_base64_data(img)}})
+        for idx in representative_indices:
+            parts.append({"text": f"--- Visual Context of Photo {idx+1} ---"})
+            parts.append({"inlineData": {"mimeType": "image/jpeg", "data": self._prepare_base64_data(images_base64[idx])}})
 
         payload = {
             "contents": [{"parts": parts}],
@@ -511,13 +507,19 @@ class GeminiService:
                     },
                     "required": ["commonReason", "shortReason"]
                 },
-                "temperature": 0.4,
+                "temperature": 0.3,
                 "topP": 0.90
             }
         }
 
         try:
-            data = await self._fetch_with_key_failover(self.settings.gemini_story_model, payload)
+            # [최적화] Lite 모델 + 20초 타임아웃 + 재시도 1회 제한
+            data = await self._fetch_with_key_failover(
+                self.settings.gemini_batch_model,
+                payload,
+                max_retries=self.settings.batch_max_retries,
+                timeout=self.settings.batch_timeout
+            )
             return self._parse_hybrid_batch_response(data, num_images)
         except Exception as e:
             error_msg = str(e)

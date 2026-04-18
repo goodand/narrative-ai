@@ -10,7 +10,7 @@ import logging
 import asyncio
 
 import httpx
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, BackgroundTasks
 from fastapi.concurrency import run_in_threadpool
 from PIL import Image, ImageOps
 
@@ -21,6 +21,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["narrative"])
 MAX_IMAGE_EDGE = 2048
 JPEG_QUALITY = 85
+
+# In-memory Task Store (User Strategy #5)
+# 현실적인 상용 환경에서는 Redis 등을 쓰겠지만, 현재는 인메모리로 구현합니다.
+analysis_tasks = {}
+
+import uuid
+from datetime import datetime
 
 
 def _normalize_image_bytes(image_bytes: bytes) -> bytes:
@@ -170,21 +177,49 @@ async def get_delete_recommendation(
         raise HTTPException(status_code=500, detail=f"추천 이유 생성 중 오류가 발생했습니다: {str(e)}")
 @router.post(
     "/delete-recommendation/batch",
-    response_model=BatchDeleteRecommendationResponse,
-    summary="이미지 묶음 삭제 추천 이유 생성",
-    description="여러 장의 이미지를 동시에 분석하여 비교 우위 기반의 삭제 사유를 생성합니다."
+    status_code=202,
+    summary="이미지 묶음 삭제 추천 이유 생성 (비동기)",
+    description="작업을 예약하고 task_id를 즉시 반환합니다."
 )
 async def get_batch_delete_recommendation(
     request: Request,
-    payload: BatchDeleteRecommendationRequest
+    payload: BatchDeleteRecommendationRequest,
+    background_tasks: BackgroundTasks
 ):
+    task_id = str(uuid.uuid4())
+    analysis_tasks[task_id] = {
+        "status": "processing",
+        "created_at": datetime.now().isoformat(),
+        "result": None,
+        "error": None
+    }
+
+    # 백그라운드 작업 등록
+    background_tasks.add_task(
+        run_batch_analysis_task,
+        task_id,
+        request.app.state.http_client,
+        payload
+    )
+
+    logger.info(f"--- [TASK-QUEUED] Task ID: {task_id} ---")
+    return {"task_id": task_id, "status": "processing"}
+
+@router.get("/delete-recommendation/jobs/{task_id}")
+async def get_job_status(task_id: str):
+    """지정한 작업의 분석 상태와 결과를 조회합니다."""
+    task = analysis_tasks.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="작업을 찾을 수 없습니다.")
+    return task
+
+async def run_batch_analysis_task(task_id: str, client, payload: BatchDeleteRecommendationRequest):
+    """실제 AI 분석을 수행하는 백그라운드 워커"""
     try:
-        logger.info(f"--- [ROUTER-TRACE] Batch Delete Recommendation Request: {len(payload.images)} images ---")
-        
-        client = request.app.state.http_client
         gemini_service = GeminiService(client)
 
-        # 이미지들 정규화 적용
+        # 이미지들 정규화 적용 (CPU Bound이므로 run_in_threadpool 권장되나 현재는 병렬 asyncio.gather 사용)
+        # TODO: 리소스 최적화를 위해 ThreadPoolExecutor 사용 고려
         normalized_images = await asyncio.gather(*[run_in_threadpool(_normalize_base64_image, img) for img in payload.images])
 
         result = await gemini_service.generate_batch_delete_recommendation(
@@ -196,9 +231,11 @@ async def get_batch_delete_recommendation(
             max_length=payload.maxLength
         )
 
-        logger.info(f"--- [ROUTER-TRACE] Batch Recommendation Completed ---")
-        return result
+        analysis_tasks[task_id]["status"] = "completed"
+        analysis_tasks[task_id]["result"] = result.model_dump()
+        logger.info(f"--- [TASK-COMPLETED] Task ID: {task_id} ---")
 
     except Exception as e:
-        logger.error(f"Batch recommendation failed: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"묶음 추천 이유 생성 중 오류가 발생했습니다: {str(e)}")
+        logger.error(f"--- [TASK-FAILED] Task ID: {task_id}, Error: {str(e)} ---", exc_info=True)
+        analysis_tasks[task_id]["status"] = "failed"
+        analysis_tasks[task_id]["error"] = str(e)
