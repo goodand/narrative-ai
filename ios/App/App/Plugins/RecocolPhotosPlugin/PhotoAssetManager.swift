@@ -32,6 +32,12 @@ class PhotoAssetManager {
             targetSize = CGSize(width: thumbSize, height: thumbSize)
             options.resizeMode = .exact
             compression = 0.6
+        } else if quality == "analysis" {
+            // AI 분석용 최적화 경로 (User Strategy #1)
+            options.isNetworkAccessAllowed = false // iCloud 다운로드 차단
+            targetSize = CGSize(width: 1024, height: 1024)
+            options.resizeMode = .fast
+            compression = 0.7
         } else {
             options.isNetworkAccessAllowed = true
             targetSize = PHImageManagerMaximumSize

@@ -60,18 +60,25 @@ export class PhotoService {
      * Returns raw base64 string directly from native plugin (no binary conversion)
      * Path B 최적화: base64 → File → FileReader → base64 왕복 제거
      */
-    async getPhotoAsBase64(index) {
+    async getPhotoAsBase64(index, options = { quality: 'analysis' }) {
         if (index < 0 || index >= this.photos.length) return null;
         const photo = this.photos[index];
+        return this.getPhotoAsBase64ByAssetId(photo.id, options);
+    }
 
+    /**
+     * [성능 최적화] assetId 기반으로 특정 품질의 이미지를 로드합니다.
+     */
+    async getPhotoAsBase64ByAssetId(assetId, { quality = 'analysis', thumbSize = 1024 } = {}) {
+        if (!assetId) return null;
         try {
             const { base64 } = await RecocolPhotos.loadImageData({
-                assetId: photo.id,
-                quality: 'original'
+                assetId,
+                quality
             });
             return base64;
         } catch (error) {
-            console.error('PhotoService: Base64 load failed', error);
+            console.error(`PhotoService: Asset ${assetId} load failed`, error);
             return null;
         }
     }
