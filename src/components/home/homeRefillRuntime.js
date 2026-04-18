@@ -32,14 +32,12 @@ export async function triggerBackgroundPrefetch(manager) {
         }
 
         // 3. 백그라운드 배치 분석 실행 (manager를 넘겨주지 않음으로써 UI 간섭 방지)
-        const targets = uniqueNextPhotos.map((_, i) => i);
         uniqueNextPhotos.forEach(p => p._aiReasonFetching = true);
         
-        console.info(`[RECOCO-TRACE] Running background AI analysis for ${uniqueNextPhotos.length} photos...`);
+        console.info(`[RECOCO-TRACE] Running background AI analysis for ${uniqueNextPhotos.length} assets...`);
         
-        // performBatchAnalysis는 인자로 받은 photos 배열에 결과를 직접 써줍니다.
-        // 세 번째 인자(manager)를 생략하면 UI 업데이트(헤더 등)를 건너뜁니다.
-        await performBatchAnalysis(uniqueNextPhotos, targets, null);
+        // [교정] 인덱스 기반 targets 제거. 자산 배열 자체를 전달하여 정합성 확보.
+        await performBatchAnalysis(uniqueNextPhotos, null);
 
         console.info('[RECOCO-TRACE] Background pre-fetch and analysis complete.');
         return uniqueNextPhotos;

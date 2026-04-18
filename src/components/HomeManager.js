@@ -16,6 +16,7 @@ export class HomeManager {
         this.confirmModal = options.confirmModal || null;
         this.user = null;
         this.error = null;
+        this.isLoading = false;
         this.headerMessage = '기기에서 찾아낸 비우기 좋은 기록들입니다.';
         
         // --- 버퍼링 및 상태 관리 ---
@@ -164,30 +165,8 @@ export class HomeManager {
 
         const photos = this.photos;
 
+        // S3: 데이터 로딩 완료, 에러 없음, 사진 0건 → 빈 상태 안내
         if (photos.length === 0) {
-            const displayContent = this.isLoading
-                ? `
-                    <div class="loader"></div>
-                    <p class="text-muted-lavender text-xs">사진 데이터를 분석하고 있습니다...</p>
-                `
-                : (this.error 
-                    ? `
-                        <div class="flex flex-col items-center space-y-6">
-                            <p class="text-error font-medium text-sm text-center px-8 uppercase tracking-tight">${this.error}</p>
-                            <button id="retry-btn" class="flex items-center space-x-2 bg-white/10 hover:bg-white/20 active:scale-95 transition-all px-4 py-2 rounded-full border border-white/10">
-                                <span class="material-symbols-outlined text-sm text-white">refresh</span>
-                                <span class="text-white text-xs font-bold">다시 시도하기</span>
-                            </button>
-                        </div>
-                    `
-                    : `
-                        <div class="flex flex-col items-center space-y-6">
-                            <span class="material-symbols-outlined text-6xl text-muted-lavender/30">no_photography</span>
-                            <p class="text-muted-lavender text-sm font-medium">분석된 사진이 없습니다.</p>
-                            <button id="retry-btn" class="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-primary font-bold text-sm">다시 분석하기</button>
-                        </div>
-                    `);
-
             this.container.innerHTML = `
                 <div class="flex flex-col px-6 h-full">
                     <header class="flex items-center bg-transparent py-3 shrink-0" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
@@ -198,7 +177,11 @@ export class HomeManager {
                         <div class="w-8"></div>
                     </header>
                     <div class="flex-1 flex flex-col items-center justify-center space-y-4 pb-32">
-                        ${displayContent}
+                        <div class="flex flex-col items-center space-y-6">
+                            <span class="material-symbols-outlined text-6xl text-muted-lavender/30">no_photography</span>
+                            <p class="text-muted-lavender text-sm font-medium">분석된 사진이 없습니다.</p>
+                            <button id="retry-btn" class="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-primary font-bold text-sm">다시 분석하기</button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -367,12 +350,10 @@ export class HomeManager {
             this.render();
         } else {
             console.info('[RECOCO-TRACE] Batch empty and no buffer ready. Hard refreshing...');
-            this.isLoading = true;
-            this.render();
+            // loadRealPhotos가 내부에서 isLoading/render를 직접 관리하므로
+            // 여기서 중복 설정하지 않음 (이중 render 방지)
             await this.loadRealPhotos();
-            this.isLoading = false;
             this.currentIndex = 0;
-            this.render();
         }
     }
 }

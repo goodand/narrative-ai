@@ -5,7 +5,7 @@ const geminiService = new GeminiService();
 
 export async function loadAndReflectImages(manager, currIdx, prevIdx, nextIdx, isFirst, isLast) {
     console.info(`[RECOCO-TRACE] Transition to index ${currIdx}. Focusing...`);
-    
+
     const photos = photoService.getPhotos();
     let batchIndices = [currIdx, prevIdx, nextIdx].filter(i => i !== null);
     
@@ -23,9 +23,10 @@ export async function loadAndReflectImages(manager, currIdx, prevIdx, nextIdx, i
     
     if (batchTargets.length >= 2) {
         batchTargets.forEach(idx => { photos[idx]._aiReasonFetching = true; });
-        console.info(`[RECOCO-TRACE] Batch-marked indices: ${batchTargets}`);
+        const targetAssets = batchTargets.map(idx => photos[idx]);
+        console.info(`[RECOCO-TRACE] Batch-marked assets: ${targetAssets.map(p => p.id)}`);
         // 비동기로 배치 분석 시작 (마킹은 이미 완료)
-        triggerBatchAnalysis(manager, batchTargets, true);
+        triggerBatchAnalysis(manager, targetAssets, true);
     }
 
     // 2. 현재 이미지를 먼저 보여주고 나머지를 배경으로 로드
@@ -44,52 +45,57 @@ export async function loadAndReflectImages(manager, currIdx, prevIdx, nextIdx, i
 /**
  * 특정 이미지들에 대해 한 번에 AI 분석을 요청하여 비교 분석 결과를 확보합니다.
  */
-export async function triggerBatchAnalysis(manager, targets) {
-    const photos = photoService.getPhotos();
-    console.info(`[RECOCO-TRACE] Triggering batch analysis for indices: ${targets}`);
-    await performBatchAnalysis(photos, targets, manager);
+export async function triggerBatchAnalysis(manager, targetAssets) {
+    console.info(`[RECOCO-TRACE] Triggering batch analysis for assets: ${targetAssets.map(p => p.id)}`);
+    await performBatchAnalysis(targetAssets, manager);
 }
 
 /**
  * 실제로 AI 분석을 수행하고 결과를 사진 객체에 반영합니다. (인덱스 기반이 아닌 전체 배열 기반)
  */
-export async function performBatchAnalysis(photos, targets, manager) {
-    if (!targets || targets.length === 0) return;
+export async function performBatchAnalysis(targetAssets, manager) {
+    if (!targetAssets || targetAssets.length === 0) return;
     
     // 1. 공통 필터(Rule-base) 추출 및 헤더 반영
-    const commonReasons = calculateCommonFilter(targets, photos);
+    // (calculateCommonFilter는 내부적으로 photos 배열과 targets 인덱스를 쓰므로 유지하되, 전체 photos를 참조함)
+    const photos = photoService.getPhotos();
+    const batchIndices = targetAssets.map(p => photos.indexOf(p)).filter(idx => idx !== -1);
+    const commonReasons = calculateCommonFilter(batchIndices, photos);
     
-    // 메인 UI 업데이트 (manager가 있고 현재 보고 있는 인덱스가 포함된 경우에만)
     if (manager) updateCurationHeader(manager, commonReasons);
 
     // 2. 대상 사진들 분석 락킹 (중복 개별 호출 방지)
-    targets.forEach(idx => {
-        if (photos[idx]) photos[idx]._aiReasonFetching = true;
-    });
+    targetAssets.forEach(p => { p._aiReasonFetching = true; });
 
-    const registryKey = targets.join(',');
+    const assetIds = targetAssets.map(p => p.id);
+    const registryKey = `batch:${assetIds.join('|')}`;
     const existingAnalysis = photoService.getAnalysis(registryKey);
+
     if (existingAnalysis) {
-        console.info(`[RECOCO-TRACE] Reusing existing batch analysis for: ${targets}`);
+        console.info(`[RECOCO-TRACE] Reusing existing batch analysis for: ${assetIds}`);
         return existingAnalysis;
     }
 
     const analysisPromise = (async () => {
         const metaContextEl = document.getElementById('meta-context');
-        const currIdx = manager?.currentIndex;
+        const currPhotoId = manager?.photos[manager?.currentIndex]?.id;
 
         try {
-            if (targets.includes(currIdx) && metaContextEl) {
+            if (assetIds.includes(currPhotoId) && metaContextEl) {
                 metaContextEl.innerText = '비교 분석 중...';
                 metaContextEl.classList.add('animate-pulse');
             }
 
-            const images = await Promise.all(targets.map(idx => photoService.getPhotoAsBase64(idx)));
-            const metadatas = targets.map(idx => photos[idx].rawAsset || {});
+            // Path A 최적화: quality: 'analysis' (1024px) 사용
+            const images = await Promise.all(assetIds.map(assetId =>
+                photoService.getPhotoAsBase64ByAssetId(assetId, { quality: 'analysis', thumbSize: 1024 })
+            ));
+
+            const metadatas = targetAssets.map(p => p.rawAsset || {});
             
             // 3. 공통 필터 소거 (AI 컨텍스트 최적화)
-            const cleanedCriteriaList = targets.map(idx => {
-                const original = photos[idx].rawAsset?.curationReasons || [];
+            const cleanedCriteriaList = targetAssets.map(p => {
+                const original = p.rawAsset?.curationReasons || [];
                 return original.filter(r => !commonReasons.includes(r));
             });
 
@@ -100,15 +106,14 @@ export async function performBatchAnalysis(photos, targets, manager) {
                 maxLength: 60
             });
 
-            // 3. AI 결과 반영
+            // 3. AI 결과 반영 (AssetId 기반 매칭)
             result.recommendations.forEach((rec, i) => {
-                const idx = targets[i];
-                const p = photos[idx];
+                const p = targetAssets[i];
                 if (p) {
                     p.contextMessage = rec.reason;
                     p._aiReasonFetching = false;
                     
-                    if (idx === manager?.currentIndex && metaContextEl) {
+                    if (p.id === currPhotoId && metaContextEl) {
                         metaContextEl.innerText = rec.reason;
                         metaContextEl.classList.remove('animate-pulse');
                     }
@@ -117,9 +122,7 @@ export async function performBatchAnalysis(photos, targets, manager) {
             return result;
         } catch (error) {
             console.error('[RECOCO-TRACE] Batch analysis failed:', error);
-            targets.forEach(idx => { 
-                if (photos[idx]) photos[idx]._aiReasonFetching = false; 
-            });
+            targetAssets.forEach(p => { p._aiReasonFetching = false; });
             throw error;
         }
     })();
@@ -313,7 +316,7 @@ async function handleAIContextDisplay(photo, index, metaContextEl) {
 
     const individualPromise = (async () => {
         try {
-            const base64 = await photoService.getPhotoAsBase64(index);
+            const base64 = await photoService.getPhotoAsBase64ByAssetId(photo.id, { quality: 'analysis' });
             const result = await geminiService.generateDeleteRecommendation({
                 imageBase64: base64,
                 metadata: photo.rawAsset || {},
