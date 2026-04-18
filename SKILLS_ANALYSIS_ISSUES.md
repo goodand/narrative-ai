@@ -1,172 +1,91 @@
 # Skills 분석 이슈 리포트
 
-> 분석일: 2026-02-04
-> 프로젝트: narrative-ai
-> 분석 도구: codebase-architecture-mapper, depsolve-analyzer, graph-structure-classifier
+> 정리일: 2026-04-19
+> 프로젝트: `narrative-ai`
+> 기준: 현재 코드베이스와 worktree에서 직접 확인되는 변경만 기록
 
 ---
 
-## 1. 즉시 해결 필요 (HIGH)
+## 1. 문서 축소 기준
 
-### 1.1 Phantom Dependencies (유령 의존성)
-
-코드에서 사용하지만 `requirements.txt`에 선언되지 않은 패키지들:
-
-| 패키지 | 사용 위치 | 심각도 |
-|--------|-----------|--------|
-| `pydantic_settings` | `backend/app/config.py:8` | HIGH |
-| `pydantic` | `backend/app/models/schemas.py:7` | HIGH |
-| `requests` | `backend/app/services/geocoding.py:1` | HIGH |
-
-**문제점:**
-- 새 환경에서 `pip install -r requirements.txt` 실행 시 import 에러 발생
-- CI/CD 파이프라인 실패 가능성
-- Docker 이미지 빌드 실패 가능성
-
-**해결 방법:**
-```bash
-# backend/requirements.txt에 추가
-pydantic>=2.0.0
-pydantic-settings>=2.0.0
-requests>=2.28.0
-```
+- 과거 세션 회고, 외부 워크스페이스 역사, 성과 평가 문장은 제거했다.
+- "완성", "혁신", "100% 확보" 같은 결과 해석은 남기지 않았다.
+- 아래 항목은 모두 현재 파일에서 직접 확인 가능한 코드 변경만 요약한다.
 
 ---
 
-## 2. 버전 충돌 (MEDIUM)
+## 2. 확인된 변경
 
-### 2.1 Diamond Dependencies (다이아몬드 의존성)
+### 2.1 네이티브/프론트 이미지 입력 경량화
 
-동일 패키지를 서로 다른 버전으로 요구하는 의존성 충돌:
+- `ios/App/App/Plugins/RecocolPhotosPlugin/PhotoAssetManager.swift`
+  - `quality == "analysis"` 분기가 추가되어 `1024x1024` 크기를 사용한다.
+  - `options.isNetworkAccessAllowed = false`로 iCloud 원본 다운로드를 막는다.
+- `src/services/PhotoService.js`
+  - `getPhotoAsBase64ByAssetId(assetId, { quality = 'analysis', thumbSize = 1024 })`가 추가되었다.
+  - `getPhotoAsBase64(index, ...)`는 내부적으로 `assetId` 기반 로더를 호출한다.
+- `src/components/home/homeImageRuntime.js`
+  - 배치 분석 시 `assetIds` 배열을 만들고 `batch:${assetIds.join('|')}` 키를 사용한다.
+  - 분석용 이미지는 `getPhotoAsBase64ByAssetId(..., { quality: 'analysis', thumbSize: 1024 })`로 읽는다.
 
-#### 2.1.1 postcss 충돌
-```
-narrative-ai
-├── vite ──────────────► postcss@^8.5.6
-└── @tailwindcss/postcss ► postcss@^8.4.41
-```
-**영향:** CSS 빌드 시 예기치 않은 동작 가능
+의미:
+- 삭제 추천용 이미지 입력이 원본 중심 경로에서 분석 전용 프리뷰 경로로 이동했다.
+- 프론트 분석 캐시와 이미지 로딩 키가 `index`보다 안정적인 `assetId` 기반으로 정리되었다.
 
-#### 2.1.2 tslib 충돌
-```
-narrative-ai
-├── @capacitor/cli ──► tslib@^2.4.0
-└── @capacitor/core ─► tslib@^2.1.0
-```
-**영향:** Capacitor 플러그인 호환성 문제 가능
+### 2.2 배치 분석의 비동기 Job Polling 도입
 
-#### 2.1.3 @ionic 유틸리티 충돌 (다수)
-```
-@capacitor/cli
-├── @ionic/cli-framework-output ─► @ionic/utils-terminal@2.3.5
-├── @ionic/utils-subprocess ─────► @ionic/utils-terminal@2.3.3
-└── native-run ──────────────────► @ionic/utils-terminal@^2.3.4
-```
+- `backend/app/routers/narrative.py`
+  - `POST /api/v1/delete-recommendation/batch`는 `202`와 `task_id`를 즉시 반환한다.
+  - `GET /api/v1/delete-recommendation/jobs/{task_id}`가 작업 상태를 조회한다.
+  - `run_batch_analysis_task(...)`가 백그라운드에서 결과를 채운다.
+- `src/services/GeminiService.js`
+  - 배치 요청 후 `task_id`를 받아 `jobs/{task_id}`를 폴링한다.
+  - 완료 시 최종 결과를 반환하고, 실패 시 에러를 전달한다.
 
-#### 2.1.4 debug 패키지 충돌
-```
-@capacitor/cli
-├── @ionic/cli-framework-output ─► debug@^4.0.0
-├── @ionic/utils-fs ─────────────► debug@^4.0.0
-├── @ionic/utils-subprocess ─────► debug@^4.0.0
-└── native-run ──────────────────► debug@^4.3.4
-```
+의미:
+- 단일 장시간 HTTP 대기 대신, 작업 예약과 상태 조회가 분리되었다.
+- 프론트는 서버 작업의 완료 여부를 단계적으로 확인할 수 있다.
 
-#### 2.1.5 xmlbuilder 충돌
-```
-@capacitor/cli
-├── plist ───► xmlbuilder@^15.1.1
-└── xml2js ──► xmlbuilder@~11.0.0
-```
-**영향:** iOS 빌드 시 plist 파싱 문제 가능
+### 2.3 Gemini 배치 호출 파라미터 전달 정리
 
-**해결 방법:**
-```bash
-# package.json에 resolutions 추가 (yarn) 또는 overrides (npm)
-{
-  "resolutions": {
-    "postcss": "^8.5.6",
-    "tslib": "^2.6.0",
-    "debug": "^4.3.4"
-  }
-}
-```
+- `backend/app/services/gemini.py`
+  - `_fetch_with_retry(...)`가 `**kwargs`를 받는다.
+  - `_fetch_with_key_failover(...)`도 `**kwargs`를 받고 하위 호출로 전달한다.
+  - 배치 삭제 추천은 `self.settings.gemini_batch_model`, `self.settings.batch_max_retries`, `self.settings.batch_timeout`을 사용한다.
+
+의미:
+- 상위 호출에서 넘긴 `timeout`과 재시도 관련 인자가 중간 계층에서 유실되지 않는다.
+- 배치 경로는 일반 스토리 생성과 분리된 설정값을 사용한다.
+
+### 2.4 현재 worktree에만 남아 있는 검증 가능한 변경
+
+아래 두 항목은 아직 별도 코드 커밋으로 정리되지 않았지만, 현재 worktree에서 확인된다.
+
+- `backend/app/main.py`
+  - `/health` 응답이 `status`, `version`, `gemini_keys_configured`, `active_models`, `performance_constraints`, `network`를 포함하도록 확장되었다.
+- `vite.config.js`
+  - 프록시 타깃이 `VITE_BACKEND_ORIGIN` 우선, 없으면 `http://localhost:${VITE_BACKEND_PORT || 8000}`로 계산되도록 바뀌었다.
+
+의미:
+- 헬스 체크는 모델/키/네트워크 관련 진단 정보를 더 많이 노출한다.
+- 브라우저 개발 경로의 백엔드 오리진 설정이 단일 환경 변수로 수렴한다.
 
 ---
 
-## 3. 구조적 이슈 (INFO)
+## 3. 이번 축약본에서 제외한 내용
 
-### 3.1 순환 의존성 (외부 라이브러리)
+다음 범주는 현재 변경 범위만으로 다시 입증하지 못해 제거했다.
 
-| 위치 | 순환 경로 | 영향 |
-|------|-----------|------|
-| click 패키지 | `click/__init__.py` ↔ `click/core.py` | 외부 라이브러리 내부 - 무시 가능 |
-
-**참고:** 프로젝트 자체 코드(src/)에는 순환 의존성 없음 (DAG 구조)
-
-### 3.2 Hub 모듈 (높은 결합도)
-
-여러 모듈에서 import하는 핵심 모듈들:
-
-| 모듈 | In-degree | 역할 |
-|------|-----------|------|
-| `components/Modal.js` | 5 | UI 공통 컴포넌트 |
-| `services/supabase.js` | 4 | 데이터베이스 연결 |
-| `constants/config.js` | 4 | 설정값 |
-| `utils/fetch.js` | 3 | API 호출 |
-| `processors/ImageProcessor.js` | 3 | 이미지 처리 |
-
-**권장:** 이 모듈들 변경 시 영향 범위 테스트 필수
+- 세션 단계별 복기 표
+- `safeInit`, `managerFactories` 중심의 부트 초기화 서사
+- 시뮬레이터 `3302` 복구 절차와 환경 변수 회고
+- 워크스페이스 Skills 진화 과정
+- 다른 프로젝트 이슈와의 역사 연결
+- 측정 근거 없이 서술된 성능 수치와 품질 평가
 
 ---
 
-## 4. Skills 실행 중 발생한 기술적 이슈
+## 4. 요약
 
-### 4.1 경로 문제
-- **문제:** 한글 경로(`현재 진행중인`)가 포함된 디렉토리에서 bash 명령어 실패
-- **해결:** 경로를 따옴표로 감싸야 함 (`"경로"`)
-
-### 4.2 Python 명령어
-- **문제:** `python` 명령어 미존재 (macOS)
-- **해결:** `python3` 사용 필요
-
-### 4.3 대용량 출력
-- **문제:** mapper 출력이 2MB 초과하여 파일로 저장됨
-- **해결:** `--exclude` 옵션으로 node_modules, .venv 등 제외 필수
-
----
-
-## 5. 조치 체크리스트
-
-### 즉시 (HIGH)
-- [ ] `backend/requirements.txt`에 pydantic, pydantic-settings, requests 추가
-- [ ] `pip freeze > requirements.txt` 또는 수동 버전 명시
-
-### 단기 (MEDIUM)
-- [ ] `npm ls postcss` 확인 후 버전 통일
-- [ ] @capacitor 관련 패키지 최신 버전으로 업데이트
-- [ ] package.json에 resolutions/overrides 추가 검토
-
-### 장기 (LOW)
-- [ ] Hub 모듈 테스트 커버리지 강화
-- [ ] 의존성 업데이트 자동화 (dependabot, renovate)
-
----
-
-## 6. 분석 통계
-
-| 항목 | 값 |
-|------|-----|
-| 총 분석 파일 | 2,307개 |
-| 의존성 관계 | 2,458개 |
-| Diamond 의존성 | 17개 |
-| Phantom 의존성 | 3개 |
-| 순환 의존성 (프로젝트) | 0개 |
-| Hub 모듈 | 6개 |
-
----
-
-## 참조
-
-- 생성된 아키텍처 문서: `PROJECT_ARCHITECTURE.md`
-- Skills 경로: `.claude/skills/`
+- 현재 코드에서 직접 확인되는 핵심 변화는 `analysis` 품질 티어, `assetId` 기반 로딩/바인딩, `task_id` 기반 배치 폴링, Gemini 배치 설정 분리다.
+- 문서에 남기지 않은 항목은 "거짓"이라서가 아니라, 이번 변경 집합만으로 재검증되지 않았기 때문이다.
