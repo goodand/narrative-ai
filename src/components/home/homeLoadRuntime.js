@@ -63,7 +63,7 @@ export async function loadRealPhotos(manager) {
     } catch (error) {
         handleError(error, 'HomeManager');
         if (error.name === 'TimeoutError') {
-            manager.error = '사진 분석 응답 시간이 초과되었습니다. 잠시 후 아래의 [다시 시도하기] 버튼을 눌러주세요.';
+            manager.error = '사진 보관함 응답이 지연되고 있습니다. iCloud 동기화 상태를 확인하거나 [다시 시도하기] 버튼을 눌러주세요.';
         } else {
             manager.error = '사진첩 접근 권한이 없거나 분석 중 오류가 발생했습니다.';
         }

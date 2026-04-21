@@ -41,9 +41,19 @@ function mapToPhotoModel(item, dayKey) {
  * 전용 상태를 변경하지 않고 순수하게 데이터만 가져오고 가공합니다. (Buffering 용)
  */
 export async function fetchCurationBatch({ limit = 3, thumbSize = 420, transport = 'base64', forceRefresh = false } = {}) {
+    // [안정화] 네이티브 응답이 10초 이상 지연될 경우 타임아웃 처리
+    const timeoutMs = 10000;
+    let timeoutId = null;
+
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+            const err = new Error('사진 보관함 응답이 지연되고 있습니다.');
+            err.name = 'TimeoutError';
+            reject(err);
+        }, timeoutMs);
+    });
+
     try {
-        // [안정화] 네이티브 응답이 10초 이상 지연될 경우 타임아웃 처리
-        const timeoutMs = 10000;
         const daily = await Promise.race([
             RecocolPhotos.getDailyCuration({
                 limit,
@@ -51,12 +61,10 @@ export async function fetchCurationBatch({ limit = 3, thumbSize = 420, transport
                 transport,
                 forceRefresh
             }),
-            new Promise((_, reject) => setTimeout(() => {
-                const err = new Error('사진 라이브러리 분석 응답 시간이 초과되었습니다.');
-                err.name = 'TimeoutError';
-                reject(err);
-            }, timeoutMs))
-        ]);
+            timeoutPromise
+        ]).finally(() => {
+            clearTimeout(timeoutId);
+        });
 
         const dayKey = daily?.dayKey || null;
         const items = Array.isArray(daily?.items) ? daily.items : [];
