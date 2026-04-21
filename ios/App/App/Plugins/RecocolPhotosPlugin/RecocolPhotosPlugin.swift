@@ -613,6 +613,10 @@ public class RecocolPhotosPlugin: CAPPlugin {
         let payload: String
     }
 
+    private enum DailyCurationThumbTimeout {
+        static let perAssetSeconds: TimeInterval = 1.2
+    }
+
     private func makeThumbnailJPEGData(from data: Data, thumbSize: CGFloat) -> Data? {
         guard let image = UIImage(data: data) else { return nil }
 
@@ -656,10 +660,6 @@ public class RecocolPhotosPlugin: CAPPlugin {
         results.reserveCapacity(want)
 
         let manager = PHImageManager.default()
-        let options = PHImageRequestOptions()
-        options.deliveryMode = .fastFormat
-        options.resizeMode = .fast
-        options.isNetworkAccessAllowed = false
         let target = CGSize(width: thumbSize, height: thumbSize)
 
         func step(_ idx: Int) {
@@ -675,39 +675,102 @@ public class RecocolPhotosPlugin: CAPPlugin {
                 return
             }
 
-            manager.requestImage(for: asset, targetSize: target, contentMode: .aspectFill, options: options) { image, info in
-                let inCloud = (info?[PHImageResultIsInCloudKey] as? Bool) ?? false
-
-                if let image, let data = image.jpegData(compressionQuality: 0.75) {
-                    let payload = self.buildThumbPayload(from: data, transport: transport)
-                    results.append(.init(assetId: id, payload: payload))
-                    step(idx + 1)
-                    return
+            loadLocalThumbPayload(asset: asset, assetId: id, target: target, thumbSize: thumbSize, transport: transport, manager: manager) { payload in
+                if let payload {
+                    results.append(payload)
                 }
-
-                // requestImage 실패 시 requestImageDataAndOrientation으로 한 번 더 시도
-                let dataOptions = PHImageRequestOptions()
-                dataOptions.deliveryMode = .highQualityFormat
-                dataOptions.resizeMode = .none
-                dataOptions.version = .current
-                dataOptions.isNetworkAccessAllowed = false
-
-                manager.requestImageDataAndOrientation(for: asset, options: dataOptions) { data, _, _, info2 in
-                    let inCloud2 = (info2?[PHImageResultIsInCloudKey] as? Bool) ?? false
-                    if let data,
-                       let thumbData = self.makeThumbnailJPEGData(from: data, thumbSize: thumbSize) {
-                        let payload = self.buildThumbPayload(from: thumbData, transport: transport)
-                        results.append(.init(assetId: id, payload: payload))
-                    } else if inCloud || inCloud2 {
-                        print("📸 [DailyCuration] iCloud-only skipped: \(id)")
-                    } else {
-                        print("📸 [DailyCuration] thumb fetch failed: \(id)")
-                    }
-                    step(idx + 1)
-                }
+                step(idx + 1)
             }
         }
 
         step(0)
+    }
+
+    private func loadLocalThumbPayload(asset: PHAsset,
+                                       assetId: String,
+                                       target: CGSize,
+                                       thumbSize: CGFloat,
+                                       transport: String,
+                                       manager: PHImageManager,
+                                       completion: @escaping (ThumbPayload?) -> Void) {
+        let stateQueue = DispatchQueue(label: "recocol.dailyCuration.thumb.\(UUID().uuidString)")
+        var completed = false
+        var imageRequestId: PHImageRequestID = PHInvalidImageRequestID
+        var dataRequestId: PHImageRequestID = PHInvalidImageRequestID
+
+        func finish(_ payload: ThumbPayload?) {
+            stateQueue.async {
+                guard !completed else { return }
+                completed = true
+
+                if imageRequestId != PHInvalidImageRequestID {
+                    manager.cancelImageRequest(imageRequestId)
+                }
+                if dataRequestId != PHInvalidImageRequestID {
+                    manager.cancelImageRequest(dataRequestId)
+                }
+
+                completion(payload)
+            }
+        }
+
+        func isCompleted() -> Bool {
+            stateQueue.sync { completed }
+        }
+
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + DailyCurationThumbTimeout.perAssetSeconds) {
+            print("📸 [DailyCuration] thumb request timed out, skipped: \(assetId)")
+            finish(nil)
+        }
+
+        let options = PHImageRequestOptions()
+        options.deliveryMode = .fastFormat
+        options.resizeMode = .fast
+        options.isNetworkAccessAllowed = false
+
+        imageRequestId = manager.requestImage(for: asset, targetSize: target, contentMode: .aspectFill, options: options) { image, info in
+            if (info?[PHImageCancelledKey] as? Bool) == true { return }
+            if isCompleted() { return }
+
+            let inCloud = (info?[PHImageResultIsInCloudKey] as? Bool) ?? false
+            if let error = info?[PHImageErrorKey] as? Error {
+                print("📸 [DailyCuration] thumb image request failed: \(assetId), \(error.localizedDescription)")
+            }
+
+            if let image, let data = image.jpegData(compressionQuality: 0.75) {
+                let payload = self.buildThumbPayload(from: data, transport: transport)
+                finish(.init(assetId: assetId, payload: payload))
+                return
+            }
+
+            let dataOptions = PHImageRequestOptions()
+            dataOptions.deliveryMode = .highQualityFormat
+            dataOptions.resizeMode = .none
+            dataOptions.version = .current
+            dataOptions.isNetworkAccessAllowed = false
+
+            dataRequestId = manager.requestImageDataAndOrientation(for: asset, options: dataOptions) { data, _, _, info2 in
+                if (info2?[PHImageCancelledKey] as? Bool) == true { return }
+                if isCompleted() { return }
+
+                let inCloud2 = (info2?[PHImageResultIsInCloudKey] as? Bool) ?? false
+                if let error = info2?[PHImageErrorKey] as? Error {
+                    print("📸 [DailyCuration] thumb data request failed: \(assetId), \(error.localizedDescription)")
+                }
+
+                if let data,
+                   let thumbData = self.makeThumbnailJPEGData(from: data, thumbSize: thumbSize) {
+                    let payload = self.buildThumbPayload(from: thumbData, transport: transport)
+                    finish(.init(assetId: assetId, payload: payload))
+                } else {
+                    if inCloud || inCloud2 {
+                        print("📸 [DailyCuration] iCloud-only skipped: \(assetId)")
+                    } else {
+                        print("📸 [DailyCuration] thumb fetch failed: \(assetId)")
+                    }
+                    finish(nil)
+                }
+            }
+        }
     }
 }
