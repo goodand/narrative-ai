@@ -100,7 +100,16 @@ export class Router {
 
             // Trigger Component Render
             if (this.viewManagers[viewName]) {
-                this.viewManagers[viewName].render();
+                try {
+                    const renderResult = this.viewManagers[viewName].render();
+                    if (renderResult && typeof renderResult.catch === 'function') {
+                        renderResult.catch(error => {
+                            console.error(`[ROUTER] ${viewName} render failed:`, error);
+                        });
+                    }
+                } catch (error) {
+                    console.error(`[ROUTER] ${viewName} render failed:`, error);
+                }
             }
 
             // Update Header Title based on view

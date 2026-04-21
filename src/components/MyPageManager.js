@@ -13,20 +13,50 @@ export class MyPageManager {
         this.container = document.getElementById(containerId);
         this.onLogout = options.onLogout || null;
         this.user = null;
+        this.getCurrentUser = options.getCurrentUser || (() => null);
+        this.isHydratingUser = false;
+        this._requestSeq = 0;
     }
 
     /**
      * Render the My Page view
      */
-    async render() {
-        const { data: { user } } = await supabase.auth.getUser();
-        this.user = user;
+    render() {
+        this._renderShell();
+        this._hydrateUser();
+    }
 
-        if (!user) return;
+    async _hydrateUser() {
+        const requestSeq = ++this._requestSeq;
+        this.isHydratingUser = true;
+        this._renderShell();
 
-        const profileName = user.user_metadata?.full_name || '사용자';
-        const profileEmail = user.email || '';
-        const profileImg = user.user_metadata?.avatar_url || 'https://lh3.googleusercontent.com/a/default-user';
+        try {
+            const cachedUser = this.getCurrentUser() || this.user;
+            if (cachedUser) {
+                this.user = cachedUser;
+                return;
+            }
+
+            const { data: { user } } = await supabase.auth.getUser();
+            this.user = user;
+        } catch (error) {
+            console.error('[MYPAGE] Failed to load user:', error);
+        } finally {
+            if (requestSeq !== this._requestSeq) return;
+            this.isHydratingUser = false;
+            this._renderShell();
+        }
+    }
+
+    _renderShell() {
+        if (!this.container) return;
+
+        const user = this.user;
+        const profileName = user?.user_metadata?.full_name || (this.isHydratingUser ? '불러오는 중' : '사용자');
+        const profileEmail = user?.email || (this.isHydratingUser ? '계정 정보를 확인하고 있어요' : '로그인 정보를 확인할 수 없습니다');
+        const profileImg = user?.user_metadata?.avatar_url || 'https://lh3.googleusercontent.com/a/default-user';
+        const profilePulse = this.isHydratingUser ? 'animate-pulse opacity-60' : '';
 
         this.container.innerHTML = `
             <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-md" style="padding-top: env(safe-area-inset-top);">
@@ -42,14 +72,14 @@ export class MyPageManager {
                 <div class="flex flex-col items-center pt-6 pb-6 gap-3">
                     <div class="relative">
                         <div class="bg-field-bg p-1.5 rounded-full border border-primary/20 shadow-lg">
-                            <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-28 h-28 bg-[#2A2635]"
+                            <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-28 h-28 bg-[#2A2635] ${profilePulse}"
                                  style='background-image: url("${profileImg}");'>
                             </div>
                         </div>
                     </div>
                     <div class="text-center">
-                        <p class="text-2xl font-bold tracking-tight text-white">${profileName}님</p>
-                        <p class="text-primary text-sm font-semibold mt-1">${profileEmail}</p>
+                        <p class="text-2xl font-bold tracking-tight text-white ${profilePulse}">${profileName}님</p>
+                        <p class="text-primary text-sm font-semibold mt-1 ${profilePulse}">${profileEmail}</p>
                     </div>
                 </div>
 

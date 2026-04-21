@@ -48,6 +48,7 @@ let permissionModal, authModal, onboardingModal;
 
 // Failure Tracking
 window.__bootErrors = {};
+window.__recocoCurrentUser = null;
 
 /**
  * safeInit - Initializes a component safely and tracks failures
@@ -168,8 +169,13 @@ if (homeManager) router.registerManager('home', homeManager);
 
 // 3. Lazy Manager Factories (Initialized on first navigation)
 const managerFactories = {
-    report: () => new ReportManager('report-view'),
-    mypage: () => new MyPageManager('mypage-view', { onLogout: () => window.location.reload() }),
+    report: () => new ReportManager('report-view', {
+        getCurrentUser: () => window.__recocoCurrentUser
+    }),
+    mypage: () => new MyPageManager('mypage-view', {
+        getCurrentUser: () => window.__recocoCurrentUser,
+        onLogout: () => window.location.reload()
+    }),
     notice: () => new NoticeManager('notice-view'),
     input: () => new InputManager('input-view'),
     result: () => {
@@ -289,20 +295,12 @@ if (els.backBtn) {
     els.backBtn.onclick = () => router.goBack();
 }
 
-if (els.navHome) els.navHome.onclick = () => router.navigate('home');
-if (els.navReport) els.navReport.onclick = () => router.navigate('report');
-if (els.navMypage) els.navMypage.onclick = () => router.navigate('mypage');
-
-// MyPageManager의 뒤로가기 이벤트 처리
-window.addEventListener('nav-change', (e) => {
-    if (e.detail) router.navigate(e.detail);
-});
-
 /**
  * Handle Auth State Changes
  */
 supabase.auth.onAuthStateChange((event, session) => {
     console.log(`[AUTH] Event: ${event}`);
+    window.__recocoCurrentUser = session?.user || null;
     if (event === 'SIGNED_IN') {
         authModal?.close();
         onboardingModal?.element?.classList?.add('hidden');
@@ -311,6 +309,7 @@ supabase.auth.onAuthStateChange((event, session) => {
         navigateToHome();
         permissionModal?.checkAndOpen();
     } else if (event === 'SIGNED_OUT') {
+        window.__recocoCurrentUser = null;
         onboardingModal?.open();
     }
 });
@@ -332,6 +331,7 @@ async function initApp() {
         if (launchUrl?.url) await handleUrl(launchUrl.url);
 
         const { data: { session } } = await supabase.auth.getSession();
+        window.__recocoCurrentUser = session?.user || null;
         console.log('[BOOT] Initial session check:', session ? 'Found' : 'Not Found');
 
         if (!session) {

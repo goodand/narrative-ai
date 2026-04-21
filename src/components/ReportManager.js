@@ -5,18 +5,24 @@
 
 import { supabase } from '../services/supabase.js';
 
+const DEFAULT_STATS = {
+    weeklyCount: 0,
+    weeklyChange: '0%',
+    totalBytesGB: '0.0',
+    totalCount: '0',
+    dailyData: [0, 0, 0, 0, 0, 0, 0],
+    tips: '비움 분석을 위해 더 많은 사진을 정리해보세요!'
+};
+
 export class ReportManager {
-    constructor(containerId) {
+    constructor(containerId, options = {}) {
         this.container = document.getElementById(containerId);
         this.user = null;
-        this.stats = {
-            weeklyCount: 0,
-            weeklyChange: '0%',
-            totalBytesGB: '0.0',
-            totalCount: '0',
-            dailyData: [0, 0, 0, 0, 0, 0, 0], 
-            tips: '비움 분석을 위해 더 많은 사진을 정리해보세요!'
-        };
+        this.stats = { ...DEFAULT_STATS, dailyData: [...DEFAULT_STATS.dailyData] };
+        this.getCurrentUser = options.getCurrentUser || (() => null);
+        this.isLoading = false;
+        this.loadError = null;
+        this._requestSeq = 0;
     }
 
     /**
@@ -24,16 +30,32 @@ export class ReportManager {
      */
     async loadStats() {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            const user = this.getCurrentUser() || this.user || (await supabase.auth.getUser()).data?.user;
+            if (!user) {
+                this.loadError = '로그인 정보를 확인할 수 없습니다.';
+                return;
+            }
             this.user = user;
+            this.stats = { ...DEFAULT_STATS, dailyData: [...DEFAULT_STATS.dailyData] };
 
-            // 1. 전체 통계 (user_stats)
-            const { data: userStats, error: userStatsError } = await supabase
-                .from('user_stats')
-                .select('*')
-                .eq('user_id', user.id)
-                .single();
+            const fourteenDaysAgo = new Date();
+            fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+            const [userStatsResult, logsResult] = await Promise.all([
+                supabase
+                    .from('user_stats')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .maybeSingle(),
+                supabase
+                    .from('detox_logs')
+                    .select('cleared_at')
+                    .eq('user_id', user.id)
+                    .gte('cleared_at', fourteenDaysAgo.toISOString())
+            ]);
+
+            const { data: userStats, error: userStatsError } = userStatsResult;
+            const { data: logs, error: logsError } = logsResult;
 
             // user_stats 행이 아직 없을 수 있으므로 에러를 로그로만 남기고 기본값 유지
             if (userStatsError) {
@@ -48,16 +70,6 @@ export class ReportManager {
                 this.stats.totalCount = clearedCount.toLocaleString();
             }
 
-            // 2. 주간 비움 데이터 분석 (최근 14일치 조회)
-            const fourteenDaysAgo = new Date();
-            fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-            
-            const { data: logs, error: logsError } = await supabase
-                .from('detox_logs')
-                .select('cleared_at')
-                .eq('user_id', user.id)
-                .gte('cleared_at', fourteenDaysAgo.toISOString());
-
             if (logsError) {
                 console.warn('[REPORT] detox_logs 조회 경고:', this._normalizeError(logsError));
             }
@@ -67,7 +79,8 @@ export class ReportManager {
             }
 
         } catch (error) {
-            console.error('[REPORT] 데이터 로드 실패:', this._normalizeError(error));
+            this.loadError = this._normalizeError(error);
+            console.error('[REPORT] 데이터 로드 실패:', this.loadError);
         }
     }
 
@@ -146,9 +159,34 @@ export class ReportManager {
         return todayUiIdx === uiIndex;
     }
 
-    async render() {
-        await this.loadStats();
+    render() {
+        this._renderShell();
+        this._hydrateStats();
+    }
+
+    async _hydrateStats() {
+        const requestSeq = ++this._requestSeq;
+        this.isLoading = true;
+        this.loadError = null;
+        this._renderShell();
+
+        try {
+            await this.loadStats();
+        } catch (error) {
+            this.loadError = this._normalizeError(error);
+        } finally {
+            if (requestSeq !== this._requestSeq) return;
+            this.isLoading = false;
+            this._renderShell();
+        }
+    }
+
+    _renderShell() {
+        if (!this.container) return;
+
         const profileName = this.user?.user_metadata?.full_name?.split(' ')[0] || '사용자';
+        const loadingClass = this.isLoading ? 'animate-pulse opacity-60' : '';
+        const loadingText = this.isLoading ? '데이터를 불러오는 중입니다.' : (this.loadError ? '일부 리포트 데이터를 불러오지 못했습니다.' : `${profileName}님의 공간이 더 가벼워지고 있어요.`);
 
         this.container.innerHTML = `
             <div class="flex flex-col h-full bg-dark-bg text-white overflow-y-auto custom-scrollbar">
@@ -165,7 +203,7 @@ export class ReportManager {
                 <div class="px-8 pt-2 pb-10">
                     <div class="mb-8">
                         <h1 class="text-white text-[22px] font-bold leading-tight">이번 주 비움 리포트</h1>
-                        <p class="text-white/40 text-[13px] mt-1.5 font-medium">${profileName}님의 공간이 더 가벼워지고 있어요.</p>
+                        <p class="text-white/40 text-[13px] mt-1.5 font-medium">${loadingText}</p>
                     </div>
 
                     <div class="bg-field-bg rounded-[28px] p-6 mb-4 border border-white/5 shadow-2xl">
@@ -173,11 +211,11 @@ export class ReportManager {
                             <div>
                                 <h3 class="text-[12px] font-medium text-white/40 mb-1">지난 7일간 비운 사진</h3>
                                 <div class="flex items-baseline gap-1">
-                                    <span class="text-2xl font-bold text-white tracking-tight">${this.stats.weeklyCount}</span>
+                                    <span class="text-2xl font-bold text-white tracking-tight ${loadingClass}">${this.stats.weeklyCount}</span>
                                     <span class="text-xs font-semibold text-primary">장</span>
                                 </div>
                             </div>
-                            <div class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary">
+                            <div class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary ${loadingClass}">
                                 ${this.stats.weeklyChange}
                             </div>
                         </div>
@@ -208,7 +246,7 @@ export class ReportManager {
                             </div>
                             <h4 class="text-[12px] text-white/40 font-medium">확보한 공간</h4>
                             <p class="text-[18px] font-bold mt-0.5 text-white leading-tight">
-                                ${this.stats.totalBytesGB} <span class="text-xs font-semibold text-primary">GB</span>
+                                <span class="${loadingClass}">${this.stats.totalBytesGB}</span> <span class="text-xs font-semibold text-primary">GB</span>
                             </p>
                         </div>
                         <div class="bg-field-bg p-5 rounded-[24px] border border-white/5">
@@ -217,7 +255,7 @@ export class ReportManager {
                             </div>
                             <h4 class="text-[12px] text-white/40 font-medium">정리한 추억</h4>
                             <p class="text-[18px] font-bold mt-0.5 text-white leading-tight">
-                                ${this.stats.totalCount} <span class="text-xs font-semibold text-primary">개</span>
+                                <span class="${loadingClass}">${this.stats.totalCount}</span> <span class="text-xs font-semibold text-primary">개</span>
                             </p>
                         </div>
                     </div>
