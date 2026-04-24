@@ -146,7 +146,8 @@ const router = new Router(els);
 // 1. Critical Modals & Core Managers (Needed for first frame)
 permissionModal = safeInit('permissionModal', () => new PermissionModal('permission-modal'));
 if (permissionModal) {
-    permissionModal.onComplete = () => {
+    permissionModal.onPermissionResolved = (result) => {
+        if (!result?.authorized) return;
         if (homeManager && homeManager.photos.length === 0 && !homeManager.isLoading) {
             homeManager.loadRealPhotos();
         }
@@ -292,7 +293,7 @@ const navigateToHome = () => {
     console.log('[BOOT] Navigating to home shell...');
     router.navigate('home');
     // permissionModal이 없으면 직접 로딩 시도 (fallback)
-    // 정상 경로에서는 permissionModal.onComplete에서 loadRealPhotos() 호출
+    // 정상 경로에서는 permissionModal.onPermissionResolved에서 authorized 이후 loadRealPhotos() 호출
     if (!permissionModal && homeManager && homeManager.photos.length === 0) {
         homeManager.loadRealPhotos();
     }

@@ -10,25 +10,36 @@ import RecocolPhotos from '../plugins/RecocolPhotos.ts';
 export class PermissionModal extends Modal {
     constructor(element) {
         super(element);
-        this.onComplete = null;
+        this.onPermissionResolved = null;
+        this.lastKnownStatus = null;
         this.contentElement = this.element.querySelector('#permission-content');
+    }
+
+    _emitPermissionResolution({ authorized, status = null, reason }) {
+        const payload = { authorized, status, reason };
+        if (status) this.lastKnownStatus = status;
+        if (this.onPermissionResolved) this.onPermissionResolved(payload);
     }
 
     async checkAndOpen() {
         if (!Capacitor.isNativePlatform()) {
             console.log('[PERM] Skipping photo permissions on web environment');
-            if (this.onComplete) this.onComplete();
+            this._emitPermissionResolution({
+                authorized: true,
+                status: 'authorized',
+                reason: 'web_non_native'
+            });
             return;
         }
 
         let isCompleted = false;
-        
+
         // Safety timeout: 2.5 seconds to prevent boot hang
         const timeout = setTimeout(() => {
             if (!isCompleted) {
-                console.warn('[PERM] Permission check timed out. Proceeding to unblock boot.');
+                console.warn('[PERM] Permission check timed out. Opening permission modal.');
                 isCompleted = true;
-                if (this.onComplete) this.onComplete();
+                this.open();
             }
         }, 2500);
 
@@ -37,14 +48,21 @@ export class PermissionModal extends Modal {
             const status = await RecocolPhotos.getPhotoLibraryPermissionStatus();
             console.log('[PERM] Status:', status.status, 'Authorized:', status.authorized);
 
-            if (!isCompleted) {
+            if (!isCompleted || status.authorized) {
                 clearTimeout(timeout);
-                isCompleted = true;
-                
+                this.lastKnownStatus = status.status || null;
+
                 if (status.authorized) {
-                    if (this.onComplete) this.onComplete();
+                    isCompleted = true;
+                    this.close();
+                    this._emitPermissionResolution({
+                        authorized: true,
+                        status: status.status || 'authorized',
+                        reason: 'already_authorized'
+                    });
                     return;
                 }
+                isCompleted = true;
                 this.open();
             }
         } catch (error) {
@@ -122,21 +140,34 @@ export class PermissionModal extends Modal {
             console.log('Requesting native photo library permissions...');
             const result = await RecocolPhotos.requestPhotoLibraryPermission();
             console.log('Permission result:', result.status);
-            
+            this.lastKnownStatus = result.status || this.lastKnownStatus;
+
             if (result.authorized) {
                 this.close();
-                if (this.onComplete) this.onComplete();
+                this._emitPermissionResolution({
+                    authorized: true,
+                    status: result.status || 'authorized',
+                    reason: 'user_granted'
+                });
             } else {
                 console.warn('Permission denied by user');
                 // 거부된 경우에도 일단 닫거나 안내 문구를 띄울 수 있음
                 this.close();
-                if (this.onComplete) this.onComplete();
+                this._emitPermissionResolution({
+                    authorized: false,
+                    status: result.status || 'denied',
+                    reason: 'user_denied'
+                });
             }
         } catch (error) {
             console.error('Error requesting permissions:', error);
             // 웹 환경일 경우 오류 발생 가능 -> 그냥 진행
             this.close();
-            if (this.onComplete) this.onComplete();
+            this._emitPermissionResolution({
+                authorized: false,
+                status: this.lastKnownStatus,
+                reason: 'request_error'
+            });
         }
     }
 
@@ -152,7 +183,11 @@ export class PermissionModal extends Modal {
             skipBtn.onclick = () => {
                 console.log('Permission Skipped');
                 this.close();
-                if (this.onComplete) this.onComplete();
+                this._emitPermissionResolution({
+                    authorized: false,
+                    status: this.lastKnownStatus || 'not_requested',
+                    reason: 'user_skipped'
+                });
             };
         }
     }
