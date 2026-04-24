@@ -230,6 +230,10 @@
 | `backend/backend_log_v2.txt` | ignored by `.gitignore` | 런타임 로그 | 삭제 후보. 필요한 에러 라인만 문서화한 뒤 정리 가능 |
 | `backend/backend_log_v3.txt` | ignored by `.gitignore` | 런타임 로그 | 삭제 후보. 필요한 에러 라인만 문서화한 뒤 정리 가능 |
 | `.maestro/onboarding-auth-smoke.png` | ignored by `.gitignore` | smoke 증거 이미지 | 삭제 후보가 아니라 증거물 후보. 필요한 경우 `docs/verification/` 승격 후 원본 정리 |
+| `/tmp/narrative-ui-local.png` | local temp, untracked | local 브라우저 UI 평가용 캡처 | 삭제 예정. 현재 permission/home UI 평가용으로만 생성되었으며, 필요한 판독이 끝나면 정리 |
+| `/tmp/narrative-ui-safari-step1.png` 외 3건 (`step2`~`step4`) | local temp, untracked | Safari 단계별 UI 판독 캡처 | 삭제 예정. local UI 자동 검증 시도 중 생성된 중간 산출물이며, 최종 판독이 끝나면 정리 |
+| `/tmp/narrative-ui-safari-postclick.png` | local temp, untracked | Safari 좌표 클릭 재시도 캡처 | 삭제 예정. 좌표 클릭 실패 검증용 중간 산출물이며, 판독 후 정리 |
+| `/tmp/narrative-ui-chrome-domclick-1.png`, `/tmp/narrative-ui-chrome-domclick-2.png`, `/tmp/narrative-ui-chrome-auth-after-onboarding.png`, `/tmp/narrative-ui-chrome-home-shell.png` | local temp, untracked | Chrome DevTools DOM 클릭 기반 UI 검증 캡처 | 삭제 예정. 온보딩/인증/home shell 판독용이며, 필요한 결과를 문서화한 뒤 정리 |
 | `.venv-idb-mcp/__pycache__/protoc_compiler_template.cpython-313.pyc` | ignored by nested `.gitignore` | Python cache | 삭제 후보. 재생성 가능성이 높음 |
 | `src/utils/temp_handleUrl.js` | tracked | 임시/중복 코드 의심 | 삭제 금지. `main.js`의 `handleUrl`과 중복 여부를 line-by-line 검증한 뒤 별도 판단 필요 |
 
@@ -240,3 +244,30 @@
 - `rg -n "<filename or exported symbol>" .`로 참조 여부를 확인한다.
 - 로그/이미지는 삭제 전 증거 가치가 있는지 확인한다.
 - 삭제가 필요하면 먼저 목록과 이유를 사용자에게 보여주고 승인받는다.
+
+---
+
+## 7. 부팅 시퀀스 최적화 및 UI 렌더링 블로킹 해소 (Race Condition 해결)
+
+> 추가일: 2026-04-22
+> 범위: `main.js`, `src/components/PermissionModal.js`, `src/components/home/homeLoadRuntime.js`
+> 목적: 비동기 흐름 제충돌 방지 및 1회성 상태(권한)의 명시적 검증 과정 기록
+
+### 7.1 반복된 핵심 Issue: 비동기 오케스트레이션 (Orchestration Collision)
+- **현상**: 권한 팝업을 수락하기도 전에 뒤에서 "사진 처리 오류!" 빨간 토스트가 발생하며, 로딩이 동일하게 두 번 실행됨.
+- **원인 코드 구조**: `main.js`의 부팅 로직에 질서가 부재. `supabase.auth.getSession()` (초기 세션 확인)과 `supabase.auth.onAuthStateChange('SIGNED_IN')`(자동 트리거 이벤트)가 동시에 `navigateToHome()`과 `permissionModal.checkAndOpen()`을 트리거하여 초기화 로직이 2배수 병렬 처리됨.
+- **해결 방안 (Centralized Boot Flow)**:
+  1. **순서 보장**: 사진 로딩 자체를 `navigateToHome`에서 떼어내어, 권한 결과가 명시적으로 확인된 `permissionModal.onPermissionResolved` 내부로 이관함.
+  2. **중복 통제 (Idempotence)**: `if (!homeManager.isLoading)` 가드를 씌워, 중복 트리거 이벤트가 오더라도 현재 로딩 중이라면 무시하도록 처리.
+
+### 7.2 반복된 작업 Task: 무결점 상태(Clean State) 강제 초기화 및 빌드 파이프라인
+- **배경**: 권한 모달(Permission)과 로컬 스토리지 캐시, Supabase 인증 세션은 한 번 통과하면 다시는 재현되지 않는 1회성 로직.
+- **반복 검증 파이프라인**:
+  1. `npm run build`
+  2. `npx cap copy`
+  3. `xcrun simctl erase <Device_ID>`
+  4. `npx cap run ios`
+- **시사점**: 네이티브 플러그인과 브라우저 JS가 결합된 구조상 코드 한 줄 변경 시에도 "최초 기동 시" 버그 재현을 위해 4단계를 무조건 반복해야 했으며, 이는 [6.1절]의 "구현보다 복원이 비싸므로 Line-by-Line 최소 변경" 원칙을 철저히 따라야 할 당위성을 증명함.
+
+### 7.3 향후 구조 개선 제언
+- 데이터 로딩과 View 렌더를 혼합하는 `async render()` 패턴을 지양하고, 부팅 파이프라인을 통제할 단일 `BootManager`나 상태 기계 도입의 필요성이 매우 큼을 재확인함.
