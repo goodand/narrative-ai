@@ -34,6 +34,8 @@ export interface PhotoSummary {
 
 export interface RecocolPhotosPlugin {
   fetchPhotos(options: { limit: number; offset: number }): Promise<{ photos: PhotoAsset[]; totalCount: number }>;
+  requestPhotoLibraryPermission(): Promise<{ status: string; authorized: boolean }>;
+  getPhotoLibraryPermissionStatus(): Promise<{ status: string; authorized: boolean }>;
   getDailyCuration(options: {
     limit?: number;
     thumbSize?: number;
@@ -50,14 +52,28 @@ export interface RecocolPhotosPlugin {
       thumb: string;
     }>;
   }>;
+  getLocalThumbs(options: {
+    assetIds: string[];
+    thumbSize?: number;
+    transport?: 'base64' | 'file';
+    limit?: number;
+  }): Promise<{
+    thumbs: Array<{ assetId: string; thumb: string }>;
+    failedAssetIds: string[];
+  }>;
   recordCurationAction(options: {
     assetId: string;
     action: 'deleted' | 'recorded' | 'skipped';
     dayKey: string;
   }): Promise<{ ok: boolean }>;
   getPhotoSummary(options: { assetId: string; includeFileSize?: boolean }): Promise<PhotoSummary>;
-  getPhotoMetadata(options: { assetId: string }): Promise<any>;
-  loadImageData(options: { assetId: string; quality: 'thumbnail' | 'original'; thumbSize?: number }): Promise<{ base64: string }>;
+  getPhotoMetadata(options: { assetId: string; allowNetworkAccess?: boolean }): Promise<any>;
+  loadImageData(options: {
+    assetId: string;
+    quality: 'thumbnail' | 'analysis' | 'original';
+    thumbSize?: number;
+    allowNetworkAccess?: boolean;
+  }): Promise<{ base64: string }>;
   deletePhoto(options: { assetId: string }): Promise<{ success: boolean }>;
 }
 
@@ -67,6 +83,8 @@ const mockBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8
 
 const MockPlugin: RecocolPhotosPlugin = {
   fetchPhotos: async () => ({ photos: [], totalCount: 0 }),
+  requestPhotoLibraryPermission: async () => ({ status: 'authorized', authorized: true }),
+  getPhotoLibraryPermissionStatus: async () => ({ status: 'authorized', authorized: true }),
   getDailyCuration: async (options) => {
     console.log('[MOCK] getDailyCuration called on web');
     const limit = options.limit || 3;
@@ -82,6 +100,13 @@ const MockPlugin: RecocolPhotosPlugin = {
       }))
     };
   },
+  getLocalThumbs: async (options) => ({
+    thumbs: options.assetIds.map((assetId, i) => ({
+      assetId,
+      thumb: `https://picsum.photos/seed/${encodeURIComponent(assetId || `recoco${i}`)}/400/600`
+    })),
+    failedAssetIds: []
+  }),
   recordCurationAction: async () => ({ ok: true }),
   getPhotoSummary: async (options) => ({
     id: options.assetId,

@@ -66,7 +66,12 @@ export async function loadPhotoDetails(service, index) {
 
         if (!photo.imageUrl) {
             tasks.push(
-                RecocolPhotos.loadImageData({ assetId: photo.id, quality: 'thumbnail' })
+                RecocolPhotos.loadImageData({
+                    assetId: photo.id,
+                    quality: 'thumbnail',
+                    thumbSize: 300,
+                    allowNetworkAccess: false
+                })
                     .then(({ base64 }) => { photo.imageUrl = `data:image/jpeg;base64,${base64}`; })
                     .catch((err) => {
                         console.error(`PhotoService: Failed to load image ${photo.id}:`, err);

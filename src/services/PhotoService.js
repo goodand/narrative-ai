@@ -48,6 +48,11 @@ export class PhotoService {
         return refreshDailyCurationAfterMutation(this, options);
     }
 
+    async hydrateThumbsForPhotos(photos, options = {}) {
+        const { hydrateThumbsForPhotos } = await import('./photo/dailyCurationRuntime.js');
+        return hydrateThumbsForPhotos(photos, options);
+    }
+
     async ensurePhotoSummary(index, { includeFileSize = false } = {}) {
         return ensurePhotoSummary(this, index, { includeFileSize });
     }
@@ -74,7 +79,9 @@ export class PhotoService {
         try {
             const { base64 } = await RecocolPhotos.loadImageData({
                 assetId,
-                quality
+                quality,
+                thumbSize,
+                allowNetworkAccess: false
             });
             return base64;
         } catch (error) {
@@ -83,30 +90,43 @@ export class PhotoService {
         }
     }
 
+    async getPhotoAsAnalysisBase64(assetId) {
+        try {
+            const { base64 } = await RecocolPhotos.loadImageData({
+                assetId: assetId,
+                quality: 'analysis',
+                thumbSize: 1024,
+                allowNetworkAccess: false
+            });
+            return base64;
+        } catch (error) {
+            console.error('Failed to get bounded analysis Base64:', error);
+            return null;
+        }
+    }
+
     async recordCurationAction({ assetId, action, dayKey }) {
         return recordCurationAction(this, { assetId, action, dayKey });
     }
 
-    /**
-     * Converts current photo to a File object for upload
-     */
-    async getPhotoAsFile(index) {
+    async getPhotoAsFile(index, { allowNetworkAccess = true } = {}) {
         if (index < 0 || index >= this.photos.length) return null;
         const photo = this.photos[index];
 
         try {
-            const { base64 } = await RecocolPhotos.loadImageData({ 
-                assetId: photo.id, 
-                quality: 'original' 
+            const { base64 } = await RecocolPhotos.loadImageData({
+                assetId: photo.id,
+                quality: 'original',
+                allowNetworkAccess
             });
-            
+
             const byteCharacters = atob(base64);
             const byteArray = new Uint8Array(byteCharacters.length);
             for (let i = 0; i < byteCharacters.length; i++) {
                 byteArray[i] = byteCharacters.charCodeAt(i);
             }
             const blob = new Blob([byteArray], { type: 'image/jpeg' });
-            
+
             return new File([blob], `photo_${photo.id}.jpg`, { type: 'image/jpeg' });
         } catch (error) {
             console.error('PhotoService: File conversion failed', error);

@@ -31,13 +31,17 @@ export async function triggerBackgroundPrefetch(manager) {
             return [];
         }
 
-        // 3. 백그라운드 배치 분석 실행 (manager를 넘겨주지 않음으로써 UI 간섭 방지)
+        // 3. 썸네일 수분화와 백그라운드 배치 분석을 병렬로 돌려 프리페치 지연을 막음
+        const hydratePromise = photoService.hydrateThumbsForPhotos(uniqueNextPhotos, { thumbSize: 300 });
+
+        // 4. 백그라운드 배치 분석 실행 (manager를 넘겨주지 않음으로써 UI 간섭 방지)
         uniqueNextPhotos.forEach(p => p._aiReasonFetching = true);
         
-        console.info(`[RECOCO-TRACE] Running background AI analysis for ${uniqueNextPhotos.length} assets...`);
+        console.info(`[RECOCO-TRACE] Running background target tasks in parallel for ${uniqueNextPhotos.length} assets...`);
         
         // [교정] 인덱스 기반 targets 제거. 자산 배열 자체를 전달하여 정합성 확보.
-        await performBatchAnalysis(uniqueNextPhotos, null);
+        const analysisPromise = performBatchAnalysis(uniqueNextPhotos, null);
+        await Promise.allSettled([hydratePromise, analysisPromise]);
 
         console.info('[RECOCO-TRACE] Background pre-fetch and analysis complete.');
         return uniqueNextPhotos;

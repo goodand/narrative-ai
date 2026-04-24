@@ -37,6 +37,63 @@ function mapToPhotoModel(item, dayKey) {
     };
 }
 
+function dispatchDailyCurationUpdated(result) {
+    if (typeof window === 'undefined') return;
+
+    window.dispatchEvent(new CustomEvent('daily-curation-updated', {
+        detail: {
+            dayKey: result.dayKey,
+            totalCount: result.totalCount,
+            fromCache: result.fromCache,
+            needsRefresh: result.needsRefresh,
+            stale: result.stale || false,
+            nativeTimeout: result.nativeTimeout || false
+        }
+    }));
+}
+
+export async function hydrateThumbsForPhotos(photos, { thumbSize = 300, transport = 'base64' } = {}) {
+    if (!Array.isArray(photos)) return;
+
+    const pendingIds = photos
+        .filter(photo => !photo.imageUrl && photo?.rawAsset?.curationReasons?.includes('thumb_pending'))
+        .map(photo => photo.id);
+
+    if (pendingIds.length === 0) return;
+
+    try {
+        const response = await RecocolPhotos.getLocalThumbs({
+            assetIds: pendingIds,
+            thumbSize,
+            transport,
+            limit: pendingIds.length
+        });
+        const thumbById = new Map((response?.thumbs || []).map(item => [item.assetId, item.thumb]));
+
+        for (const photo of photos) {
+            const thumb = thumbById.get(photo.id);
+            if (!thumb) continue;
+            photo.imageUrl = thumb;
+            const reasons = photo.rawAsset?.curationReasons || [];
+            photo.rawAsset.curationReasons = reasons.filter(flag => flag !== 'thumb_pending');
+        }
+    } catch (error) {
+        console.error('PhotoService: thumb hydration failed', error);
+    }
+}
+
+async function hydrateCurationThumbs(service, result, options = {}) {
+    const photos = result.photos || [];
+    await hydrateThumbsForPhotos(photos, options);
+
+    service.photos = photos;
+    dispatchDailyCurationUpdated({
+        ...result,
+        totalCount: photos.length,
+        photos
+    });
+}
+
 /**
  * 전용 상태를 변경하지 않고 순수하게 데이터만 가져오고 가공합니다. (Buffering 용)
  */
@@ -74,7 +131,10 @@ export async function fetchCurationBatch({ limit = 3, thumbSize = 420, transport
             photos,
             dayKey,
             totalCount: photos.length,
-            fromCache: Boolean(daily?.fromCache)
+            fromCache: Boolean(daily?.fromCache),
+            needsRefresh: Boolean(daily?.needsRefresh),
+            stale: Boolean(daily?.stale),
+            nativeTimeout: Boolean(daily?.nativeTimeout)
         };
     } catch (error) {
         console.error('PhotoService: fetchCurationBatch failed', error);
@@ -87,6 +147,7 @@ export async function fetchDailyCuration(service, options = {}) {
         const result = await fetchCurationBatch(options);
         service.currentDayKey = result.dayKey;
         service.photos = result.photos;
+        hydrateCurationThumbs(service, result, options);
         return result;
     } catch (error) {
         console.error('PhotoService: Daily curation fetch failed', error);
@@ -96,13 +157,6 @@ export async function fetchDailyCuration(service, options = {}) {
 
 export async function refreshDailyCurationAfterMutation(service, options = {}) {
     const result = await fetchDailyCuration(service, { ...options, forceRefresh: true });
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('daily-curation-updated', {
-            detail: {
-                dayKey: result.dayKey,
-                totalCount: result.totalCount
-            }
-        }));
-    }
+    dispatchDailyCurationUpdated(result);
     return result;
 }

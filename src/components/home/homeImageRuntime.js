@@ -88,7 +88,7 @@ export async function performBatchAnalysis(targetAssets, manager) {
 
             // Path A 최적화: quality: 'analysis' (1024px) 사용
             const images = await Promise.all(assetIds.map(assetId =>
-                photoService.getPhotoAsBase64ByAssetId(assetId, { quality: 'analysis', thumbSize: 1024 })
+                photoService.getPhotoAsAnalysisBase64(assetId)
             ));
 
             const metadatas = targetAssets.map(p => p.rawAsset || {});
@@ -316,7 +316,7 @@ async function handleAIContextDisplay(photo, index, metaContextEl) {
 
     const individualPromise = (async () => {
         try {
-            const base64 = await photoService.getPhotoAsBase64ByAssetId(photo.id, { quality: 'analysis' });
+            const base64 = await photoService.getPhotoAsAnalysisBase64(photo.id);
             const result = await geminiService.generateDeleteRecommendation({
                 imageBase64: base64,
                 metadata: photo.rawAsset || {},

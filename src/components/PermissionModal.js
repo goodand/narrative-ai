@@ -4,8 +4,8 @@
  */
 
 import { Modal } from './Modal.js';
-import { Camera } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
+import RecocolPhotos from '../plugins/RecocolPhotos.ts';
 
 export class PermissionModal extends Modal {
     constructor(element) {
@@ -34,14 +34,14 @@ export class PermissionModal extends Modal {
 
         try {
             console.log('[PERM] Checking permissions...');
-            const status = await Camera.checkPermissions();
-            console.log('[PERM] Status:', status.photos);
+            const status = await RecocolPhotos.getPhotoLibraryPermissionStatus();
+            console.log('[PERM] Status:', status.status, 'Authorized:', status.authorized);
 
             if (!isCompleted) {
                 clearTimeout(timeout);
                 isCompleted = true;
                 
-                if (status.photos === 'granted' || status.photos === 'limited') {
+                if (status.authorized) {
                     if (this.onComplete) this.onComplete();
                     return;
                 }
@@ -120,11 +120,10 @@ export class PermissionModal extends Modal {
     async _handlePermissionRequest() {
         try {
             console.log('Requesting native photo library permissions...');
-            const result = await Camera.requestPermissions({ permissions: ['photos'] });
-            console.log('Permission result:', result.photos);
+            const result = await RecocolPhotos.requestPhotoLibraryPermission();
+            console.log('Permission result:', result.status);
             
-            // iOS에서는 'granted' 또는 'limited'인 경우 성공으로 간주
-            if (result.photos === 'granted' || result.photos === 'limited') {
+            if (result.authorized) {
                 this.close();
                 if (this.onComplete) this.onComplete();
             } else {

@@ -3,6 +3,69 @@ import Capacitor
 import Photos
 import UIKit
 
+enum RecocolTimeout {
+    static func finishOnce<T>(
+        timeout: TimeInterval,
+        fallback: T,
+        body: (@escaping (T) -> Void) -> Void,
+        completion: @escaping (T) -> Void
+    ) {
+        let queue = DispatchQueue(label: "recocol.finishOnce.\(UUID().uuidString)")
+        var done = false
+
+        func finish(_ value: T) {
+            queue.async {
+                guard !done else { return }
+                done = true
+                completion(value)
+            }
+        }
+
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + timeout) {
+            finish(fallback)
+        }
+
+        body(finish)
+    }
+
+    static func finishOnceWithCancel<T>(
+        timeout: TimeInterval,
+        fallback: T,
+        body: @escaping (@escaping (T) -> Void, @escaping (@escaping () -> Void) -> Void) -> Void,
+        completion: @escaping (T) -> Void
+    ) {
+        let queue = DispatchQueue(label: "recocol.finishOnceWithCancel.\(UUID().uuidString)")
+        var done = false
+        var cancelHandler: (() -> Void)?
+
+        let finish: (T) -> Void = { value in
+            queue.async {
+                guard !done else { return }
+                done = true
+                completion(value)
+            }
+        }
+
+        let setCancel: (@escaping () -> Void) -> Void = { handler in
+            queue.async {
+                guard !done else { return }
+                cancelHandler = handler
+            }
+        }
+
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + timeout) {
+            queue.async {
+                guard !done else { return }
+                done = true
+                cancelHandler?()
+                completion(fallback)
+            }
+        }
+
+        body(finish, setCancel)
+    }
+}
+
 private enum DailyCurationTime {
     static func dayKey(resetHour: Int = 17, now: Date = Date(), timeZone: TimeZone = .current) -> String {
         var cal = Calendar(identifier: .gregorian)
@@ -252,15 +315,14 @@ private final class DailyCurationEngine {
 public class RecocolPhotosPlugin: CAPPlugin {
     private let assetManager = PhotoAssetManager()
     private let curationStore = DailyCurationStore()
+    private typealias DailyCurationFinish = ([String: Any]) -> Void
 
     @objc func fetchPhotos(_ call: CAPPluginCall) {
         let limit = call.getInt("limit") ?? 30
         let offset = call.getInt("offset") ?? 0
 
-        // 권한 검증 로직은 getDailyCuration과 동일하게 재사용
-        ensurePhotoLibraryAuthorized(call: call) {
-            self.performFetchPhotos(call: call, limit: limit, offset: offset)
-        }
+        guard ensurePhotoLibraryAlreadyAuthorized(call: call) else { return }
+        self.performFetchPhotos(call: call, limit: limit, offset: offset)
     }
 
     private func performFetchPhotos(call: CAPPluginCall, limit: Int, offset: Int) {
@@ -324,18 +386,43 @@ public class RecocolPhotosPlugin: CAPPlugin {
         ])
     }
 
-    @objc func getDailyCuration(_ call: CAPPluginCall) {
-        ensurePhotoLibraryAuthorized(call: call) {
-            self.performGetDailyCuration(call)
+    @objc func getPhotoLibraryPermissionStatus(_ call: CAPPluginCall) {
+        let status = currentPhotoAuthorizationStatus()
+        call.resolve(photoAuthorizationPayload(status))
+    }
+
+    @objc func requestPhotoLibraryPermission(_ call: CAPPluginCall) {
+        let status = currentPhotoAuthorizationStatus()
+        if status != .notDetermined {
+            call.resolve(photoAuthorizationPayload(status))
+            return
+        }
+
+        let resolve: (PHAuthorizationStatus) -> Void = { newStatus in
+            DispatchQueue.main.async {
+                call.resolve(self.photoAuthorizationPayload(newStatus))
+            }
+        }
+
+        if #available(iOS 14, *) {
+            PHPhotoLibrary.requestAuthorization(for: .readWrite, handler: resolve)
+        } else {
+            PHPhotoLibrary.requestAuthorization(resolve)
         }
     }
 
-    private func performGetDailyCuration(_ call: CAPPluginCall) {
-        let limit = max(call.getInt("limit") ?? 6, 1)
-        let thumbSize = CGFloat(call.getDouble("thumbSize") ?? 420)
-        let transport = call.getString("transport") ?? "base64"
-        let forceRefresh = call.getBool("forceRefresh") ?? false
+    @objc func getDailyCuration(_ call: CAPPluginCall) {
+        guard ensurePhotoLibraryAlreadyAuthorized(call: call) else { return }
+
         let todayKey = DailyCurationTime.dayKey(resetHour: 17)
+        resolveDailyCurationOnce(call: call, dayKey: todayKey) { finish in
+            self.performGetDailyCuration(call, todayKey: todayKey, finish: finish)
+        }
+    }
+
+    private func performGetDailyCuration(_ call: CAPPluginCall, todayKey: String, finish: @escaping DailyCurationFinish) {
+        let limit = max(call.getInt("limit") ?? 6, 1)
+        let forceRefresh = call.getBool("forceRefresh") ?? false
         let hasMutationToday = (curationStore.mutationDayKey() == todayKey)
 
         if let applied = curationStore.loadApplied(),
@@ -343,7 +430,7 @@ public class RecocolPhotosPlugin: CAPPlugin {
            !forceRefresh,
            !hasMutationToday,
            !applied.items.isEmpty {
-            returnWithThumbs(call: call, cache: applied, limit: limit, thumbSize: thumbSize, transport: transport, fromCache: true, needsRefresh: false)
+            returnCurationMetadata(finish: finish, cache: applied, limit: limit, fromCache: true, needsRefresh: false)
             return
         }
 
@@ -352,7 +439,7 @@ public class RecocolPhotosPlugin: CAPPlugin {
            !forceRefresh,
            !applied.items.isEmpty {
             preparePendingToday(todayKey: todayKey)
-            returnWithThumbs(call: call, cache: applied, limit: limit, thumbSize: thumbSize, transport: transport, fromCache: true, needsRefresh: true)
+            returnCurationMetadata(finish: finish, cache: applied, limit: limit, fromCache: true, needsRefresh: true)
             return
         }
 
@@ -362,7 +449,7 @@ public class RecocolPhotosPlugin: CAPPlugin {
            !forceRefresh,
            !hasMutationToday {
             curationStore.saveApplied(pending)
-            returnWithThumbs(call: call, cache: pending, limit: limit, thumbSize: thumbSize, transport: transport, fromCache: false, needsRefresh: false)
+            returnCurationMetadata(finish: finish, cache: pending, limit: limit, fromCache: false, needsRefresh: false)
             return
         }
 
@@ -371,47 +458,109 @@ public class RecocolPhotosPlugin: CAPPlugin {
             let yesterdayKey = self.yesterdayKey(of: todayKey)
             let cache = engine.compute(dayKey: todayKey, excludeDayKey: yesterdayKey, store: self.curationStore)
             self.curationStore.saveApplied(cache)
-            self.returnWithThumbs(call: call, cache: cache, limit: limit, thumbSize: thumbSize, transport: transport, fromCache: false, needsRefresh: false)
+            self.returnCurationMetadata(finish: finish, cache: cache, limit: limit, fromCache: false, needsRefresh: false)
         }
     }
 
-    private func ensurePhotoLibraryAuthorized(call: CAPPluginCall, onAuthorized: @escaping () -> Void) {
-        let status = PHPhotoLibrary.authorizationStatus()
-        print("📸 [RecocolPhotos] PHAuthorizationStatus: \(status.rawValue)")
+    private func resolveDailyCurationOnce(call: CAPPluginCall,
+                                          dayKey: String,
+                                          timeoutSeconds: TimeInterval = 8.0,
+                                          work: (@escaping DailyCurationFinish) -> Void) {
+        let lock = DispatchQueue(label: "recocol.dailyCuration.resolve.\(UUID().uuidString)")
+        var resolved = false
 
-        if status == .notDetermined {
-            PHPhotoLibrary.requestAuthorization { newStatus in
+        func finish(_ payload: [String: Any]) {
+            lock.async {
+                guard !resolved else { return }
+                resolved = true
                 DispatchQueue.main.async {
-                    var isAuthorized = newStatus == .authorized
-                    if #available(iOS 14, *) {
-                        if newStatus == .limited {
-                            isAuthorized = true
-                        }
-                    }
-
-                    if isAuthorized {
-                        onAuthorized()
-                    } else {
-                        call.reject("Photo library access denied")
-                    }
+                    call.resolve(payload)
                 }
             }
-            return
         }
 
-        var isAuthorized = status == .authorized
-        if #available(iOS 14, *) {
-            if status == .limited {
-                isAuthorized = true
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + timeoutSeconds) {
+            let fallbackCache = self.curationStore.loadApplied()
+            var staleItems: [[String: Any]] = []
+            let effectiveDayKey = fallbackCache?.dayKey ?? dayKey
+
+            if let cache = fallbackCache {
+                for item in cache.items {
+                    var flags = item.flags
+                    if !flags.contains("thumb_pending") { flags.append("thumb_pending") }
+                    staleItems.append([
+                        "assetId": item.assetId,
+                        "score": item.score,
+                        "flags": flags,
+                        "thumb": ""
+                    ])
+                }
             }
+
+            finish([
+                "dayKey": effectiveDayKey,
+                "fromCache": true,
+                "needsRefresh": true,
+                "nativeTimeout": true,
+                "stale": true,
+                "items": staleItems
+            ])
         }
 
-        if !isAuthorized {
-            call.reject("Photo library access not authorized")
-            return
+        work(finish)
+    }
+
+    private func ensurePhotoLibraryAlreadyAuthorized(call: CAPPluginCall) -> Bool {
+        let status = currentPhotoAuthorizationStatus()
+        print("📸 [RecocolPhotos] PHAuthorizationStatus: \(status.rawValue)")
+
+        if isPhotoStatusAuthorized(status) {
+            return true
         }
 
-        onAuthorized()
+        if status == .notDetermined {
+            call.reject("photo_permission_not_requested")
+        } else {
+            call.reject("photo_permission_denied")
+        }
+        return false
+    }
+
+
+
+    private func currentPhotoAuthorizationStatus() -> PHAuthorizationStatus {
+        if #available(iOS 14, *) {
+            return PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        }
+        return PHPhotoLibrary.authorizationStatus()
+    }
+
+    private func isPhotoStatusAuthorized(_ status: PHAuthorizationStatus) -> Bool {
+        if status == .authorized {
+            return true
+        }
+        if #available(iOS 14, *) {
+            return status == .limited
+        }
+        return false
+    }
+
+    private func photoAuthorizationPayload(_ status: PHAuthorizationStatus) -> [String: Any] {
+        return [
+            "status": photoAuthorizationStatusName(status),
+            "authorized": isPhotoStatusAuthorized(status)
+        ]
+    }
+
+    private func photoAuthorizationStatusName(_ status: PHAuthorizationStatus) -> String {
+        switch status {
+        case .notDetermined: return "notDetermined"
+        case .restricted: return "restricted"
+        case .denied: return "denied"
+        case .authorized: return "authorized"
+        case .limited: return "limited"
+        @unknown default: return "unknown"
+        }
     }
 
     @objc func recordCurationAction(_ call: CAPPluginCall) {
@@ -441,29 +590,40 @@ public class RecocolPhotosPlugin: CAPPlugin {
 
         let includeFileSize = call.getBool("includeFileSize") ?? false
 
-        var locationDict: [String: Double]? = nil
-        if let location = asset.location {
-            locationDict = [
-                "latitude": location.coordinate.latitude,
-                "longitude": location.coordinate.longitude,
-                "altitude": location.altitude
+        RecocolTimeout.finishOnce(timeout: 8.0, fallback: [String: Any]()) { finish in
+            var locationDict: [String: Double]? = nil
+            if let location = asset.location {
+                locationDict = [
+                    "latitude": location.coordinate.latitude,
+                    "longitude": location.coordinate.longitude,
+                    "altitude": location.altitude
+                ]
+            }
+
+            var fileSize: Int64 = 0
+            if includeFileSize {
+                let resources = PHAssetResource.assetResources(for: asset)
+                fileSize = resources.first?.value(forKey: "fileSize") as? Int64 ?? 0
+            }
+
+            let payload: [String: Any] = [
+                "id": asset.localIdentifier,
+                "creationDate": asset.creationDate?.iso8601String ?? "",
+                "pixelWidth": asset.pixelWidth,
+                "pixelHeight": asset.pixelHeight,
+                "fileSize": fileSize,
+                "location": locationDict as Any
             ]
+            finish(payload)
+        } completion: { payload in
+            DispatchQueue.main.async {
+                if payload.isEmpty {
+                    call.reject("getPhotoSummary timed out")
+                } else {
+                    call.resolve(payload)
+                }
+            }
         }
-
-        var fileSize: Int64 = 0
-        if includeFileSize {
-            let resources = PHAssetResource.assetResources(for: asset)
-            fileSize = resources.first?.value(forKey: "fileSize") as? Int64 ?? 0
-        }
-
-        call.resolve([
-            "id": asset.localIdentifier,
-            "creationDate": asset.creationDate?.iso8601String ?? "",
-            "pixelWidth": asset.pixelWidth,
-            "pixelHeight": asset.pixelHeight,
-            "fileSize": fileSize,
-            "location": locationDict as Any
-        ])
     }
 
     @objc func getPhotoMetadata(_ call: CAPPluginCall) {
@@ -473,7 +633,9 @@ public class RecocolPhotosPlugin: CAPPlugin {
             return
         }
 
-        MetadataExtractor.extractMetadata(for: asset) { metadata in
+        let allowNetworkAccess = call.getBool("allowNetworkAccess") ?? false
+
+        MetadataExtractor.extractMetadata(for: asset, allowNetworkAccess: allowNetworkAccess) { metadata in
             if let metadata = metadata {
                 call.resolve(metadata.toJS())
             } else {
@@ -491,12 +653,63 @@ public class RecocolPhotosPlugin: CAPPlugin {
         }
 
         let thumbSize = CGFloat(call.getDouble("thumbSize") ?? 250)
+        let allowNetworkAccess = call.getBool("allowNetworkAccess") ?? false
 
-        assetManager.loadImage(asset: asset, quality: quality, thumbSize: thumbSize) { base64 in
+        assetManager.loadImage(asset: asset, quality: quality, thumbSize: thumbSize, allowNetworkAccess: allowNetworkAccess) { base64 in
             if let base64 = base64 {
                 call.resolve(["base64": base64])
             } else {
                 call.reject("Failed to load image data")
+            }
+        }
+    }
+
+    @objc func getLocalThumbs(_ call: CAPPluginCall) {
+        guard ensurePhotoLibraryAlreadyAuthorized(call: call) else { return }
+
+        let assetIds = call.getArray("assetIds", String.self) ?? []
+        let thumbSize = CGFloat(call.getDouble("thumbSize") ?? 300)
+        let transport = call.getString("transport") ?? "base64"
+        let want = max(0, min(assetIds.count, call.getInt("limit") ?? assetIds.count))
+
+        if assetIds.isEmpty || want == 0 {
+            call.resolve([
+                "thumbs": [],
+                "failedAssetIds": assetIds
+            ])
+            return
+        }
+
+        let fallbackPayload: [String: Any] = [
+            "thumbs": [],
+            "failedAssetIds": assetIds,
+            "timedOut": true,
+            "elapsedMs": 8000
+        ]
+
+        RecocolTimeout.finishOnce(timeout: 8.0, fallback: fallbackPayload) { finish in
+            let startedAt = Date()
+            self.fetchThumbsSkippingICloud(candidateIds: assetIds, thumbSize: thumbSize, want: want, transport: transport) { thumbs in
+                let elapsedMs = Date().timeIntervalSince(startedAt) * 1000
+                let foundAssetIds = Set(thumbs.map { $0.assetId })
+                let failedAssetIds = assetIds.filter { !foundAssetIds.contains($0) }
+                let payload = thumbs.map { thumb in
+                    [
+                        "assetId": thumb.assetId,
+                        "thumb": thumb.payload
+                    ]
+                }
+
+                finish([
+                    "thumbs": payload,
+                    "failedAssetIds": failedAssetIds,
+                    "timedOut": false,
+                    "elapsedMs": elapsedMs
+                ])
+            }
+        } completion: { payload in
+            DispatchQueue.main.async {
+                call.resolve(payload)
             }
         }
     }
@@ -559,53 +772,35 @@ public class RecocolPhotosPlugin: CAPPlugin {
         return String(format: "%04d-%02d-%02d", y, m, d)
     }
 
-    private func returnWithThumbs(call: CAPPluginCall,
-                                  cache: DailyCurationCache,
-                                  limit: Int,
-                                  thumbSize: CGFloat,
-                                  transport: String,
-                                  fromCache: Bool,
-                                  needsRefresh: Bool) {
-        let candidateIds = cache.items.map { $0.assetId }
+    private func returnCurationMetadata(finish: @escaping DailyCurationFinish,
+                                        cache: DailyCurationCache,
+                                        limit: Int,
+                                        fromCache: Bool,
+                                        needsRefresh: Bool) {
         let want = min(limit, cache.items.count)
+        var out: [[String: Any]] = []
+        out.reserveCapacity(want)
 
-        fetchThumbsSkippingICloud(candidateIds: candidateIds, thumbSize: thumbSize, want: want, transport: transport) { thumbs in
-            var out: [[String: Any]] = []
-            out.reserveCapacity(thumbs.count)
-
-            for thumb in thumbs {
-                guard let item = cache.items.first(where: { $0.assetId == thumb.assetId }) else { continue }
-                out.append([
-                    "assetId": item.assetId,
-                    "score": item.score,
-                    "flags": item.flags,
-                    "thumb": thumb.payload
-                ])
+        for item in cache.items.prefix(max(0, want)) {
+            var flags = item.flags
+            if !flags.contains("thumb_pending") {
+                flags.append("thumb_pending")
             }
 
-            // 썸네일 생성 실패가 연쇄로 발생하면(예: PHPhotosErrorDomain 3303), 후보 자체는 반환해 홈이 비지 않게 유지
-            if out.isEmpty && !cache.items.isEmpty {
-                for item in cache.items.prefix(max(1, want)) {
-                    var flags = item.flags
-                    flags.append("thumb_unavailable")
-                    out.append([
-                        "assetId": item.assetId,
-                        "score": item.score,
-                        "flags": flags,
-                        "thumb": ""
-                    ])
-                }
-            }
-
-            DispatchQueue.main.async {
-                call.resolve([
-                    "dayKey": cache.dayKey,
-                    "fromCache": fromCache,
-                    "needsRefresh": needsRefresh,
-                    "items": out
-                ])
-            }
+            out.append([
+                "assetId": item.assetId,
+                "score": item.score,
+                "flags": flags,
+                "thumb": ""
+            ])
         }
+
+        finish([
+            "dayKey": cache.dayKey,
+            "fromCache": fromCache,
+            "needsRefresh": needsRefresh,
+            "items": out
+        ])
     }
 
     private struct ThumbPayload {
@@ -615,6 +810,7 @@ public class RecocolPhotosPlugin: CAPPlugin {
 
     private enum DailyCurationThumbTimeout {
         static let perAssetSeconds: TimeInterval = 1.2
+        static let totalSeconds: TimeInterval = 3.5
     }
 
     private func makeThumbnailJPEGData(from data: Data, thumbSize: CGFloat) -> Data? {
@@ -658,13 +854,49 @@ public class RecocolPhotosPlugin: CAPPlugin {
 
         var results: [ThumbPayload] = []
         results.reserveCapacity(want)
+        let stateQueue = DispatchQueue(label: "recocol.dailyCuration.thumbBatch.\(UUID().uuidString)")
+        let startedAt = Date()
+        var completed = false
 
         let manager = PHImageManager.default()
         let target = CGSize(width: thumbSize, height: thumbSize)
 
+        func appendIfOpen(_ payload: ThumbPayload) {
+            stateQueue.sync {
+                guard !completed && results.count < want else { return }
+                results.append(payload)
+            }
+        }
+
+        func completeOnce() {
+            let snapshot: [ThumbPayload]? = stateQueue.sync {
+                guard !completed else { return nil }
+                completed = true
+                return results
+            }
+
+            if let snapshot {
+                completion(snapshot)
+            }
+        }
+
+        func shouldStop(idx: Int) -> Bool {
+            stateQueue.sync {
+                completed ||
+                results.count >= want ||
+                idx >= candidateIds.count ||
+                Date().timeIntervalSince(startedAt) >= DailyCurationThumbTimeout.totalSeconds
+            }
+        }
+
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + DailyCurationThumbTimeout.totalSeconds) {
+            print("📸 [DailyCuration] thumb batch timed out after \(DailyCurationThumbTimeout.totalSeconds)s")
+            completeOnce()
+        }
+
         func step(_ idx: Int) {
-            if results.count >= want || idx >= candidateIds.count {
-                completion(results)
+            if shouldStop(idx: idx) {
+                completeOnce()
                 return
             }
 
@@ -677,7 +909,7 @@ public class RecocolPhotosPlugin: CAPPlugin {
 
             loadLocalThumbPayload(asset: asset, assetId: id, target: target, thumbSize: thumbSize, transport: transport, manager: manager) { payload in
                 if let payload {
-                    results.append(payload)
+                    appendIfOpen(payload)
                 }
                 step(idx + 1)
             }

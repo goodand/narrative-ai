@@ -33,14 +33,17 @@ export async function loadRealPhotos(manager) {
         });
 
         // 네이티브 10초 타임아웃 + 전체 30초 안전망 이중 보호
-        const { photos, dayKey, fromCache, needsRefresh } = await Promise.race([
+        const result = await Promise.race([
             fetchPromise,
             globalTimeout
         ]);
 
+        const { photos, dayKey, fromCache, needsRefresh, stale, nativeTimeout } = result;
+
         const elapsed = Math.round(performance.now() - startedAt);
         console.log(`[PERF] launch_to_carousel_ms=${elapsed} dayKey=${dayKey} fromCache=${fromCache} needsRefresh=${needsRefresh}`);
         console.log(`HomeManager: 데일리 큐레이션 조회 성공 — ${photos.length}장`);
+        manager.photos = [...photoService.getPhotos()];
 
         const perfEntry = {
             ts: new Date().toISOString(),
@@ -53,7 +56,14 @@ export async function loadRealPhotos(manager) {
         const prev = JSON.parse(localStorage.getItem('perf_runs') || '[]');
         prev.push(perfEntry);
         localStorage.setItem('perf_runs', JSON.stringify(prev.slice(-50)));
-        showToast(`[PERF] ${elapsed}ms cache=${fromCache ? 'Y' : 'N'} refresh=${needsRefresh ? 'Y' : 'N'} items=${photos.length}`, ErrorLevel.INFO);
+
+        let perfMsg = `[PERF] ${elapsed}ms cache=${fromCache ? 'Y' : 'N'} refresh=${needsRefresh ? 'Y' : 'N'} items=${photos.length}`;
+        if (stale || nativeTimeout) {
+            perfMsg += ' (STALE FALLBACK)';
+            showToast('이전 추천을 먼저 보여드리고 있어요. 새 분석은 백그라운드에서 다시 시도됩니다.', ErrorLevel.WARNING);
+        } else {
+            showToast(perfMsg, ErrorLevel.INFO);
+        }
 
         if (photos.length > 0) {
             manager.currentIndex = 0;
@@ -61,9 +71,13 @@ export async function loadRealPhotos(manager) {
             manager.error = '사진첩에 분석할 수 있는 사진이 없습니다.';
         }
     } catch (error) {
-        handleError(error, 'HomeManager');
+        const isPermissionError = error.message === 'photo_permission_not_requested'
+            || error.message === 'photo_permission_denied';
+        handleError(error, 'HomeManager', { silent: isPermissionError });
         if (error.name === 'TimeoutError') {
             manager.error = '사진 보관함 응답이 지연되고 있습니다. iCloud 동기화 상태를 확인하거나 [다시 시도하기] 버튼을 눌러주세요.';
+        } else if (error.message === 'photo_permission_not_requested' || error.message === 'photo_permission_denied') {
+            manager.error = '사진첩 접근 권한이 필요합니다. 권한 안내 화면에서 사진 접근을 허용해주세요.';
         } else {
             manager.error = '사진첩 접근 권한이 없거나 분석 중 오류가 발생했습니다.';
         }
@@ -76,9 +90,14 @@ export async function loadRealPhotos(manager) {
 
 export function setupDailyCurationListener(manager) {
     if (typeof window === 'undefined') return;
-    window.addEventListener('daily-curation-updated', () => {
+    window.addEventListener('daily-curation-updated', (event) => {
+        const detail = event.detail || {};
+        if (detail.stale || detail.nativeTimeout) {
+            showToast('이전 추천을 보여드리고 있습니다. 잠시만 기다려주세요.', ErrorLevel.WARNING);
+        }
         const photos = photoService.getPhotos();
         const visibleMax = Math.min(photos.length, 3);
+        manager.photos = [...photos];
 
         if (photos.length > 0) {
             manager.error = null;
