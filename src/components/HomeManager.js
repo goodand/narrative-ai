@@ -261,7 +261,7 @@ export class HomeManager {
                         <div id="photo-meta-info" class="mb-5 min-h-[4rem] flex flex-col items-center justify-start transition-all duration-300">
                             <p class="text-white text-[14px] font-medium leading-relaxed text-center break-keep w-full">
                                 <span id="meta-date">${currentPhoto?.date || ''}</span> | <span id="meta-location">${currentPhoto?.location || ''}</span><br/>
-                                <span id="meta-context" class="text-primary text-[13px] font-bold block mt-1 leading-snug">${currentPhoto?.contextMessage || ''}</span>
+                                <span id="meta-context" class="text-primary text-sm font-bold block mt-1 leading-snug">${currentPhoto?.contextMessage || ''}</span>
                             </p>
                         </div>
 

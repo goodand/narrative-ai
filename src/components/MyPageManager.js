@@ -87,7 +87,7 @@ export class MyPageManager {
                 <div class="px-6">
                     <div id="notice-settings-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-[24px] border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
                         <div class="w-6 text-primary flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-[22px]">notifications</span>
+                            <span class="material-symbols-outlined text-xl">notifications</span>
                         </div>
                         <p class="text-white text-base font-semibold flex-1">알림 설정</p>
                         <div class="shrink-0 text-zinc-600">
@@ -100,7 +100,7 @@ export class MyPageManager {
                 <div class="px-6 mt-6 space-y-4">
                     <div id="withdraw-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-3xl border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
                         <div class="w-6 text-red-400 flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-[22px]">person_remove</span>
+                            <span class="material-symbols-outlined text-xl">person_remove</span>
                         </div>
                         <p class="text-red-400 text-base font-semibold flex-1">회원탈퇴</p>
                         <div class="shrink-0 text-zinc-600">

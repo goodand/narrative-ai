@@ -8,6 +8,18 @@
   --color-field-bg: #1C1B1E;
   --color-muted-lavender: #A199B4;
   --font-display: 'Pretendard', 'Plus Jakarta Sans', sans-serif;
+
+  /* RECOCO DS v1.0.0 — Canonical spacing semantic scale (4px base) */
+  --spacing-page-max-width: 430px;
+  --spacing-margin-page: 20px;
+  --spacing-section-gap: 40px;
+  --spacing-container-padding: 24px;
+  --spacing-card-padding: 16px;
+  --spacing-inner-padding: 12px;
+  --spacing-element-gap-lg: 24px;
+  --spacing-element-gap-md: 16px;
+  --spacing-element-gap-sm: 8px;
+  --spacing-element-gap-xs: 4px;
 }
 
 
