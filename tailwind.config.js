@@ -3,26 +3,28 @@ export default {
   darkMode: "class",
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-    "./new_design/**/*.html"
+    "./src/**/*.{js,ts,jsx,tsx}"
+    // new_design/ removed: gitignored experimental folder; including it in
+    // content scanning makes dist CSS reproducibility-fragile (untracked
+    // local changes affect build output).
   ],
   theme: {
     extend: {
       colors: {
         "primary": "#B2A5CF",
-        "dark-bg": "#121212",
-        "field-bg": "#1E1E1E",
+        "dark-bg": "#0F0E10",
+        "field-bg": "#1C1B1E",
         "muted-lavender": "#A199B4",
         "brand": "#B2A5CF" // Keeping alias for compatibility if needed
       },
       fontFamily: {
-        "display": ["Plus Jakarta Sans", "Noto Sans KR", "sans-serif"],
-        "sans": ["Plus Jakarta Sans", "Noto Sans KR", "sans-serif"]
+        "display": ["Pretendard", "Plus Jakarta Sans", "sans-serif"],
+        "sans": ["Pretendard", "Plus Jakarta Sans", "sans-serif"]
       },
-      borderRadius: {
-        "lg": "2rem",
-        "xl": "3rem"
-      },
+      // borderRadius override removed: Tailwind v4 build does not honor JS-config
+      // borderRadius extends; use Tailwind default scale + arbitrary values per spec.
+      // spec radius scale: 16 (rounded-2xl) / 24 (rounded-3xl) / 9999 (rounded-full).
+      // sheet-top 32 -> rounded-[32px] arbitrary or @theme {--radius-sheet: 32px} extension.
     },
   },
   plugins: [],

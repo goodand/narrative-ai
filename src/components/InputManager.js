@@ -19,11 +19,11 @@ export class InputManager {
         this.container.innerHTML = `
             <!-- Image Upload Area -->
             <div class="flex flex-col items-center px-6 mx-6 pt-12 pb-8">
-                <div id="drop-zone" class="relative w-full max-w-[240px] aspect-[2/3] overflow-hidden rounded-[2rem] border-2 border-dashed border-white/20 bg-white/5 hover:bg-white/10 transition-colors group cursor-pointer flex items-center justify-center">
+                <div id="drop-zone" class="relative w-full max-w-[240px] aspect-[2/3] overflow-hidden rounded-[2rem] border-2 border-dashed border-white/20 bg-white/5 hover:bg-white/10 transition-colors duration-200 ease-in-out group cursor-pointer flex items-center justify-center">
                     <input type="file" id="image-input" accept="image/*" class="hidden">
                     
                     <!-- Placeholder / Background -->
-                    <div id="upload-placeholder" class="flex flex-col items-center justify-center opacity-50 group-hover:opacity-100 transition-opacity">
+                    <div id="upload-placeholder" class="flex flex-col items-center justify-center opacity-50 group-hover:opacity-100 transition-opacity duration-200 ease-in-out">
                         <span class="material-symbols-outlined text-4xl text-white/30">image</span>
                     </div>
 
@@ -45,13 +45,13 @@ export class InputManager {
                 <!-- Meaning Input -->
                 <div>
                     <p class="text-[10px] font-bold text-muted-lavender tracking-wider uppercase mb-2 ml-1">Meaning</p>
-                    <textarea id="meaning-input" class="w-full bg-field-bg border-none rounded-2xl p-5 text-sm focus:ring-1 focus:ring-primary/30 placeholder:text-muted-lavender/40 text-white outline-none min-h-[120px] resize-none" placeholder="이 순간은 당신에게 어떤 의미인가요?"></textarea>
+                    <textarea id="meaning-input" class="w-full bg-field-bg border border-white/5 rounded-2xl p-4 text-sm focus:border-primary placeholder:text-[#6B696D] text-white outline-none min-h-[120px] resize-none transition-colors duration-200" placeholder="이 순간은 당신에게 어떤 의미인가요?"></textarea>
                 </div>
 
                 <!-- Tags -->
                 <div>
                     <p class="text-[10px] font-bold text-muted-lavender tracking-wider uppercase mb-2 ml-1">Tags (Optional)</p>
-                    <input id="tags-input" class="w-full h-14 bg-field-bg border-none rounded-2xl px-5 text-sm focus:ring-1 focus:ring-primary/30 placeholder:text-muted-lavender/40 text-white outline-none" placeholder="#태그 #키워드 #입력" type="text" />
+                    <input id="tags-input" class="w-full h-14 bg-field-bg border border-white/5 rounded-2xl px-4 text-sm focus:border-primary placeholder:text-[#6B696D] text-white outline-none transition-colors duration-200" placeholder="#태그 #키워드 #입력" type="text" />
                 </div>
             </div>
         `;

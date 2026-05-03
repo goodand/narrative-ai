@@ -100,6 +100,121 @@ export class GeminiService {
     }
 
     /**
+     * Generate delete recommendation reason from image via backend proxy
+     * @param {Object} params
+     * @param {string} params.imageBase64 - Base64 encoded image string
+     * @param {Object} params.metadata - Photo metadata
+     * @param {Object[]} params.filteringCriteria - Curation criteria with labels/descriptions
+     * @param {string} [params.language='Korean']
+     * @param {string} [params.tone='gentle']
+     * @param {number} [params.maxLength=120]
+     * @returns {Promise<{reason: string, shortReason: string, usedCriteria: string[]}>}
+     */
+    async generateDeleteRecommendation({ imageBase64, metadata, filteringCriteria, language = 'Korean', tone = 'gentle', maxLength = 120 }) {
+        const response = await fetchWithRetry(
+            `${this.baseUrl}/api/v1/delete-recommendation`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image: imageBase64,
+                    metadata,
+                    filteringCriteria,
+                    language,
+                    tone,
+                    maxLength
+                })
+            }
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`delete-recommendation API error ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return {
+            reason: data.reason,
+            shortReason: data.shortReason,
+            usedCriteria: data.usedCriteria
+        };
+    }
+
+    /**
+     * Generate batch delete recommendations via backend proxy
+     * @param {Object} params
+     * @param {string[]} params.images - Array of base64 encoded image strings
+     * @param {Object[]} params.metadatas
+     * @param {Object[][]} params.filteringCriteriaList
+     * @returns {Promise<{recommendations: Array}>}
+     */
+    async generateBatchDeleteRecommendations({ images, metadatas, filteringCriteriaList, language = 'Korean', tone = 'gentle', maxLength = 120 }) {
+        console.info(`[RECOCO-TRACE] Requesting async batch analysis for ${images.length} images`);
+
+        const response = await fetchWithRetry(
+            `${this.baseUrl}/api/v1/delete-recommendation/batch`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    images,
+                    metadatas,
+                    filteringCriteriaList,
+                    language,
+                    tone,
+                    maxLength
+                })
+            }
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            throw new Error(`batch-delete-recommendation API error ${response.status}: ${errorText}`);
+        }
+
+        const initialInfo = await response.json();
+        console.info(`[RECOCO-TRACE] Batch analysis queued. Task ID: ${initialInfo.task_id}`);
+
+        // Polling을 통해 최종 결과를 기다립니다.
+        return this.waitForJob(initialInfo.task_id);
+    }
+
+    /**
+     * Check job status via backend
+     */
+    async getJobStatus(taskId) {
+        const response = await fetch(`${this.baseUrl}/api/v1/delete-recommendation/jobs/${taskId}`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch job status: ${response.status}`);
+        }
+        return response.json();
+    }
+
+    /**
+     * Poll until job is completed or failed
+     */
+    async waitForJob(taskId, maxAttempts = 60) {
+        console.info(`[RECOCO-TRACE] Polling for task: ${taskId}`);
+        for (let i = 0; i < maxAttempts; i++) {
+            const data = await this.getJobStatus(taskId);
+
+            if (data.status === 'completed') {
+                console.info(`[RECOCO-TRACE] Task ${taskId} completed.`);
+                return data.result;
+            }
+
+            if (data.status === 'failed') {
+                throw new Error(data.error || 'AI 분석 작업이 실패했습니다.');
+            }
+
+            // Wait 1.5s before next poll
+            await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+        throw new Error('AI 분석 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+    }
+
+
+    /**
      * Get synonyms for keywords via backend proxy
      * @param {string[]} keywords - Keywords to get synonyms for
      * @param {string} language - Language for synonyms

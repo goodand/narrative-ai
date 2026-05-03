@@ -1,0 +1,448 @@
+{
+  "generated_at": "2026-04-01",
+  "generated_by": "narrative-ai-system-maker",
+  "catalog_name": "my-image-parser-tool-list-verified",
+  "source_workspace": {
+    "name": "my-image-parser",
+    "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser"
+  },
+  "verification_method": "direct_file_read_and_cross_check",
+  "verification_sources": {
+    "canonical_tool_inventory_json": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/control/project_agent_ops/registry/tools/tool_inventory.json",
+    "canonical_mcp_reference_md": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/control/project_agent_ops/resources/tools_inventory/REFERENCE_mcp_setup.md",
+    "global_codex_config": "/Users/jaehyuntak/.codex/config.toml",
+    "vscode_mcp_config": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/.vscode/mcp.json",
+    "mcp_scripts_root": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp",
+    "mcp_vendor_root": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/vendor/mcp"
+  },
+  "summary": {
+    "inventory_workspace_mcp_servers_total": 10,
+    "global_codex_registered_servers_relevant_total": 6,
+    "vscode_registered_servers_total": 4,
+    "launcher_scripts_verified_total": 9,
+    "vendor_directories_verified_total": 4
+  },
+  "discovered_deltas": [
+    {
+      "type": "launcher_discovery",
+      "detail": "start-tigaweb-image-edit-sample-mcp.sh exists and is referenced by inventory and VS Code config."
+    },
+    {
+      "type": "config_split",
+      "detail": "Global Codex config currently registers the core servers cv-mcp, exiftool, agent-task-manager, conport, filesystem, plus remote canva. Vendored image MCPs are tracked in inventory and VS Code config but not registered in the current global Codex config."
+    }
+  ],
+  "support_scripts_verified": [
+    {
+      "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/run_imagesorcery_mcp.py",
+      "exists": true,
+      "purpose": "redirects prints to stderr before calling imagesorcery_mcp.server.main"
+    }
+  ],
+  "server_presence_matrix": [
+    {
+      "server_name": "agent-task-manager",
+      "inventory_registered": true,
+      "global_codex_registered": true,
+      "vscode_registered": false,
+      "launcher_exists": true,
+      "vendor_directory_exists": false,
+      "boot_verified": true
+    },
+    {
+      "server_name": "canva",
+      "inventory_registered": true,
+      "global_codex_registered": true,
+      "vscode_registered": false,
+      "launcher_exists": false,
+      "vendor_directory_exists": false,
+      "boot_verified": "remote_server_not_locally_boot_checked"
+    },
+    {
+      "server_name": "conport",
+      "inventory_registered": true,
+      "global_codex_registered": true,
+      "vscode_registered": false,
+      "launcher_exists": true,
+      "vendor_directory_exists": false,
+      "boot_verified": true
+    },
+    {
+      "server_name": "cv-mcp",
+      "inventory_registered": true,
+      "global_codex_registered": true,
+      "vscode_registered": false,
+      "launcher_exists": true,
+      "vendor_directory_exists": false,
+      "boot_verified": true
+    },
+    {
+      "server_name": "exiftool",
+      "inventory_registered": true,
+      "global_codex_registered": true,
+      "vscode_registered": false,
+      "launcher_exists": true,
+      "vendor_directory_exists": false,
+      "boot_verified": true
+    },
+    {
+      "server_name": "filesystem",
+      "inventory_registered": true,
+      "global_codex_registered": true,
+      "vscode_registered": false,
+      "launcher_exists": true,
+      "vendor_directory_exists": false,
+      "boot_verified": true
+    },
+    {
+      "server_name": "imagesorcery-mcp",
+      "inventory_registered": true,
+      "global_codex_registered": false,
+      "vscode_registered": true,
+      "launcher_exists": true,
+      "vendor_directory_exists": true,
+      "boot_verified": true
+    },
+    {
+      "server_name": "macos-ocr-mcp",
+      "inventory_registered": true,
+      "global_codex_registered": false,
+      "vscode_registered": true,
+      "launcher_exists": true,
+      "vendor_directory_exists": true,
+      "boot_verified": "verified_unsandboxed"
+    },
+    {
+      "server_name": "paddleocr-mcp",
+      "inventory_registered": true,
+      "global_codex_registered": false,
+      "vscode_registered": true,
+      "launcher_exists": true,
+      "vendor_directory_exists": true,
+      "boot_verified": true
+    },
+    {
+      "server_name": "tigaweb-image-edit-sample-mcp",
+      "inventory_registered": true,
+      "global_codex_registered": false,
+      "vscode_registered": true,
+      "launcher_exists": true,
+      "vendor_directory_exists": true,
+      "boot_verified": true
+    }
+  ],
+  "verified_servers": [
+    {
+      "server_name": "cv-mcp",
+      "category": "core",
+      "registration_sources": [
+        "inventory_json",
+        "global_codex_config"
+      ],
+      "launcher": {
+        "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-cv-mcp.sh",
+        "exists": true,
+        "runtime_summary": "checks for workspace .env, sets UV cache under .cache/uv, then runs uvx cv-mcp-server from git"
+      },
+      "tool_names": [
+        "caption_image",
+        "alt_text",
+        "dense_caption",
+        "image_metadata"
+      ],
+      "boot_verified": true
+    },
+    {
+      "server_name": "filesystem",
+      "category": "core",
+      "registration_sources": [
+        "inventory_json",
+        "global_codex_config"
+      ],
+      "launcher": {
+        "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-filesystem-mcp.sh",
+        "exists": true,
+        "runtime_summary": "runs @modelcontextprotocol/server-filesystem with access restricted to workspace root and /Users/jaehyuntak/Downloads"
+      },
+      "tool_names": [
+        "read_file",
+        "read_text_file",
+        "read_media_file",
+        "read_multiple_files",
+        "write_file",
+        "edit_file",
+        "create_directory",
+        "list_directory",
+        "list_directory_with_sizes",
+        "directory_tree",
+        "move_file",
+        "search_files",
+        "get_file_info",
+        "list_allowed_directories"
+      ],
+      "boot_verified": true
+    },
+    {
+      "server_name": "exiftool",
+      "category": "core",
+      "registration_sources": [
+        "inventory_json",
+        "global_codex_config"
+      ],
+      "launcher": {
+        "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-exiftool-mcp.sh",
+        "exists": true,
+        "runtime_summary": "requires system exiftool binary, sets UV cache, then runs python -m exiftool_mcp.server via uvx"
+      },
+      "tool_names": [
+        "read_metadata",
+        "write_metadata",
+        "remove_metadata",
+        "list_supported_formats"
+      ],
+      "boot_verified": true
+    },
+    {
+      "server_name": "agent-task-manager",
+      "category": "orchestration",
+      "registration_sources": [
+        "inventory_json",
+        "global_codex_config"
+      ],
+      "launcher": {
+        "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-agent-task-manager-mcp.sh",
+        "exists": true,
+        "runtime_summary": "creates SQLite storage under data/agent-task-manager, uses npx package install cache, resolves dist/index.js and runs it with node"
+      },
+      "tool_groups": {
+        "task": [
+          "task_create",
+          "task_get",
+          "task_list",
+          "task_update",
+          "task_delete",
+          "task_lock",
+          "task_unlock"
+        ],
+        "subtask": [
+          "subtask_create_bulk",
+          "subtask_get_next",
+          "subtask_update_status"
+        ],
+        "session": [
+          "session_start",
+          "session_end"
+        ],
+        "checkpoint": [
+          "checkpoint_save",
+          "checkpoint_restore"
+        ]
+      },
+      "boot_verified": true
+    },
+    {
+      "server_name": "conport",
+      "category": "orchestration",
+      "registration_sources": [
+        "inventory_json",
+        "global_codex_config"
+      ],
+      "launcher": {
+        "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-conport-mcp.sh",
+        "exists": true,
+        "runtime_summary": "runs conport-mcp in stdio mode with workspace_id bound to the my-image-parser root and logs to logs/conport.log"
+      },
+      "tool_groups": {
+        "context": [
+          "get_product_context",
+          "update_product_context",
+          "get_active_context",
+          "update_active_context"
+        ],
+        "decision": [
+          "log_decision",
+          "get_decisions",
+          "search_decisions_fts",
+          "delete_decision_by_id"
+        ],
+        "progress": [
+          "log_progress",
+          "get_progress",
+          "update_progress",
+          "delete_progress_by_id",
+          "get_recent_activity_summary"
+        ],
+        "system_pattern": [
+          "log_system_pattern",
+          "get_system_patterns",
+          "delete_system_pattern_by_id"
+        ],
+        "custom_data": [
+          "log_custom_data",
+          "get_custom_data",
+          "delete_custom_data",
+          "search_custom_data_value_fts"
+        ],
+        "glossary": [
+          "search_project_glossary_fts"
+        ],
+        "import_export": [
+          "export_conport_to_markdown",
+          "import_markdown_to_conport"
+        ],
+        "links_and_history": [
+          "link_conport_items",
+          "get_linked_items",
+          "get_item_history"
+        ],
+        "bulk_and_schema": [
+          "batch_log_items",
+          "get_conport_schema",
+          "semantic_search_conport",
+          "get_workspace_detection_info"
+        ]
+      },
+      "boot_verified": true
+    },
+    {
+      "server_name": "canva",
+      "category": "remote",
+      "registration_sources": [
+        "inventory_json",
+        "global_codex_config"
+      ],
+      "remote_source": "/Users/jaehyuntak/.codex/config.toml",
+      "tool_names": [
+        "comment_on_design",
+        "create_design_from_candidate",
+        "create_folder",
+        "export_design",
+        "generate_design",
+        "get_design",
+        "get_design_content",
+        "get_design_pages",
+        "get_export_formats",
+        "get_presenter_notes",
+        "import_design_from_url",
+        "list_brand_kits",
+        "list_comments",
+        "list_folder_items",
+        "list_replies",
+        "move_item_to_folder",
+        "reply_to_comment",
+        "resize_design",
+        "resolve_shortlink",
+        "search_designs",
+        "search_folders",
+        "upload_asset_from_url"
+      ],
+      "boot_verified": "remote_server_not_locally_boot_checked"
+    },
+    {
+      "server_name": "tigaweb-image-edit-sample-mcp",
+      "category": "vendored_image",
+      "registration_sources": [
+        "inventory_json",
+        "vscode_mcp_config"
+      ],
+      "launcher": {
+        "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-tigaweb-image-edit-sample-mcp.sh",
+        "exists": true,
+        "runtime_summary": "uses vendored TypeScript build at dist/server.js, passes a dedicated image workspace directory, and uses .cache/npm"
+      },
+      "vendor_source": {
+        "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/vendor/mcp/tigaweb-image-edit-sample-mcp",
+        "exists": true
+      },
+      "tool_names": [
+        "adjust-brightness",
+        "crop-image",
+        "compress-image"
+      ],
+      "boot_verified": true
+    },
+    {
+      "server_name": "macos-ocr-mcp",
+      "category": "vendored_image",
+      "registration_sources": [
+        "inventory_json",
+        "vscode_mcp_config"
+      ],
+      "launcher": {
+        "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-macos-ocr-mcp.sh",
+        "exists": true,
+        "runtime_summary": "runs the vendored .venv python against vendor/mcp/macos-ocr-mcp/main.py"
+      },
+      "vendor_source": {
+        "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/vendor/mcp/macos-ocr-mcp",
+        "exists": true
+      },
+      "tool_names": [
+        "ocr_image"
+      ],
+      "boot_verified": "verified_unsandboxed",
+      "notes": [
+        "inventory notes that sandboxed execution can fail in the ocrmac path",
+        "reference doc marks this MCP as macOS-only"
+      ]
+    },
+    {
+      "server_name": "imagesorcery-mcp",
+      "category": "vendored_image",
+      "registration_sources": [
+        "inventory_json",
+        "vscode_mcp_config"
+      ],
+      "launcher": {
+        "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-imagesorcery-mcp.sh",
+        "exists": true,
+        "runtime_summary": "requires vendored imagesorcery executable and config.toml, expects workspace logs/imagesorcery bridge, sets YOLO_CONFIG_DIR, then runs --transport stdio"
+      },
+      "vendor_source": {
+        "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/vendor/mcp/imagesorcery-mcp",
+        "exists": true
+      },
+      "tool_names": [
+        "blur",
+        "change_color",
+        "config",
+        "crop",
+        "detect",
+        "draw_arrows",
+        "draw_circles",
+        "draw_lines",
+        "draw_rectangles",
+        "draw_texts",
+        "fill",
+        "find",
+        "get_metainfo",
+        "ocr",
+        "overlay",
+        "resize",
+        "rotate"
+      ],
+      "boot_verified": true
+    },
+    {
+      "server_name": "paddleocr-mcp",
+      "category": "vendored_image",
+      "registration_sources": [
+        "inventory_json",
+        "vscode_mcp_config"
+      ],
+      "launcher": {
+        "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/scripts/mcp/start-paddleocr-mcp.sh",
+        "exists": true,
+        "runtime_summary": "runs vendored paddleocr_mcp with workspace-managed HOME and cache directories and defaults to PP-StructureV3 on local CPU"
+      },
+      "vendor_source": {
+        "path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/vendor/mcp/paddleocr-mcp",
+        "exists": true
+      },
+      "tool_names": [
+        "pp_structurev3"
+      ],
+      "boot_verified": true
+    }
+  ]
+}

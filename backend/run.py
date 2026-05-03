@@ -64,29 +64,28 @@ def main():
     # 환경변수에서 포트 가져오기 (기본값: 8000)
     port = int(os.environ.get("PORT", 8000))
 
-    # --dev 플래그로 개발 모드 구분
+    # --dev 플래그로 개발 모드 구분 (Reload 여부 결정)
     is_dev = "--dev" in sys.argv
+
+    # LAN 노출 여부 결정 (User Strategy #4)
+    # ALLOW_LAN=true 이면 0.0.0.0, 아니면 loopback(127.0.0.1)
+    allow_lan = os.environ.get("ALLOW_LAN", "false").lower() == "true"
+    host = "0.0.0.0" if allow_lan else "127.0.0.1"
 
     # 포트 충돌 시 자동 종료 (개발 모드에서만)
     if is_dev:
         kill_port(port)
 
-    if is_dev:
-        print(f"🚀 [DEV MODE] RECOCO Backend starting on port {port}")
-        uvicorn.run(
-            "app.main:app",
-            host="127.0.0.1",  # 로컬에서만 접근
-            port=port,
-            reload=True  # 코드 변경 시 자동 재시작
-        )
-    else:
-        print(f"🚀 [PROD MODE] RECOCO Backend starting on port {port}")
-        uvicorn.run(
-            "app.main:app",
-            host="0.0.0.0",  # 외부 접근 허용
-            port=port,
-            reload=False
-        )
+    mode_str = "DEV MODE" if is_dev else "PROD MODE"
+    access_str = "External Access Allowed" if allow_lan else "Local Only"
+    print(f"🚀 [{mode_str} | {access_str}] RECOCO Backend starting on {host}:{port}")
+
+    uvicorn.run(
+        "app.main:app",
+        host=host,
+        port=port,
+        reload=is_dev  # --dev 플래그일 때만 reload 활성화
+    )
 
 
 if __name__ == "__main__":

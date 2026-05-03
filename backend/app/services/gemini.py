@@ -11,7 +11,7 @@ import httpx
 from typing import Optional
 
 from ..config import get_settings
-from ..models.schemas import NarrativeContext, NarrativeResponse, SynonymsResponse, SynonymItem
+from ..models.schemas import NarrativeContext, NarrativeResponse, SynonymsResponse, SynonymItem, DeleteRecommendationResponse, BatchDeleteRecommendationResponse
 from ..utils.prompts import build_story_prompt, build_synonyms_prompt, DEFAULT_SYSTEM_PROMPT
 from .geocoding import get_address_from_coords
 
@@ -28,24 +28,9 @@ class GeminiService:
     def _get_gemini_api_keys(self) -> list[str]:
         """
         Gemini API keys in failover order.
-        Priority:
-        1) GEMINI_API_KEYS (comma-separated)
-        2) GEMINI_API_KEY -> GEMINI_API_KEY_SUB -> GEMINI_API_KEY_INSU
+        Consumed from settings property. (User Strategy #5)
         """
-        keys: list[str] = []
-
-        if self.settings.gemini_api_keys:
-            keys.extend([k.strip() for k in self.settings.gemini_api_keys.split(",") if k.strip()])
-
-        for key in [
-            self.settings.gemini_api_key,
-            self.settings.gemini_api_key_sub,
-            self.settings.gemini_api_key_insu,
-        ]:
-            if key and key not in keys:
-                keys.append(key)
-
-        return keys
+        return self.settings.gemini_failover_keys
 
     @staticmethod
     def _is_quota_or_rate_limit_error(status_code: int, error_body: str) -> bool:
@@ -62,6 +47,17 @@ class GeminiService:
             ]
             return any(m in body for m in markers)
         return False
+
+    def _prepare_base64_data(self, base64_str: str) -> str:
+        """
+        Base64 데이터 접두사 제거 (예: 'data:image/jpeg;base64,')
+        Google Gemini API는 순수 데이터 문자열만 기대합니다.
+        """
+        if not base64_str:
+            return ""
+        if "," in base64_str:
+            return base64_str.split(",")[-1]
+        return base64_str
 
     @staticmethod
     def _extract_gps(metadata) -> tuple:
@@ -93,13 +89,15 @@ class GeminiService:
         url: str,
         payload: dict,
         max_retries: Optional[int] = None,
-        initial_backoff: Optional[float] = None
+        initial_backoff: Optional[float] = None,
+        **kwargs
     ) -> dict:
         """
         지수 백오프 방식의 재시도 로직이 포함된 API 호출
         """
         max_retries = max_retries or self.settings.max_retries
         initial_backoff = initial_backoff or self.settings.initial_backoff
+        timeout = kwargs.get("timeout", 60.0)
 
         last_error = None
 
@@ -109,7 +107,7 @@ class GeminiService:
                     url,
                     json=payload,
                     headers={"Content-Type": "application/json"},
-                    timeout=60.0
+                    timeout=timeout
                 )
                 response.raise_for_status()
                 return response.json()
@@ -143,6 +141,7 @@ class GeminiService:
         payload: dict,
         max_retries: Optional[int] = None,
         initial_backoff: Optional[float] = None,
+        **kwargs
     ) -> dict:
         keys = self._get_gemini_api_keys()
         if not keys:
@@ -159,6 +158,7 @@ class GeminiService:
                     payload,
                     max_retries=max_retries,
                     initial_backoff=initial_backoff,
+                    **kwargs
                 )
             except httpx.HTTPStatusError as e:
                 last_error = e
@@ -188,9 +188,18 @@ class GeminiService:
         """
         # Geocoding 처리 (위도/경도 -> 주소 변환)
         lat, lon = self._extract_gps(context.metadata)
-        if lat is not None and lon is not None:
+
+        # 이미 주소가 있거나 좌표가 없는 경우 건너뜀
+        current_address = None
+        if isinstance(context.metadata, dict):
+            current_address = context.metadata.get("location_address")
+        else:
+            current_address = getattr(context.metadata, "location_address", None)
+
+        if not current_address and lat is not None and lon is not None:
             try:
-                address = get_address_from_coords(lat, lon)
+                # 타임아웃 3초 설정 (네트워크 대기 최소화)
+                address = await asyncio.wait_for(get_address_from_coords(self.client, lat, lon), timeout=3.0)
                 if address:
                     logger.info(f"Address resolved: {address}")
                     if isinstance(context.metadata, dict):
@@ -199,6 +208,8 @@ class GeminiService:
                         setattr(context.metadata, "location_address", address)
                 else:
                     logger.warning(f"Geocoding returned empty for {lat}, {lon}")
+            except asyncio.TimeoutError:
+                logger.warning(f"Geocoding timed out for {lat}, {lon}")
             except Exception as e:
                 logger.error(f"Failed to resolve address: {e}", exc_info=True)
 
@@ -209,7 +220,7 @@ class GeminiService:
             "contents": [{
                 "parts": [
                     {"text": prompt},
-                    {"inlineData": {"mimeType": "image/jpeg", "data": image_base64}}
+                    {"inlineData": {"mimeType": "image/jpeg", "data": self._prepare_base64_data(image_base64)}}
                 ]
             }],
             "systemInstruction": {"parts": [{"text": system_prompt}]},
@@ -338,7 +349,8 @@ class GeminiService:
             parsed = json.loads(cleaned_text)
             return NarrativeResponse(
                 original_caption=parsed.get("original_caption", ""),
-                keywords=parsed.get("keywords", [])
+                keywords=parsed.get("keywords", []),
+                source="ai"
             )
         except json.JSONDecodeError as e:
             logger.error(f"JSON parse error. Text: {cleaned_text[:500]}")
@@ -363,4 +375,219 @@ class GeminiService:
         except (KeyError, json.JSONDecodeError):
             return SynonymsResponse(
                 suggestions=[SynonymItem(word=w, alternatives=[]) for w in original_keywords]
+            )
+
+    async def generate_delete_recommendation(
+        self,
+        image_base64: str,
+        metadata: dict,
+        filtering_criteria: list,
+        language: str,
+        tone: str,
+        max_length: int
+    ) -> DeleteRecommendationResponse:
+        await asyncio.sleep(0.5)
+
+        # Build prompt
+        criteria_str = ", ".join([str(c) for c in filtering_criteria]) if filtering_criteria else "분석 결과"
+        prompt = (f"사용자가 사진첩 정리를 위해 사진을 삭제하려고 합니다. "
+                  f"주어진 사진과 기준({criteria_str})을 보고, 이 사진을 비우면(삭제하면) 좋은 이유를 "
+                  f"매우 간결하고 부드러운 어조({tone})로 {language}로 ⚠️딱 한 문장(1 sentence)⚠️으로만 작성해주세요. "
+                  f"길이는 {max_length}자 이내여야 합니다. 불필요한 부연 설명은 빼주세요.")
+
+        system_prompt = "너는 디지털 미니멀리즘을 도와주는 친절한 어시스턴트 리코코야. 사용자의 추억 비우기 과정을 죄책감 들지 않고 기분 좋게 격려해야 해."
+
+        logger.info(f"--- [GEMINI-TRACE] Single Delete Recommendation ---")
+        logger.info(f"Criteria: {criteria_str}")
+        logger.info(f"Target Prompt: {prompt}")
+
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {"inlineData": {"mimeType": "image/jpeg", "data": self._prepare_base64_data(image_base64)}}
+                ]
+            }],
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseSchema": {
+                    "type": "object",
+                    "properties": {
+                        "reason": {
+                            "type": "string",
+                            "description": "Full gentle reason for deletion"
+                        },
+                        "shortReason": {
+                            "type": "string",
+                            "description": "Very short 2-3 word summary"
+                        },
+                        "usedCriteria": {
+                            "type": "array",
+                            "items": {"type": "string"}
+                        }
+                    },
+                    "required": ["reason", "shortReason", "usedCriteria"]
+                },
+                "temperature": 0.7,
+                "topP": 0.90
+            }
+        }
+
+        try:
+            data = await self._fetch_with_key_failover(
+                self.settings.gemini_story_model,
+                payload
+            )
+            return self._parse_delete_recommendation_response(data)
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"Failed to generate delete recommendation: {error_msg}")
+            return DeleteRecommendationResponse(
+                reason="오늘 비워내기 좋은 기록입니다.",
+                shortReason="정리 추천",
+                usedCriteria=[],
+                source="fallback",
+                error_detail=error_msg
+            )
+
+    async def generate_batch_delete_recommendation(
+        self,
+        images_base64: list[str],
+        metadatas: Optional[list[dict]],
+        filtering_criteria_list: Optional[list[list]],
+        language: str = "Korean",
+        tone: str = "gentle",
+        max_length: int = 60
+    ) -> BatchDeleteRecommendationResponse:
+        """
+        여러 장의 사진을 동시에 분석하여 공통된 삭제 추천 사유 생성 (Lean Batch 최적화)
+        """
+        num_images = len(images_base64)
+        if num_images == 0:
+            return BatchDeleteRecommendationResponse(recommendations=[])
+
+        # [최적화 User Strategy #1] 대표 이미지 전략: 모든 이미지를 보내는 대신 상위 2장만 시각 정보로 활용
+        representative_indices = [0]
+        if num_images > 1:
+            representative_indices.append(num_images - 1) # 처음과 끝
+        
+        # 메타데이터 요약 (페이로드 경량화)
+        meta_summary = []
+        for i, meta in enumerate(metadatas or []):
+            criteria = filtering_criteria_list[i] if filtering_criteria_list and i < len(filtering_criteria_list) else []
+            meta_summary.append(f"Photo {i+1}: Criteria=[{', '.join(map(str, criteria))}]")
+
+        prompt = (
+            f"제시된 {num_images}장의 사진들은 현재 사진첩 정리를 위해 선정된 유사한 성격의 기록들입니다.\n"
+            f"다음 메타데이터 정보를 참고하여, 사용자가 이 사진들을 비워내도(삭제해도) 괜찮은 하나의 공통된 이유를 작성해주세요.\n"
+            f"-- 메타데이터 요약 --\n" + "\n".join(meta_summary) + "\n\n"
+            f"매우 부드러운 어조({tone})로 {language}로 ⚠️딱 한 문장(1 sentence)⚠️으로만 작성해주세요.\n"
+            f"길이는 {max_length}자 이내여야 하며, 결과는 'commonReason' 필드에 담아 JSON으로 반환해주세요."
+        )
+        system_prompt = "너는 디지털 미니멀리즘을 도와주는 친절한 어시스턴트 리코코야. 여러 사진의 공통점을 찾아 기분 좋게 비울 수 있도록 격려해줘."
+
+        logger.info(f"--- [GEMINI-TRACE] Lean Batch Analysis ({num_images} images) ---")
+
+        parts = [{"text": prompt}]
+        for idx in representative_indices:
+            parts.append({"text": f"--- Visual Context of Photo {idx+1} ---"})
+            parts.append({"inlineData": {"mimeType": "image/jpeg", "data": self._prepare_base64_data(images_base64[idx])}})
+
+        payload = {
+            "contents": [{"parts": parts}],
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseSchema": {
+                    "type": "object",
+                    "properties": {
+                        "commonReason": {"type": "string"},
+                        "shortReason": {"type": "string"}
+                    },
+                    "required": ["commonReason", "shortReason"]
+                },
+                "temperature": 0.3,
+                "topP": 0.90
+            }
+        }
+
+        try:
+            # [최적화] Lite 모델 + 20초 타임아웃 + 재시도 1회 제한
+            data = await self._fetch_with_key_failover(
+                self.settings.gemini_batch_model,
+                payload,
+                max_retries=self.settings.batch_max_retries,
+                timeout=self.settings.batch_timeout
+            )
+            return self._parse_hybrid_batch_response(data, num_images)
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"Failed to generate hybrid batch recommendation: {error_msg}")
+            fallback_items = [
+                DeleteRecommendationResponse(
+                    reason="정리하기 좋은 기록입니다.", 
+                    shortReason="정리 추천", 
+                    usedCriteria=[], 
+                    source="fallback",
+                    error_detail=error_msg
+                )
+                for _ in range(num_images)
+            ]
+            return BatchDeleteRecommendationResponse(recommendations=fallback_items)
+
+    def _parse_hybrid_batch_response(self, data: dict, expected_count: int) -> BatchDeleteRecommendationResponse:
+        try:
+            result_text = data["candidates"][0]["content"]["parts"][0]["text"]
+            cleaned_text = result_text.replace("```json", "").replace("```", "").strip()
+            parsed = json.loads(cleaned_text)
+            
+            common_reason = parsed.get("commonReason", "정리하기 좋은 기록입니다.")
+            short_reason = parsed.get("shortReason", "정리 추천")
+            
+            recs = [
+                DeleteRecommendationResponse(
+                    reason=common_reason,
+                    shortReason=short_reason,
+                    usedCriteria=[],
+                    source="ai"
+                ) for _ in range(expected_count)
+            ]
+                
+            return BatchDeleteRecommendationResponse(recommendations=recs)
+        except Exception as e:
+            error_msg = f"Hybrid batch parse error: {str(e)}"
+            logger.error(error_msg)
+            fallback_items = [
+                DeleteRecommendationResponse(
+                    reason="정리하기 좋은 기록입니다.", 
+                    shortReason="정리 추천", 
+                    usedCriteria=[], 
+                    source="fallback",
+                    error_detail=error_msg
+                )
+                for _ in range(expected_count)
+            ]
+            return BatchDeleteRecommendationResponse(recommendations=fallback_items)
+
+    def _parse_delete_recommendation_response(self, data: dict) -> DeleteRecommendationResponse:
+
+        try:
+            result_text = data["candidates"][0]["content"]["parts"][0]["text"]
+            cleaned_text = result_text.replace("```json", "").replace("```", "").strip()
+            parsed = json.loads(cleaned_text)
+            return DeleteRecommendationResponse(
+                reason=parsed.get("reason", "오늘 비워내기 좋은 기록입니다."),
+                shortReason=parsed.get("shortReason", "정리 추천"),
+                usedCriteria=parsed.get("usedCriteria", []),
+                source="ai"
+            )
+        except (KeyError, IndexError, json.JSONDecodeError) as e:
+            error_msg = f"Parse error: {str(e)}"
+            return DeleteRecommendationResponse(
+                reason="오늘 비워내기 좋은 기록입니다.",
+                shortReason="정리 추천",
+                usedCriteria=[],
+                source="fallback",
+                error_detail=error_msg
             )

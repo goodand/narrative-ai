@@ -10,6 +10,7 @@ node_modules
 # Capacitor iOS
 ios/App/Pods/
 ios/App/App/public/
+ios/App/App/credentials.plist
 ios/App/DerivedData/
 npm-debug.log*
 yarn-debug.log*
@@ -40,6 +41,7 @@ backend/__pycache__/
 backend/**/__pycache__/
 backend/*.pyc
 backend/.pytest_cache/
+backend/backend_log*.txt
 *.egg-info/
 .coverage
 coverage/
@@ -92,3 +94,7 @@ plugin_backup/
 .maestro/*.png
 
 .user
+
+# Build artifacts
+build-temp/
+control/

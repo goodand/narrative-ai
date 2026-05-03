@@ -1,3 +1,4 @@
+
 /**
  * HomeManager - Daily Curation Dashboard
  * 리코코 메인 데일리 큐레이션 화면 (UI View Controller)
@@ -5,7 +6,8 @@
 
 import { supabase } from '../services/supabase.js';
 import { photoService } from '../services/PhotoService.js';
-import { handleError, showToast, ErrorLevel } from '../utils/errorHandler.js';
+import { loadAndReflectImages, setupCarouselSnap, triggerBatchAnalysis } from './home/homeImageRuntime.js';
+import { setupDailyCurationListener } from './home/homeLoadRuntime.js';
 
 export class HomeManager {
     constructor(containerId, options = {}) {
@@ -14,62 +16,25 @@ export class HomeManager {
         this.onThanksClick = options.onThanksClick || null;
         this.confirmModal = options.confirmModal || null;
         this.user = null;
-        this.currentIndex = 0;
-        this.isLoading = false;
         this.error = null;
+        this.isLoading = false;
+        this.headerMessage = '기기에서 찾아낸 비우기 좋은 기록들입니다.';
         
+        // --- 버퍼링 및 상태 관리 ---
+        this.photos = [];
+        this._nextBatch = null;
+        this._isRefilling = false;
+        
+        this.currentIndex = 0;
         this._setupEventDelegation();
-        this._setupDailyCurationListener();
+        setupDailyCurationListener(this);
     }
 
-    /**
-     * 실제 사진 목록 로드 및 큐레이션 (PhotoService 위임)
-     */
     async loadRealPhotos() {
-        console.log('HomeManager: Starting loadRealPhotos...');
-        const startedAt = performance.now();
-        this.isLoading = true;
-        this.error = null;
-        this.render();
-
-        try {
-            // Launch path는 전체 스캔을 피하고, 네이티브 daily cache 결과만 즉시 받는다.
-            const { photos, totalCount, dayKey, fromCache, needsRefresh } = await photoService.fetchDailyCuration({
-                // 홈 첫 진입 p95 개선: 실제 캐러셀 표시 수(최대 3장)에 맞춰 페이로드를 최소화
-                limit: 3,
-                thumbSize: 300,
-                transport: 'base64'
-            });
-            
-            const elapsed = Math.round(performance.now() - startedAt);
-            console.log(`[PERF] launch_to_carousel_ms=${elapsed} dayKey=${dayKey} fromCache=${fromCache} needsRefresh=${needsRefresh}`);
-            console.log(`HomeManager: 데일리 큐레이션 조회 성공 — ${photos.length}장`);
-            // 빈 결과여도 성능 측정값은 남겨야 p95/p99 분석에서 샘플 누락이 없다.
-            const perfEntry = {
-                ts: new Date().toISOString(),
-                launch_to_carousel_ms: elapsed,
-                dayKey,
-                fromCache,
-                needsRefresh,
-                daily_items_count: photos.length
-            };
-            const prev = JSON.parse(localStorage.getItem('perf_runs') || '[]');
-            prev.push(perfEntry);
-            localStorage.setItem('perf_runs', JSON.stringify(prev.slice(-50)));
-            showToast(`[PERF] ${elapsed}ms cache=${fromCache ? 'Y' : 'N'} refresh=${needsRefresh ? 'Y' : 'N'} items=${photos.length}`, ErrorLevel.INFO);
-            
-            if (photos.length > 0) {
-                this.currentIndex = 0;
-            } else {
-                this.error = '사진첩에 분석할 수 있는 사진이 없습니다.';
-            }
-        } catch (error) {
-            handleError(error, 'HomeManager');
-            this.error = '사진첩 접근 권한이 필요합니다.';
-        } finally {
-            this.isLoading = false;
-            this.render();
-        }
+        const { loadRealPhotos } = await import('./home/homeLoadRuntime.js');
+        const result = await loadRealPhotos(this);
+        this.photos = [...photoService.getPhotos()];
+        return result;
     }
 
     async getCurrentImageAsFile() {
@@ -81,8 +46,8 @@ export class HomeManager {
     }
 
     async getCurrentPhotoMeta() {
-        const photo = await photoService.ensurePhotoSummary(this.currentIndex, { includeFileSize: false });
-        if (!photo) return {};
+        if (this.currentIndex < 0 || this.currentIndex >= this.photos.length) return {};
+        const photo = this.photos[this.currentIndex];
         const asset = photo.rawAsset;
         return {
             Make: "Apple iPhone",
@@ -112,14 +77,15 @@ export class HomeManager {
             const retryBtn = e.target.closest('#retry-btn');
             const prevImg = e.target.closest('#img-prev');
             const nextImg = e.target.closest('#img-next');
-            const photos = photoService.getPhotos();
+            const photos = this.photos;
 
             if (preciousBtn) {
                 e.preventDefault();
                 if (this.onPreciousClick) await this.onPreciousClick();
             } else if (thanksBtn) {
                 e.preventDefault();
-                await this._handleDelete();
+                const { handleDelete } = await import('./home/homeDeleteRuntime.js');
+                await handleDelete(this);
             } else if (retryBtn) {
                 e.preventDefault();
                 this.loadRealPhotos();
@@ -138,85 +104,6 @@ export class HomeManager {
                 }
             }
         });
-    }
-
-    _setupDailyCurationListener() {
-        if (typeof window === 'undefined') return;
-        window.addEventListener('daily-curation-updated', () => {
-            const photos = photoService.getPhotos();
-            const visibleMax = Math.min(photos.length, 3);
-
-            if (photos.length > 0) {
-                this.error = null;
-                if (this.currentIndex >= visibleMax) {
-                    this.currentIndex = Math.max(0, visibleMax - 1);
-                }
-            } else if (!this.isLoading) {
-                this.error = '사진첩에 분석할 수 있는 사진이 없습니다.';
-                this.currentIndex = 0;
-            }
-
-            const isVisible = this.container &&
-                !this.container.classList.contains('hidden') &&
-                this.container.style.display !== 'none';
-
-            if (isVisible) {
-                this.render();
-            }
-        });
-    }
-
-    async _handleDelete() {
-        const photos = photoService.getPhotos();
-        const current = photos[this.currentIndex];
-        if (!current) return;
-
-        const performDelete = async () => {
-            try {
-                const actionDayKey = current.dayKey;
-                const success = await photoService.deletePhoto(this.currentIndex);
-                if (success) {
-                    await photoService.recordCurationAction({
-                        assetId: current.id,
-                        action: 'deleted',
-                        dayKey: actionDayKey
-                    });
-
-                    try {
-                        // 삭제 직후에는 force refresh로 pending/today 후보를 반영한다.
-                        const { photos: refreshed } = await photoService.refreshDailyCurationAfterMutation({
-                            limit: 3,
-                            thumbSize: 300,
-                            transport: 'base64'
-                        });
-                        this.currentIndex = 0;
-                    } catch (refreshError) {
-                        console.warn('HomeManager: daily refresh after mutation failed', refreshError);
-                    }
-
-                    // 삭제 후 데이터 갱신 및 UI 리렌더링 (목록이 바뀌므로 이때는 리렌더링 필요)
-                    if (this.currentIndex >= photoService.getPhotos().length) {
-                        this.currentIndex = Math.max(0, photoService.getPhotos().length - 1);
-                    }
-                    console.log('HomeManager: 사진 삭제 성공 및 통계 기록 완료');
-                    showToast('사진이 정리되었습니다.', ErrorLevel.INFO);
-                    this.render();
-                }
-            } catch (err) {
-                handleError(err, 'PhotoDelete');
-            }
-        };
-
-        if (this.confirmModal) {
-            this.confirmModal.show({
-                title: '사진을 비울까요?',
-                message: '이 사진을 기기에서 삭제하고 비움 기록을 남깁니다.',
-                confirmText: '비우기',
-                onConfirm: performDelete
-            });
-        } else if (confirm('이 사진을 사진첩에서 삭제하시겠습니까?')) {
-            await performDelete();
-        }
     }
 
     async render() {
@@ -250,7 +137,7 @@ export class HomeManager {
                     <div class="flex-1 flex flex-col items-center justify-center text-center space-y-6 pb-32">
                         <span class="material-symbols-outlined text-6xl text-muted-lavender/30">no_photography</span>
                         <p class="text-muted-lavender text-sm leading-relaxed">${this.error}</p>
-                        <button id="retry-btn" class="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-primary font-bold text-sm">다시 시도하기</button>
+                        <button id="retry-btn" class="px-6 py-3 bg-white/5 border border-white/10 rounded-3xl text-primary font-bold text-sm">다시 시도하기</button>
                     </div>
                 </div>
             `;
@@ -277,11 +164,12 @@ export class HomeManager {
             return;
         }
 
-        const photos = photoService.getPhotos();
+        const photos = this.photos;
 
+        // S3: 데이터 로딩 완료, 에러 없음, 사진 0건 → 빈 상태 안내
         if (photos.length === 0) {
             this.container.innerHTML = `
-                <div class="flex flex-col px-6">
+                <div class="flex flex-col px-6 h-full">
                     <header class="flex items-center bg-transparent py-3 shrink-0" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
                         <div class="text-primary flex size-8 shrink-0 items-center justify-center">
                             <span class="material-symbols-outlined text-2xl font-light">water_lux</span>
@@ -290,12 +178,14 @@ export class HomeManager {
                         <div class="w-8"></div>
                     </header>
                     <div class="flex-1 flex flex-col items-center justify-center space-y-4 pb-32">
-                        <div class="loader"></div>
-                        <p class="text-muted-lavender text-xs">사진 데이터를 분석하고 있습니다...</p>
+                        <div class="flex flex-col items-center space-y-6">
+                            <span class="material-symbols-outlined text-6xl text-muted-lavender/30">no_photography</span>
+                            <p class="text-muted-lavender text-sm font-medium">분석된 사진이 없습니다.</p>
+                            <button id="retry-btn" class="px-6 py-2 bg-white/5 border border-white/10 rounded-3xl text-primary font-bold text-sm">다시 분석하기</button>
+                        </div>
                     </div>
                 </div>
             `;
-            this.loadRealPhotos();
             return;
         }
 
@@ -331,7 +221,7 @@ export class HomeManager {
                             <span class="text-[10px] font-medium text-primary italic">${profileName}님, 함께 정리해요</span>
                         </div>
                         <div class="relative h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                            <div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all" style="width: ${Math.max(0, (7 - visibleMax) * (100 / 7))}%;"></div>
+                            <div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-300 ease-in-out" style="width: ${Math.max(0, (7 - visibleMax) * (100 / 7))}%;"></div>
                         </div>
                     </div>
                 </div>
@@ -339,7 +229,7 @@ export class HomeManager {
                 <div class="py-4 shrink-0 px-1">
                     <h1 class="text-white text-xl font-bold leading-tight tracking-tight">
                         좋은 아침이에요.<br/>
-                        <span class="text-muted-lavender font-normal text-sm">기기에서 찾아낸 비우기 좋은 기록들입니다.</span>
+                        <span id="curation-header-desc" class="text-muted-lavender font-normal text-sm">${this.headerMessage}</span>
                     </h1>
                 </div>
 
@@ -353,7 +243,7 @@ export class HomeManager {
                         </div>
                         <div class="carousel-item">
                             <div class="relative aspect-[2/3] w-full">
-                                <div id="img-curr" class="w-full h-full bg-center bg-cover rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 bg-field-bg transition-all duration-300"
+                                <div id="img-curr" class="w-full h-full bg-center bg-cover rounded-[24px] shadow-[0_8px_24px_rgba(0,0,0,0.4)] border border-white/10 bg-field-bg transition-all duration-300 ease-in-out"
                                      style='${currentPhoto?.imageUrl ? `background-image: url("${currentPhoto.imageUrl}");` : ""}'>
                                 </div>
                                 ${currentPhoto?.score > 20 ? '<div class="absolute top-4 right-4 bg-primary/90 text-dark-bg text-[10px] font-black px-2 py-1 rounded-full shadow-lg">HIGH DETOX</div>' : ''}
@@ -368,23 +258,21 @@ export class HomeManager {
 
                     <!-- Meta Info & Buttons (마진 축소) -->
                     <div class="px-6 mx-6 shrink-0 max-w-md mx-auto w-full">
-                        <div id="photo-meta-info" class="mb-3 h-12 flex flex-col items-center justify-center">
-                            <p class="text-white text-[14px] font-medium leading-relaxed text-center break-keep">
+                        <div id="photo-meta-info" class="mb-5 min-h-[4rem] flex flex-col items-center justify-start transition-all duration-300">
+                            <p class="text-white text-[14px] font-medium leading-relaxed text-center break-keep w-full">
                                 <span id="meta-date">${currentPhoto?.date || ''}</span> | <span id="meta-location">${currentPhoto?.location || ''}</span><br/>
-                                <span id="meta-context" class="text-primary text-xs font-bold">${currentPhoto?.contextMessage || ''}</span>
+                                <span id="meta-context" class="text-primary text-sm font-bold block mt-1 leading-snug">${currentPhoto?.contextMessage || ''}</span>
                             </p>
                         </div>
 
                         <div class="flex gap-4 w-full pb-8">
-                            <button id="thanks-btn" class="flex-1 flex flex-col items-center justify-center gap-0.5 py-3 px-2 rounded-2xl border border-primary/30 bg-field-bg active:scale-95 transition-all">
-                                <span class="material-symbols-outlined text-primary text-xl">delete</span>
-                                <span class="text-primary font-bold text-[13px] leading-tight">고마웠어</span>
-                                <span class="text-primary/60 text-[10px] font-medium">(삭제하기)</span>
+                            <button id="thanks-btn" class="flex-1 flex flex-row items-center justify-center gap-2 h-14 px-6 rounded-3xl border border-white/10 bg-transparent active:scale-95 transition-all duration-300 ease-in-out">
+                                <span class="material-symbols-outlined text-[#B2B0B5] text-xl">delete</span>
+                                <span class="text-[#B2B0B5] font-semibold text-base">고마웠어</span>
                             </button>
-                            <button id="precious-btn" class="flex-1 flex flex-col items-center justify-center gap-0.5 py-3 px-2 rounded-2xl bg-primary shadow-lg shadow-primary/20 active:scale-95 transition-all">
-                                <span class="material-symbols-outlined text-white text-xl" style="font-variation-settings: 'FILL' 1">auto_awesome</span>
-                                <span class="text-white font-bold text-[13px] leading-tight">소중해</span>
-                                <span class="text-white/70 text-[10px] font-medium">(기록하기)</span>
+                            <button id="precious-btn" class="flex-1 flex flex-row items-center justify-center gap-2 h-14 px-6 rounded-3xl bg-primary shadow-[0_8px_24px_rgba(178,165,207,0.3)] active:scale-95 transition-all duration-300 ease-in-out">
+                                <span class="material-symbols-outlined text-dark-bg text-xl" style="font-variation-settings: 'FILL' 1">auto_awesome</span>
+                                <span class="text-dark-bg font-bold text-base">소중해</span>
                             </button>
                         </div>
                     </div>
@@ -398,104 +286,73 @@ export class HomeManager {
             if (wrapper) {
                 const centerItem = wrapper.children[1];
                 if (centerItem) centerItem.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
-                this._setupCarouselSnap(wrapper);
+                setupCarouselSnap(this, wrapper);
             }
         });
 
         // 이미지 로딩 실행 (병렬 처리)
-        this._loadAndReflectImages(this.currentIndex, prevIdx, nextIdx, isFirst, isLast);
-    }
-
-    async _loadAndReflectImages(currIdx, prevIdx, nextIdx, isFirst, isLast) {
-        // 1. 현재 사진 우선 로드 (UX)
-        await this._loadSingleImageAndUpdate(currIdx, 'img-curr');
-
-        // 2. 이전/다음 사진 병렬 로드 (경계일 때는 해당 방향 스킵)
-        const sideLoads = [];
-        if (!isFirst) sideLoads.push(this._loadSingleImageAndUpdate(prevIdx, 'img-prev'));
-        if (!isLast) sideLoads.push(this._loadSingleImageAndUpdate(nextIdx, 'img-next'));
-        await Promise.all(sideLoads);
-
-        // 3. 나머지 사진 백그라운드 프리페치
-        const loaded = new Set([currIdx]);
-        if (prevIdx !== null) loaded.add(prevIdx);
-        if (nextIdx !== null) loaded.add(nextIdx);
-        this._prefetchRemaining(loaded);
+        loadAndReflectImages(this, this.currentIndex, prevIdx, nextIdx, isFirst, isLast);
     }
 
     /**
-     * 캐러셀에 표시되지 않는 나머지 사진들을 백그라운드로 점진 로드.
-     * 2장씩 배치 처리하여 네이티브 브릿지/네트워크 포화 방지.
+     * 사진 1장을 소비(삭제/기록)하고 다음 상태를 결정합니다.
      */
-    async _prefetchRemaining(loadedSet) {
-        const photos = photoService.getPhotos();
-        const remaining = [];
-        for (let i = 0; i < photos.length; i++) {
-            if (!loadedSet.has(i)) remaining.push(i);
+    async consumePhoto(index) {
+        if (index < 0 || index >= this.photos.length) return;
+        
+        console.log(`[RECOCO-TRACE] Consuming photo at index ${index}. Remaining: ${this.photos.length - 1}`);
+        this.photos.splice(index, 1);
+
+        // 마지막 1장 남았을 때 백그라운드 리필 트리거
+        if (this.photos.length === 1 && !this._nextBatch && !this._isRefilling) {
+            this.triggerBackgroundRefill();
         }
 
-        const BATCH = 2;
-        for (let b = 0; b < remaining.length; b += BATCH) {
-            const batch = remaining.slice(b, b + BATCH);
-            await Promise.all(batch.map(i => photoService.loadPhotoDetails(i)));
-        }
-    }
-
-    /**
-     * 캐러셀 스와이프 스냅 감지: 스크롤 종료 후 중앙 카드를 찾아 currentIndex 갱신
-     */
-    _setupCarouselSnap(wrapper) {
-        let scrollTimer;
-        wrapper.addEventListener('scroll', () => {
-            clearTimeout(scrollTimer);
-            scrollTimer = setTimeout(() => {
-                const items = wrapper.querySelectorAll('.carousel-item');
-                const wrapperCenter = wrapper.scrollLeft + wrapper.offsetWidth / 2;
-
-                let closestVisualIdx = 0;
-                let closestDist = Infinity;
-                items.forEach((item, i) => {
-                    const dist = Math.abs((item.offsetLeft + item.offsetWidth / 2) - wrapperCenter);
-                    if (dist < closestDist) {
-                        closestDist = dist;
-                        closestVisualIdx = i;
-                    }
-                });
-
-                // carousel items: [prev(0), current(1), next(2)]
-                if (closestVisualIdx === 1) return; // 이미 중앙
-
-                const photos = photoService.getPhotos();
-                const visibleMax = Math.min(photos.length, 3);
-                if (closestVisualIdx === 0 && this.currentIndex > 0) {
-                    this.currentIndex--;
-                    this.render();
-                } else if (closestVisualIdx === 2 && this.currentIndex < visibleMax - 1) {
-                    this.currentIndex++;
-                    this.render();
-                }
-            }, 120);
-        }, { passive: true });
-    }
-
-    async _loadSingleImageAndUpdate(index, elementId) {
-        try {
-            const photo = await photoService.loadPhotoDetails(index);
-            const el = document.getElementById(elementId);
-
-            if (el && photo && photo.imageUrl) {
-                el.style.backgroundImage = `url("${photo.imageUrl}")`;
-
-                if (elementId === 'img-curr') {
-                    const locEl = document.getElementById('meta-location');
-                    if (locEl) locEl.innerText = photo.location || '위치 정보 없음';
-                }
-            } else if (el) {
-                el.style.backgroundImage = 'none';
+        if (this.photos.length === 0) {
+            await this.switchToNextBatch();
+        } else {
+            if (this.currentIndex >= this.photos.length) {
+                this.currentIndex = Math.max(0, this.photos.length - 1);
             }
-        } catch (error) {
-            console.error(`HomeManager: Failed to load image at index ${index}:`, error);
+            this.render();
         }
     }
 
+    /**
+     * 백그라운드 리필 엔진 작동
+     */
+    async triggerBackgroundRefill() {
+        if (this._isRefilling) return;
+        this._isRefilling = true;
+        console.info('[RECOCO-TRACE] Triggering background refill...');
+        
+        try {
+            const { triggerBackgroundPrefetch } = await import('./home/homeRefillRuntime.js');
+            this._nextBatch = await triggerBackgroundPrefetch(this);
+            console.info('[RECOCO-TRACE] Background refill prepared.');
+        } catch (error) {
+            console.error('[RECOCO-TRACE] Background refill failed:', error);
+        } finally {
+            this._isRefilling = false;
+        }
+    }
+
+    /**
+     * 다음 묶음으로 교체
+     */
+    async switchToNextBatch() {
+        if (this._nextBatch && this._nextBatch.length > 0) {
+            console.info('[RECOCO-TRACE] Switching to even-ready next batch.');
+            this.photos = [...this._nextBatch];
+            this._nextBatch = null;
+            this.currentIndex = 0;
+            this.render();
+        } else {
+            console.info('[RECOCO-TRACE] Batch empty and no buffer ready. Hard refreshing...');
+            // loadRealPhotos가 내부에서 isLoading/render를 직접 관리하므로
+            // 여기서 중복 설정하지 않음 (이중 render 방지)
+            await this.loadRealPhotos();
+            this.currentIndex = 0;
+        }
+    }
 }

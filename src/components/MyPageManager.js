@@ -13,25 +13,55 @@ export class MyPageManager {
         this.container = document.getElementById(containerId);
         this.onLogout = options.onLogout || null;
         this.user = null;
+        this.getCurrentUser = options.getCurrentUser || (() => null);
+        this.isHydratingUser = false;
+        this._requestSeq = 0;
     }
 
     /**
      * Render the My Page view
      */
-    async render() {
-        const { data: { user } } = await supabase.auth.getUser();
-        this.user = user;
+    render() {
+        this._renderShell();
+        this._hydrateUser();
+    }
 
-        if (!user) return;
+    async _hydrateUser() {
+        const requestSeq = ++this._requestSeq;
+        this.isHydratingUser = true;
+        this._renderShell();
 
-        const profileName = user.user_metadata?.full_name || '사용자';
-        const profileEmail = user.email || '';
-        const profileImg = user.user_metadata?.avatar_url || 'https://lh3.googleusercontent.com/a/default-user';
+        try {
+            const cachedUser = this.getCurrentUser() || this.user;
+            if (cachedUser) {
+                this.user = cachedUser;
+                return;
+            }
+
+            const { data: { user } } = await supabase.auth.getUser();
+            this.user = user;
+        } catch (error) {
+            console.error('[MYPAGE] Failed to load user:', error);
+        } finally {
+            if (requestSeq !== this._requestSeq) return;
+            this.isHydratingUser = false;
+            this._renderShell();
+        }
+    }
+
+    _renderShell() {
+        if (!this.container) return;
+
+        const user = this.user;
+        const profileName = user?.user_metadata?.full_name || (this.isHydratingUser ? '불러오는 중' : '사용자');
+        const profileEmail = user?.email || (this.isHydratingUser ? '계정 정보를 확인하고 있어요' : '로그인 정보를 확인할 수 없습니다');
+        const profileImg = user?.user_metadata?.avatar_url || 'https://lh3.googleusercontent.com/a/default-user';
+        const profilePulse = this.isHydratingUser ? 'animate-pulse opacity-60' : '';
 
         this.container.innerHTML = `
-            <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-md" style="padding-top: env(safe-area-inset-top);">
+            <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-[20px]" style="padding-top: env(safe-area-inset-top);">
                 <div class="flex items-center px-4 py-4 justify-between max-w-md mx-auto">
-                    <div id="mypage-back" class="flex size-10 items-center justify-center cursor-pointer active:scale-90 transition-transform">
+                    <div id="mypage-back" class="flex size-10 items-center justify-center cursor-pointer active:scale-90 transition-transform duration-200 ease-in-out">
                         <span class="material-symbols-outlined text-2xl text-white">arrow_back_ios</span>
                     </div>
                     <h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10 text-white">마이페이지</h2>
@@ -42,22 +72,22 @@ export class MyPageManager {
                 <div class="flex flex-col items-center pt-6 pb-6 gap-3">
                     <div class="relative">
                         <div class="bg-field-bg p-1.5 rounded-full border border-primary/20 shadow-lg">
-                            <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-28 h-28 bg-[#2A2635]"
+                            <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-28 h-28 bg-[#2A2635] ${profilePulse}"
                                  style='background-image: url("${profileImg}");'>
                             </div>
                         </div>
                     </div>
                     <div class="text-center">
-                        <p class="text-2xl font-bold tracking-tight text-white">${profileName}님</p>
-                        <p class="text-primary text-sm font-semibold mt-1">${profileEmail}</p>
+                        <p class="text-2xl font-bold tracking-tight text-white ${profilePulse}">${profileName}님</p>
+                        <p class="text-primary text-sm font-semibold mt-1 ${profilePulse}">${profileEmail}</p>
                     </div>
                 </div>
 
                 <!-- Settings Group (mx-6 제거로 너비 확장) -->
                 <div class="px-6">
-                    <div id="notice-settings-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-[24px] border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
+                    <div id="notice-settings-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-[24px] border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors duration-200 ease-in-out">
                         <div class="w-6 text-primary flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-[22px]">notifications</span>
+                            <span class="material-symbols-outlined text-xl">notifications</span>
                         </div>
                         <p class="text-white text-base font-semibold flex-1">알림 설정</p>
                         <div class="shrink-0 text-zinc-600">
@@ -68,9 +98,9 @@ export class MyPageManager {
 
                 <!-- Account Actions (mx-6 제거로 너비 확장) -->
                 <div class="px-6 mt-6 space-y-4">
-                    <div id="withdraw-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-[20px] border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
+                    <div id="withdraw-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-3xl border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors duration-200 ease-in-out">
                         <div class="w-6 text-red-400 flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-[22px]">person_remove</span>
+                            <span class="material-symbols-outlined text-xl">person_remove</span>
                         </div>
                         <p class="text-red-400 text-base font-semibold flex-1">회원탈퇴</p>
                         <div class="shrink-0 text-zinc-600">
@@ -82,7 +112,7 @@ export class MyPageManager {
                 <!-- Footer / Logout (디자인 가이드 반영) -->
                 <div class="mt-12 px-6 text-center">
                     <p class="text-xs text-gray-500 font-semibold tracking-wide">recoco v2.4.0</p>
-                    <button id="logout-btn" class="mt-4 text-sm text-gray-500 font-medium underline underline-offset-4 decoration-zinc-800 active:text-white transition-colors">로그아웃</button>
+                    <button id="logout-btn" class="mt-4 text-sm text-gray-500 font-medium underline underline-offset-4 decoration-zinc-800 active:text-white transition-colors duration-200 ease-in-out">로그아웃</button>
                 </div>
             </div>
         `;
@@ -130,9 +160,9 @@ export class MyPageManager {
      */
     _showWithdrawView() {
         this.container.innerHTML = `
-            <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-md" style="padding-top: env(safe-area-inset-top);">
+            <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-[20px]" style="padding-top: env(safe-area-inset-top);">
                 <div class="flex items-center p-4 justify-between max-w-md mx-auto">
-                    <div id="withdraw-back" class="flex size-10 items-center justify-center cursor-pointer hover:bg-white/5 rounded-full transition-colors">
+                    <div id="withdraw-back" class="flex size-10 items-center justify-center cursor-pointer hover:bg-white/5 rounded-full transition-colors duration-200 ease-in-out">
                         <span class="material-symbols-outlined text-2xl text-white">arrow_back_ios</span>
                     </div>
                     <h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10 text-white">회원 탈퇴</h2>
@@ -166,15 +196,15 @@ export class MyPageManager {
                 <div class="mb-8">
                     <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 ml-1">탈퇴 사유 (선택)</h3>
                     <div class="space-y-3">
-                        <label class="flex items-center justify-between bg-field-bg border border-white/5 rounded-2xl px-5 py-4 cursor-pointer active:scale-[0.98] transition-all">
+                        <label class="flex items-center justify-between bg-field-bg border border-white/5 rounded-2xl px-5 py-4 cursor-pointer active:scale-[0.98] transition-all duration-300 ease-in-out">
                             <span class="text-[15px] font-medium text-white">기능이 부족해요</span>
                             <input class="w-5 h-5 border-2 border-zinc-700 bg-transparent text-primary focus:ring-0 focus:ring-offset-0 rounded-full" name="reason" type="radio" value="lack_features"/>
                         </label>
-                        <label class="flex items-center justify-between bg-field-bg border border-white/5 rounded-2xl px-5 py-4 cursor-pointer active:scale-[0.98] transition-all">
+                        <label class="flex items-center justify-between bg-field-bg border border-white/5 rounded-2xl px-5 py-4 cursor-pointer active:scale-[0.98] transition-all duration-300 ease-in-out">
                             <span class="text-[15px] font-medium text-white">정리가 더 이상 필요 없어요</span>
                             <input class="w-5 h-5 border-2 border-zinc-700 bg-transparent text-primary focus:ring-0 focus:ring-offset-0 rounded-full" name="reason" type="radio" value="no_need"/>
                         </label>
-                        <label class="flex items-center justify-between bg-field-bg border border-white/5 rounded-2xl px-5 py-4 cursor-pointer active:scale-[0.98] transition-all">
+                        <label class="flex items-center justify-between bg-field-bg border border-white/5 rounded-2xl px-5 py-4 cursor-pointer active:scale-[0.98] transition-all duration-300 ease-in-out">
                             <span class="text-[15px] font-medium text-white">다른 서비스를 이용해요</span>
                             <input class="w-5 h-5 border-2 border-zinc-700 bg-transparent text-primary focus:ring-0 focus:ring-offset-0 rounded-full" name="reason" type="radio" value="other_service"/>
                         </label>
@@ -185,18 +215,18 @@ export class MyPageManager {
                     <label class="text-sm text-gray-400 font-medium leading-snug" for="withdraw-confirm-checkbox">모든 데이터가 삭제됨을 확인했으며 이에 동의합니다.</label>
                 </div>
             </div>
-            <div class="fixed bottom-0 left-0 right-0 bg-dark-bg/95 backdrop-blur-xl border-t border-white/5 px-6 pt-10 z-50" style="padding-bottom: calc(env(safe-area-inset-bottom) + 61px);">
+            <div class="fixed bottom-0 left-0 right-0 bg-dark-bg/80 backdrop-blur-[20px] border-t border-white/5 px-6 pt-10 z-50" style="padding-bottom: calc(env(safe-area-inset-bottom) + 61px);">
                 <div class="max-w-md mx-auto flex flex-col gap-4">
-                    <button id="withdraw-keep-btn" class="w-full py-4 bg-primary text-dark-bg font-bold rounded-[20px] text-base active:scale-[0.97] transition-all">
+                    <button id="withdraw-keep-btn" class="w-full h-14 bg-primary text-dark-bg font-bold rounded-3xl text-base active:scale-[0.97] transition-all duration-300 ease-in-out">
                         계정 유지하기
                     </button>
-                    <button id="withdraw-proceed-btn" class="w-full py-4 bg-zinc-800 text-gray-400 font-bold rounded-[20px] text-base active:scale-[0.97] transition-all disabled:opacity-50" disabled>
+                    <button id="withdraw-proceed-btn" class="w-full h-14 bg-transparent border border-white/10 text-[#B2B0B5] font-bold rounded-3xl text-base active:scale-[0.97] transition-all duration-300 ease-in-out disabled:opacity-50" disabled>
                         탈퇴하기
                     </button>
                 </div>
             </div>
 
-            <div id="withdraw-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center px-8 hidden">
+            <div id="withdraw-modal" class="fixed inset-0 bg-black/70 backdrop-blur-[20px] z-[60] flex items-center justify-center px-8 hidden">
                 <div class="bg-field-bg w-full max-w-xs rounded-[28px] border border-white/5 overflow-hidden shadow-2xl">
                     <div class="p-8 text-center">
                         <h3 class="text-xl font-bold mb-3 tracking-tight text-white">탈퇴를 진행할까요?</h3>
@@ -205,10 +235,10 @@ export class MyPageManager {
                         </p>
                     </div>
                     <div class="flex border-t border-white/5">
-                        <button id="withdraw-modal-cancel" class="flex-1 py-4 text-gray-400 font-semibold text-[16px] hover:bg-white/5 active:bg-white/10 transition-colors border-r border-white/5">
+                        <button id="withdraw-modal-cancel" class="flex-1 py-4 text-gray-400 font-semibold text-[16px] hover:bg-white/5 active:bg-white/10 transition-colors duration-200 ease-in-out border-r border-white/5">
                             취소
                         </button>
-                        <button id="withdraw-modal-confirm" class="flex-1 py-4 text-red-400 font-bold text-[16px] hover:bg-red-500/5 active:bg-red-500/10 transition-colors">
+                        <button id="withdraw-modal-confirm" class="flex-1 py-4 text-red-400 font-bold text-[16px] hover:bg-red-500/5 active:bg-red-500/10 transition-colors duration-200 ease-in-out">
                             탈퇴하기
                         </button>
                     </div>
@@ -319,7 +349,7 @@ export class MyPageManager {
                     </p>
                 </div>
                 <div class="pb-16 px-8 flex justify-center w-full max-w-md mx-auto">
-                    <button id="farewell-btn" class="px-10 py-3 rounded-full border border-white/10 text-gray-500 text-sm font-medium hover:text-white transition-colors">
+                    <button id="farewell-btn" class="px-10 py-3 rounded-full border border-white/10 text-gray-500 text-sm font-medium hover:text-white transition-colors duration-200 ease-in-out">
                         안녕히 가세요
                     </button>
                 </div>

@@ -112,7 +112,7 @@ export class OnboardingModal {
             </p>
         `;
         const footer = `
-            <button id="onboarding-next" class="w-full max-w-sm py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-lg active:scale-[0.98] transition-all">
+            <button id="onboarding-next" class="w-full max-w-sm h-14 rounded-3xl bg-white/5 border border-white/10 text-white font-bold text-lg active:scale-[0.98] transition-all duration-300 ease-in-out">
                 다음
             </button>
         `;
@@ -147,7 +147,7 @@ export class OnboardingModal {
             </p>
         `;
         const footer = `
-            <button id="onboarding-next" class="w-full max-w-sm py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-lg active:scale-[0.98] transition-all">
+            <button id="onboarding-next" class="w-full max-w-sm h-14 rounded-3xl bg-white/5 border border-white/10 text-white font-bold text-lg active:scale-[0.98] transition-all duration-300 ease-in-out">
                 다음
             </button>
         `;
@@ -183,7 +183,7 @@ export class OnboardingModal {
             </p>
         `;
         const footer = `
-            <button id="onboarding-start" class="w-full max-w-sm py-4 rounded-2xl bg-primary text-dark-bg font-bold text-lg active:scale-[0.98] transition-all">
+            <button id="onboarding-start" class="w-full max-w-sm h-14 rounded-3xl bg-primary text-dark-bg font-bold text-lg active:scale-[0.98] transition-all duration-300 ease-in-out">
                 시작하기
             </button>
         `;

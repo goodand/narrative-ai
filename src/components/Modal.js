@@ -103,7 +103,7 @@ export class SuggestionModal extends Modal {
         } else {
             suggestions.forEach(suggestion => {
                 const button = document.createElement('button');
-                button.className = "w-full text-left p-4 hover:bg-primary hover:text-white rounded-xl font-bold border border-white/10 bg-field-bg text-white mb-2 transition-colors";
+                button.className = "w-full text-left p-4 hover:bg-primary hover:text-dark-bg rounded-3xl font-bold border border-white/10 bg-field-bg text-white mb-2 transition-colors duration-200 ease-in-out";
                 button.innerText = suggestion;
                 button.onclick = () => {
                     onSelect(suggestion, wordData.word);
@@ -189,8 +189,8 @@ export class ConfirmModal extends Modal {
                     <p class="text-muted-lavender text-sm leading-relaxed">${message}</p>
                 </div>
                 <div class="flex gap-3">
-                    <button id="dyn-modal-cancel" class="flex-1 py-3 rounded-xl font-bold bg-field-bg text-muted-lavender hover:bg-white/5 transition-colors">${cancelText}</button>
-                    <button id="dyn-modal-confirm" class="flex-1 py-3 rounded-xl font-bold bg-primary text-white hover:bg-primary/90 transition-colors">${confirmText}</button>
+                    <button id="dyn-modal-cancel" class="flex-1 h-14 rounded-3xl font-bold bg-transparent border border-white/10 text-[#B2B0B5] hover:bg-white/5 transition-colors duration-200 ease-in-out">${cancelText}</button>
+                    <button id="dyn-modal-confirm" class="flex-1 h-14 rounded-3xl font-bold bg-primary text-dark-bg hover:bg-primary/90 transition-colors duration-200 ease-in-out">${confirmText}</button>
                 </div>
             `;
             this.setup({

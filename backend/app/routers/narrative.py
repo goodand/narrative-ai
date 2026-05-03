@@ -7,18 +7,27 @@ import base64
 import io
 import json
 import logging
+import asyncio
 
 import httpx
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, BackgroundTasks
+from fastapi.concurrency import run_in_threadpool
 from PIL import Image, ImageOps
 
-from ..models.schemas import NarrativeContext, NarrativeResponse, ErrorResponse
+from ..models.schemas import NarrativeContext, NarrativeResponse, ErrorResponse, DeleteRecommendationRequest, DeleteRecommendationResponse, BatchDeleteRecommendationRequest, BatchDeleteRecommendationResponse
 from ..services.gemini import GeminiService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["narrative"])
 MAX_IMAGE_EDGE = 2048
 JPEG_QUALITY = 85
+
+# In-memory Task Store (User Strategy #5)
+# 현실적인 상용 환경에서는 Redis 등을 쓰겠지만, 현재는 인메모리로 구현합니다.
+analysis_tasks = {}
+
+import uuid
+from datetime import datetime
 
 
 def _normalize_image_bytes(image_bytes: bytes) -> bytes:
@@ -44,8 +53,20 @@ def _normalize_image_bytes(image_bytes: bytes) -> bytes:
             img.save(out, format="JPEG", quality=JPEG_QUALITY, optimize=True)
             return out.getvalue()
     except Exception as e:
+        logger.error(f"이미지 정규화 실패: {str(e)}")
         raise ValueError(f"이미지 정규화 실패: {str(e)}")
 
+def _normalize_base64_image(image_base64: str) -> str:
+    """
+    Base64 이미지를 디코딩하여 정규화한 뒤 다시 Base64로 인코딩합니다.
+    """
+    try:
+        image_bytes = base64.b64decode(image_base64)
+        normalized_bytes = _normalize_image_bytes(image_bytes)
+        return base64.b64encode(normalized_bytes).decode("utf-8")
+    except Exception as e:
+        logger.warning(f"이미지 정규화 실패 (원본 사용): {str(e)}")
+        return image_base64
 
 @router.post(
     "/narrative",
@@ -76,7 +97,7 @@ async def generate_narrative(
             raise ValueError(f"context JSON 파싱 실패: {str(e)}")
 
         raw_image_bytes = await image.read()
-        normalized_image_bytes = _normalize_image_bytes(raw_image_bytes)
+        normalized_image_bytes = await run_in_threadpool(_normalize_image_bytes, raw_image_bytes)
         image_base64 = base64.b64encode(normalized_image_bytes).decode("utf-8")
 
         logger.info(f"Narrative request received - SNS: {context_obj.sns}, Language: {context_obj.language}")
@@ -110,3 +131,111 @@ async def generate_narrative(
     except Exception as e:
         logger.error(f"Narrative generation failed (Exception): {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"스토리 생성 중 오류가 발생했습니다: {str(e)}")
+
+
+@router.post(
+    "/delete-recommendation",
+    response_model=DeleteRecommendationResponse,
+    responses={
+        400: {"model": ErrorResponse, "description": "Bad Request"},
+        500: {"model": ErrorResponse, "description": "Internal Server Error"}
+    },
+    summary="이미지 삭제 추천 이유 생성",
+    description="이미지와 메타데이터를 기반으로 삭제를 추천하는 이유를 생성합니다."
+)
+async def get_delete_recommendation(
+    request: Request,
+    payload: DeleteRecommendationRequest
+):
+    try:
+        # payload.image is expected to be a valid base64 string (handled by frontend)
+        # we pass it directly to the service
+        
+        client = request.app.state.http_client
+        gemini_service = GeminiService(client)
+
+        logger.info(f"--- [ROUTER-TRACE] Delete Recommendation Request Received ---")
+        
+        # 이미지 정규화 적용
+        normalized_image = await run_in_threadpool(_normalize_base64_image, payload.image)
+        
+        result = await gemini_service.generate_delete_recommendation(
+            image_base64=normalized_image,
+            metadata=payload.metadata,
+            filtering_criteria=payload.filteringCriteria,
+            language=payload.language,
+            tone=payload.tone,
+            max_length=payload.maxLength
+        )
+
+        logger.info(f"--- [ROUTER-TRACE] Delete Recommendation Result: {result.shortReason} ---")
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Delete recommendation failed (Exception): {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"추천 이유 생성 중 오류가 발생했습니다: {str(e)}")
+@router.post(
+    "/delete-recommendation/batch",
+    status_code=202,
+    summary="이미지 묶음 삭제 추천 이유 생성 (비동기)",
+    description="작업을 예약하고 task_id를 즉시 반환합니다."
+)
+async def get_batch_delete_recommendation(
+    request: Request,
+    payload: BatchDeleteRecommendationRequest,
+    background_tasks: BackgroundTasks
+):
+    task_id = str(uuid.uuid4())
+    analysis_tasks[task_id] = {
+        "status": "processing",
+        "created_at": datetime.now().isoformat(),
+        "result": None,
+        "error": None
+    }
+
+    # 백그라운드 작업 등록
+    background_tasks.add_task(
+        run_batch_analysis_task,
+        task_id,
+        request.app.state.http_client,
+        payload
+    )
+
+    logger.info(f"--- [TASK-QUEUED] Task ID: {task_id} ---")
+    return {"task_id": task_id, "status": "processing"}
+
+@router.get("/delete-recommendation/jobs/{task_id}")
+async def get_job_status(task_id: str):
+    """지정한 작업의 분석 상태와 결과를 조회합니다."""
+    task = analysis_tasks.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="작업을 찾을 수 없습니다.")
+    return task
+
+async def run_batch_analysis_task(task_id: str, client, payload: BatchDeleteRecommendationRequest):
+    """실제 AI 분석을 수행하는 백그라운드 워커"""
+    try:
+        gemini_service = GeminiService(client)
+
+        # 이미지들 정규화 적용 (CPU Bound이므로 run_in_threadpool 권장되나 현재는 병렬 asyncio.gather 사용)
+        # TODO: 리소스 최적화를 위해 ThreadPoolExecutor 사용 고려
+        normalized_images = await asyncio.gather(*[run_in_threadpool(_normalize_base64_image, img) for img in payload.images])
+
+        result = await gemini_service.generate_batch_delete_recommendation(
+            images_base64=normalized_images,
+            metadatas=payload.metadatas,
+            filtering_criteria_list=payload.filteringCriteriaList,
+            language=payload.language,
+            tone=payload.tone,
+            max_length=payload.maxLength
+        )
+
+        analysis_tasks[task_id]["status"] = "completed"
+        analysis_tasks[task_id]["result"] = result.model_dump()
+        logger.info(f"--- [TASK-COMPLETED] Task ID: {task_id} ---")
+
+    except Exception as e:
+        logger.error(f"--- [TASK-FAILED] Task ID: {task_id}, Error: {str(e)} ---", exc_info=True)
+        analysis_tasks[task_id]["status"] = "failed"
+        analysis_tasks[task_id]["error"] = str(e)

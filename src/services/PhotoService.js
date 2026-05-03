@@ -1,267 +1,132 @@
 /**
- * PhotoService - Manages photo data fetching, caching, and processing
- * Encapsulates logic for native plugin interaction and curation engine
+ * PhotoService - Public facade for photo runtime operations.
+ * Internal responsibilities are split into focused runtimes to keep launch,
+ * hydration, mutation, and legacy paths separate without breaking callers.
  */
 
 import RecocolPhotos from '../plugins/RecocolPhotos.ts';
-import { CurationEngine } from './CurationEngine.js';
-import { geocodingService } from './GeocodingService.js';
-import { StatsService } from './StatsService.js';
-import { formatGPSCoordinates } from '../utils/geo.js';
+import { fetchDailyCuration, refreshDailyCurationAfterMutation } from './photo/dailyCurationRuntime.js';
+import { ensurePhotoSummary, loadPhotoDetails } from './photo/detailHydrator.js';
+import { recordCurationAction, deletePhoto } from './photo/mutationRuntime.js';
+import { fetchAndRankPhotos } from './photo/legacyRankingRuntime.js';
 
 export class PhotoService {
     constructor() {
         this.photos = [];
         this.currentDayKey = null;
+        this.analysisRegistry = new Map(); // assetId -> Promise
     }
 
-    /**
-     * Fetches photos from native gallery and ranks them using CurationEngine
-     */
-    async fetchAndRankPhotos(limit = 30) {
-        console.log('PhotoService: Fetching photos...');
-        try {
-            const result = await RecocolPhotos.fetchPhotos({ limit, offset: 0 });
-            
-            if (!result || !result.photos) {
-                console.warn('PhotoService: No photos returned');
-                return { photos: [], totalCount: 0 };
+    getAnalysis(assetId) {
+        return this.analysisRegistry.get(assetId);
+    }
+
+    registerAnalysis(assetId, promise) {
+        this.analysisRegistry.set(assetId, promise);
+        // Remove from registry once settled to allow re-analysis if needed later
+        promise.finally(() => {
+            if (this.analysisRegistry.get(assetId) === promise) {
+                this.analysisRegistry.delete(assetId);
             }
+        });
+    }
 
-            console.log(`PhotoService: Found ${result.photos.length} photos. Ranking...`);
-            const rankedAssets = CurationEngine.rankAssets(result.photos);
-            const targetAssets = rankedAssets.slice(0, 10); // Top 10 curation targets (백그라운드 프리페치 포함)
-
-            this.photos = targetAssets.map(asset => ({
-                id: asset.id,
-                imageUrl: null, // Loaded lazily
-                date: asset.creationDate.split('T')[0],
-                location: null, // Loaded lazily
-                contextMessage: this._generateContextMessage(asset),
-                rawAsset: asset,
-                score: asset.curationScore
-            }));
-
-            return { 
-                photos: this.photos, 
-                totalCount: result.totalCount 
-            };
-        } catch (error) {
-            console.error('PhotoService: Fetch failed', error);
-            throw error;
-        }
+    async fetchAndRankPhotos(limit = 30) {
+        return fetchAndRankPhotos(this, limit);
     }
 
     async fetchDailyCuration({ limit = 6, thumbSize = 420, transport = 'base64', forceRefresh = false } = {}) {
-        try {
-            // iOS plugin이 dayKey/applied/pending 정책을 포함해 큐레이션 결과를 반환한다.
-            const daily = await RecocolPhotos.getDailyCuration({
-                limit,
-                thumbSize,
-                transport,
-                forceRefresh
-            });
+        return fetchDailyCuration(this, { limit, thumbSize, transport, forceRefresh });
+    }
 
-            const items = Array.isArray(daily?.items) ? daily.items : [];
-            this.currentDayKey = daily?.dayKey || null;
-            // HomeManager는 this.photos를 그대로 렌더링하므로 공통 스키마로 정규화한다.
-            this.photos = items.map((item) => ({
-                id: item.assetId,
-                imageUrl: item.thumb || null,
-                date: this.currentDayKey || '',
-                location: '위치 정보 없음',
-                contextMessage: this._generateDailyContextMessage(item.flags || []),
-                rawAsset: {
-                    id: item.assetId,
-                    curationReasons: item.flags || []
-                },
-                score: item.score || 0,
-                dayKey: this.currentDayKey
-            }));
-
-            return {
-                photos: this.photos,
-                totalCount: this.photos.length,
-                dayKey: this.currentDayKey,
-                fromCache: Boolean(daily?.fromCache),
-                needsRefresh: Boolean(daily?.needsRefresh)
-            };
-        } catch (error) {
-            console.error('PhotoService: Daily curation fetch failed', error);
-            throw error;
-        }
+    async fetchCurationBatch(options = {}) {
+        const { fetchCurationBatch } = await import('./photo/dailyCurationRuntime.js');
+        return fetchCurationBatch(options);
     }
 
     async refreshDailyCurationAfterMutation(options = {}) {
-        const result = await this.fetchDailyCuration({ ...options, forceRefresh: true });
-        if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('daily-curation-updated', {
-                detail: {
-                    dayKey: result.dayKey,
-                    totalCount: result.totalCount
-                }
-            }));
-        }
-        return result;
+        return refreshDailyCurationAfterMutation(this, options);
+    }
+
+    async hydrateThumbsForPhotos(photos, options = {}) {
+        const { hydrateThumbsForPhotos } = await import('./photo/dailyCurationRuntime.js');
+        return hydrateThumbsForPhotos(photos, options);
     }
 
     async ensurePhotoSummary(index, { includeFileSize = false } = {}) {
-        if (index < 0 || index >= this.photos.length) return null;
-        const photo = this.photos[index];
-        if (!photo) return null;
-
-        const rawAsset = photo.rawAsset || {};
-        const summaryHydrated = rawAsset._summaryHydrated === true;
-        const needsBaseSummary =
-            !summaryHydrated ||
-            !rawAsset.creationDate ||
-            !rawAsset.pixelWidth ||
-            !rawAsset.pixelHeight;
-        const needsFileSize = includeFileSize && !(typeof rawAsset.fileSize === 'number' && rawAsset.fileSize > 0);
-
-        if (!needsBaseSummary && !needsFileSize) {
-            return photo;
-        }
-
-        try {
-            const summary = await RecocolPhotos.getPhotoSummary({
-                assetId: photo.id,
-                includeFileSize
-            });
-
-            if (!summary) return photo;
-
-            const mergedRawAsset = {
-                ...rawAsset,
-                ...summary,
-                location: summary.location ?? rawAsset.location ?? null,
-                _summaryHydrated: true
-            };
-
-            photo.rawAsset = mergedRawAsset;
-
-            if (summary.creationDate && (!photo.date || photo.date === this.currentDayKey)) {
-                photo.date = summary.creationDate.split('T')[0];
-            }
-
-            if (mergedRawAsset.location && (!photo.location || photo.location === '위치 정보 없음')) {
-                photo.location = formatGPSCoordinates(
-                    mergedRawAsset.location.latitude,
-                    mergedRawAsset.location.longitude
-                );
-            }
-
-            return photo;
-        } catch (error) {
-            console.error('PhotoService: Summary hydration failed', error);
-            return photo;
-        }
+        return ensurePhotoSummary(this, index, { includeFileSize });
     }
 
-    /**
-     * Loads image data and location for a specific photo index
-     */
     async loadPhotoDetails(index) {
-        if (index < 0 || index >= this.photos.length) return null;
-        const photo = this.photos[index];
-
-        if (photo.imageUrl && photo.location) return photo; // Already loaded
-
-        try {
-            const tasks = [];
-
-            // 1. Image Data (네이티브 플러그인)
-            if (!photo.imageUrl) {
-                tasks.push(
-                    RecocolPhotos.loadImageData({ assetId: photo.id, quality: 'thumbnail' })
-                        .then(({ base64 }) => { photo.imageUrl = `data:image/jpeg;base64,${base64}`; })
-                        .catch(err => {
-                            console.error(`PhotoService: Failed to load image ${photo.id}:`, err);
-                            photo.imageUrl = null;
-                        })
-                );
-            }
-
-            // 2. Location Data (API 호출) — 이미지와 병렬 실행
-            if (!photo.location) {
-                if (photo.rawAsset.location) {
-                    tasks.push(
-                        geocodingService.getAddress(
-                            photo.rawAsset.location.latitude,
-                            photo.rawAsset.location.longitude
-                        )
-                        .then(addr => { photo.location = addr; })
-                        .catch(() => { photo.location = '위치 정보 없음'; })
-                    );
-                } else {
-                    photo.location = '위치 정보 없음';
-                }
-            }
-
-            await Promise.all(tasks);
-            return photo;
-        } catch (error) {
-            console.error(`PhotoService: Failed to load details for ${photo.id}`, error);
-            return null;
-        }
+        return loadPhotoDetails(this, index);
     }
 
     /**
      * Returns raw base64 string directly from native plugin (no binary conversion)
      * Path B 최적화: base64 → File → FileReader → base64 왕복 제거
      */
-    async getPhotoAsBase64(index) {
+    async getPhotoAsBase64(index, options = { quality: 'analysis' }) {
+        if (index < 0 || index >= this.photos.length) return null;
+        const photo = this.photos[index];
+        return this.getPhotoAsBase64ByAssetId(photo.id, options);
+    }
+
+    /**
+     * [성능 최적화] assetId 기반으로 특정 품질의 이미지를 로드합니다.
+     */
+    async getPhotoAsBase64ByAssetId(assetId, { quality = 'analysis', thumbSize = 1024 } = {}) {
+        if (!assetId) return null;
+        try {
+            const { base64 } = await RecocolPhotos.loadImageData({
+                assetId,
+                quality,
+                thumbSize,
+                allowNetworkAccess: false
+            });
+            return base64;
+        } catch (error) {
+            console.error(`PhotoService: Asset ${assetId} load failed`, error);
+            return null;
+        }
+    }
+
+    async getPhotoAsAnalysisBase64(assetId) {
+        try {
+            const { base64 } = await RecocolPhotos.loadImageData({
+                assetId: assetId,
+                quality: 'analysis',
+                thumbSize: 1024,
+                allowNetworkAccess: false
+            });
+            return base64;
+        } catch (error) {
+            console.error('Failed to get bounded analysis Base64:', error);
+            return null;
+        }
+    }
+
+    async recordCurationAction({ assetId, action, dayKey }) {
+        return recordCurationAction(this, { assetId, action, dayKey });
+    }
+
+    async getPhotoAsFile(index, { allowNetworkAccess = true } = {}) {
         if (index < 0 || index >= this.photos.length) return null;
         const photo = this.photos[index];
 
         try {
             const { base64 } = await RecocolPhotos.loadImageData({
                 assetId: photo.id,
-                quality: 'original'
+                quality: 'original',
+                allowNetworkAccess
             });
-            return base64;
-        } catch (error) {
-            console.error('PhotoService: Base64 load failed', error);
-            return null;
-        }
-    }
 
-    async recordCurationAction({ assetId, action, dayKey }) {
-        if (!assetId || !action) return false;
-        try {
-            // dayKey를 같이 저장해 다음 daily 계산에서 skip/exclude 정책에 활용한다.
-            await RecocolPhotos.recordCurationAction({
-                assetId,
-                action,
-                dayKey: dayKey || this.currentDayKey || ''
-            });
-            return true;
-        } catch (error) {
-            console.error('PhotoService: recordCurationAction failed', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Converts current photo to a File object for upload
-     */
-    async getPhotoAsFile(index) {
-        if (index < 0 || index >= this.photos.length) return null;
-        const photo = this.photos[index];
-
-        try {
-            const { base64 } = await RecocolPhotos.loadImageData({ 
-                assetId: photo.id, 
-                quality: 'original' 
-            });
-            
             const byteCharacters = atob(base64);
             const byteArray = new Uint8Array(byteCharacters.length);
             for (let i = 0; i < byteCharacters.length; i++) {
                 byteArray[i] = byteCharacters.charCodeAt(i);
             }
             const blob = new Blob([byteArray], { type: 'image/jpeg' });
-            
+
             return new File([blob], `photo_${photo.id}.jpg`, { type: 'image/jpeg' });
         } catch (error) {
             console.error('PhotoService: File conversion failed', error);
@@ -269,33 +134,8 @@ export class PhotoService {
         }
     }
 
-    /**
-     * Deletes a photo and logs stats
-     */
     async deletePhoto(index) {
-        if (index < 0 || index >= this.photos.length) return false;
-        await this.ensurePhotoSummary(index, { includeFileSize: true });
-        const photo = this.photos[index];
-
-        try {
-            const { success } = await RecocolPhotos.deletePhoto({ assetId: photo.id });
-            if (success) {
-                await StatsService.logDetox({
-                    fileSize: photo.rawAsset.fileSize,
-                    reason: photo.rawAsset.curationReasons?.join(', ') || '사용자 선택',
-                    photoDate: photo.rawAsset.creationDate,
-                    location: photo.location
-                });
-                
-                // Remove from local list
-                this.photos.splice(index, 1);
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error('PhotoService: Delete failed', error);
-            throw error;
-        }
+        return deletePhoto(this, index, (targetIndex, options) => this.ensurePhotoSummary(targetIndex, options));
     }
 
     getPhotos() {
@@ -304,30 +144,6 @@ export class PhotoService {
 
     getPhoto(index) {
         return this.photos[index];
-    }
-
-    _generateContextMessage(asset) {
-        return asset.curationReasons.length > 0 
-            ? `${asset.curationReasons.join(', ')}이라 비워내기 좋아요.`
-            : '오늘의 소중한 기록 한 장입니다.';
-    }
-
-    _generateDailyContextMessage(flags) {
-        if (!Array.isArray(flags) || flags.length === 0) {
-            return '오늘 정리하기 좋은 항목이에요.';
-        }
-
-        const messages = [];
-        if (flags.includes('unorganized')) messages.push('앨범에 정리되지 않았어요');
-        if (flags.includes('screenshot')) messages.push('스크린샷 항목이에요');
-        if (flags.includes('old')) messages.push('오래된 사진이에요');
-        if (flags.includes('burst_day')) messages.push('비슷한 사진이 많은 날이에요');
-        if (flags.includes('large')) messages.push('고해상도 사진이에요');
-        if (flags.includes('icloud_only')) messages.push('일부 iCloud 항목이 제외됐어요');
-
-        return messages.length > 0
-            ? `${messages.join(', ')}.`
-            : '오늘 정리하기 좋은 항목이에요.';
     }
 }
 

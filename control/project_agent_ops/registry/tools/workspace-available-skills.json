@@ -1,0 +1,986 @@
+{
+  "generated_at": "2026-04-01",
+  "generated_by": "narrative-ai-system-maker",
+  "catalog_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/narrative-ai/control/project_agent_ops/registry/tools/workspace-available-skills.json",
+  "source_root": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project",
+  "summary": {
+    "skill_md_files_total": 43,
+    "canonical_skill_md_files": 34,
+    "backup_skill_md_files": 5,
+    "legacy_skill_md_files": 4,
+    "top_level_skill_directories_total": 36,
+    "top_level_directories_with_canonical_skill": 34,
+    "top_level_directories_without_canonical_skill": [
+      "dependency-graph-analyzer",
+      "skill-acceptance-gate"
+    ],
+    "support_directories": [
+      ".claude",
+      ".codex",
+      ".edgegen-debug-g3_32ua1",
+      ".pytest_cache",
+      "_shared",
+      "backups",
+      "template"
+    ]
+  },
+  "top_level_skill_directories": [
+    {
+      "directory": "agent-graph-ir",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/agent-graph-ir",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/agent-graph-ir/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "agent-task-packet",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/agent-task-packet",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/agent-task-packet/SKILL.md",
+      "available_variants": [
+        "backup",
+        "canonical"
+      ]
+    },
+    {
+      "directory": "agent-tool-benchmark",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/agent-tool-benchmark",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/agent-tool-benchmark/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "artifact-lifecycle-manager",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/artifact-lifecycle-manager",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/artifact-lifecycle-manager/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "baseline-diff-lab",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/baseline-diff-lab",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/baseline-diff-lab/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "claim-verifier",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/claim-verifier",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/claim-verifier/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "claude-session-poison-recovery",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/claude-session-poison-recovery",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/claude-session-poison-recovery/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "codebase-analysis",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codebase-analysis",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codebase-analysis/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "codebase-doc-alignment",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codebase-doc-alignment",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codebase-doc-alignment/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "codebase-progress",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codebase-progress",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codebase-progress/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "codex-delegation-protocol",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codex-delegation-protocol",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codex-delegation-protocol/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "codex-subagent-setup",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codex-subagent-setup",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codex-subagent-setup/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "codex-tmux-orchestrator",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codex-tmux-orchestrator",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codex-tmux-orchestrator/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "codex-worktree-dispatch",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codex-worktree-dispatch",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codex-worktree-dispatch/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "contract-to-concept-mapper",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/contract-to-concept-mapper",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/contract-to-concept-mapper/SKILL.md",
+      "available_variants": [
+        "backup",
+        "canonical"
+      ]
+    },
+    {
+      "directory": "dependency-graph-analyzer",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/dependency-graph-analyzer",
+      "status": "variants_only",
+      "canonical_skill_path": null,
+      "available_variants": [
+        "legacy"
+      ]
+    },
+    {
+      "directory": "dependency-slice-planner",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/dependency-slice-planner",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/dependency-slice-planner/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "doc-code-sync-checker",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/doc-code-sync-checker",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/doc-code-sync-checker/SKILL.md",
+      "available_variants": [
+        "canonical",
+        "legacy"
+      ]
+    },
+    {
+      "directory": "edge-case-generator",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/edge-case-generator",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/edge-case-generator/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "evidence-to-knowledge-promoter",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/evidence-to-knowledge-promoter",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/evidence-to-knowledge-promoter/SKILL.md",
+      "available_variants": [
+        "backup",
+        "canonical"
+      ]
+    },
+    {
+      "directory": "evidence-trace-auditor",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/evidence-trace-auditor",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/evidence-trace-auditor/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "execution-contract-mapper",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/execution-contract-mapper",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/execution-contract-mapper/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "github-deep-research",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/github-deep-research",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/github-deep-research/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "image-text-cot-review",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/image-text-cot-review",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/image-text-cot-review/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "kb-checklist-pipeline",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/kb-checklist-pipeline",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/kb-checklist-pipeline/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "langfuse-codex-prompt",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/langfuse-codex-prompt",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/langfuse-codex-prompt/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "mermaid-authoring-strategy",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/mermaid-authoring-strategy",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/mermaid-authoring-strategy/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "multimodal-evidence-refinement-loop",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/multimodal-evidence-refinement-loop",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/multimodal-evidence-refinement-loop/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "python-static-diagnostic-fixer",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/python-static-diagnostic-fixer",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/python-static-diagnostic-fixer/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "semantic-slice-mapper",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/semantic-slice-mapper",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/semantic-slice-mapper/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "skill-acceptance-gate",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/skill-acceptance-gate",
+      "status": "no_skill_md",
+      "canonical_skill_path": null,
+      "available_variants": []
+    },
+    {
+      "directory": "skill-creation-process",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/skill-creation-process",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/skill-creation-process/SKILL.md",
+      "available_variants": [
+        "canonical",
+        "legacy"
+      ]
+    },
+    {
+      "directory": "skill-workflow-bridge-eval",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/skill-workflow-bridge-eval",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/skill-workflow-bridge-eval/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "slice-experiment-lab",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/slice-experiment-lab",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/slice-experiment-lab/SKILL.md",
+      "available_variants": [
+        "backup",
+        "canonical"
+      ]
+    },
+    {
+      "directory": "tmux-controller",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/tmux-controller",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/tmux-controller/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    },
+    {
+      "directory": "worktree-parallel",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/worktree-parallel",
+      "status": "canonical_present",
+      "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/worktree-parallel/SKILL.md",
+      "available_variants": [
+        "canonical"
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "name": "agent-graph-ir",
+      "description": "Use this skill when an agent workflow must be expressed as typed JSON IR with nodes, edges, scopes, condition ASTs, and Langfuse-compatible trace records. Agent workflow를 typed JSON IR, validator, DOT/Mermaid 파생 출력, Langfuse-compatible trace JSON으로 고정할 때 사용한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/agent-graph-ir/SKILL.md",
+      "relative_path_from_root": "agent-graph-ir/SKILL.md",
+      "top_level_directory": "agent-graph-ir",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "agent-task-packet",
+      "description": "Use this skill when assigning a task to a Codex worker or sub-agent — standardizes the handoff packet with goal, scope, non-goals, done-definition, and required checks so the worker stays within bounds. Codex worker에게 작업을 할당할 때 표준화된 패킷으로 범위·비목표·완료 조건을 명시한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/agent-task-packet/backups/2026-03-19-22-24/SKILL.md",
+      "relative_path_from_root": "agent-task-packet/backups/2026-03-19-22-24/SKILL.md",
+      "top_level_directory": "agent-task-packet",
+      "variant_kind": "backup"
+    },
+    {
+      "name": "agent-task-packet",
+      "description": "Use this skill when assigning a task to a Codex worker or sub-agent — standardizes the handoff packet with goal, scope, non-goals, done-definition, and required checks. Codex worker에게 작업을 할당할 때 표준화된 패킷으로 범위·비목표·완료 조건을 명시한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/agent-task-packet/SKILL.md",
+      "relative_path_from_root": "agent-task-packet/SKILL.md",
+      "top_level_directory": "agent-task-packet",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "agent-tool-benchmark",
+      "description": "Use this skill when you need benchmark metric formulas and validation logic for agent tool-use quality, especially for orchestration evaluation or Langfuse custom scores. agent tool-use 품질 측정용 벤치마크 수식과 교차 검증 로직이 필요할 때 사용한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/agent-tool-benchmark/SKILL.md",
+      "relative_path_from_root": "agent-tool-benchmark/SKILL.md",
+      "top_level_directory": "agent-tool-benchmark",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "artifact-lifecycle-manager",
+      "description": "Use this skill when managing skill artifacts across legacy backup, minute-level timestamp naming, metadata order validation, and duplicate-content cleanup — especially before renaming, replacing, deleting, or validating knowledge base and checklist files, including stale reference candidate detection after code changes.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/artifact-lifecycle-manager/SKILL.md",
+      "relative_path_from_root": "artifact-lifecycle-manager/SKILL.md",
+      "top_level_directory": "artifact-lifecycle-manager",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "baseline-diff-lab",
+      "description": "Use this skill when you need before/after baseline measurement, debug evidence, and fix-diff reporting after a smoke test or experiment — standardizes pre-fix artifacts, post-fix artifacts, and improvement reports.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/baseline-diff-lab/SKILL.md",
+      "relative_path_from_root": "baseline-diff-lab/SKILL.md",
+      "top_level_directory": "baseline-diff-lab",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "claim-verifier",
+      "description": "Use this skill when a natural-language or document claim needs to be checked against real code, files, or repo artifacts — breaks claims into verifiable units, gathers evidence, and reports true/false/partial with file evidence. 자연어 주장이나 문서의 claim을 코드/파일 증거와 대조해 검증한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/claim-verifier/SKILL.md",
+      "relative_path_from_root": "claim-verifier/SKILL.md",
+      "top_level_directory": "claim-verifier",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "claude-session-poison-recovery",
+      "description": "Use this skill when (A) Claude Code fails with invalid JSON surrogate errors, IDE selection auto-context issues, or session JSONL corruption, OR (B) Claude loses plan context after compaction/resume — forgetting agreed plans, confusing roles, or suggesting wrong next steps.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/claude-session-poison-recovery/SKILL.md",
+      "relative_path_from_root": "claude-session-poison-recovery/SKILL.md",
+      "top_level_directory": "claude-session-poison-recovery",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "codebase-analysis",
+      "description": "Use this skill when analyzing a codebase to gather dependency, class, runtime, and graph evidence for later modeling, export, or review. 코드베이스의 의존성, 클래스, 런타임, graph evidence를 수집·모델링할 때 사용한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codebase-analysis/SKILL.md",
+      "relative_path_from_root": "codebase-analysis/SKILL.md",
+      "top_level_directory": "codebase-analysis",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "codebase-doc-alignment",
+      "description": "코드베이스와 문서(논문, MD, PRD, 설계서)의 정합성을 검사하고 불일치를 체계적으로 파악한다. 코드가 문서 명세를 충족하는지, 문서가 현재 코드를 정확히 반영하는지 양방향으로 검증한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codebase-doc-alignment/SKILL.md",
+      "relative_path_from_root": "codebase-doc-alignment/SKILL.md",
+      "top_level_directory": "codebase-doc-alignment",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "codebase-progress",
+      "description": "Use this skill when the user wants to assess project progress from code — scanning TODOs/FIXMEs, git activity, plan-vs-implementation drift, or agent session continuity across CLI tools. 코드베이스 스캔으로 진행 상황 추적 — TODO/git/drift/세션 기반 통합 보고서.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codebase-progress/SKILL.md",
+      "relative_path_from_root": "codebase-progress/SKILL.md",
+      "top_level_directory": "codebase-progress",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "codex-delegation-protocol",
+      "description": "Use this skill when composing a delegation message for Codex — assembles prompt from task-packet + context files + constraints, validates completeness, and outputs a ready-to-execute command string. Codex에게 작업을 위임할 때 프롬프트를 조립·검증하고 실행 커맨드를 생성한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codex-delegation-protocol/SKILL.md",
+      "relative_path_from_root": "codex-delegation-protocol/SKILL.md",
+      "top_level_directory": "codex-delegation-protocol",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "codex-subagent-setup",
+      "description": "Use this skill when preparing reusable Codex subagent packages, setup context, agent flow, class policy, and handoff structure for later orchestration or parallel execution. Codex subagent package, setup context, agent flow, class policy, handoff 구조를 재사용 가능한 setup layer로 정리할 때 사용한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codex-subagent-setup/SKILL.md",
+      "relative_path_from_root": "codex-subagent-setup/SKILL.md",
+      "top_level_directory": "codex-subagent-setup",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "codex-tmux-orchestrator",
+      "description": "Use this skill when launching a Codex CLI session from a ready dispatch — creates runtime registry, tmux session in correct worktree, manages heartbeat/stale detection, and provides restart/kill/cleanup/status. ready 상태의 dispatch를 받아 Codex CLI를 worktree에서 실행하고 런타임을 추적한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codex-tmux-orchestrator/SKILL.md",
+      "relative_path_from_root": "codex-tmux-orchestrator/SKILL.md",
+      "top_level_directory": "codex-tmux-orchestrator",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "codex-worktree-dispatch",
+      "description": "Use this skill when assigning a task-packet to a Codex worker via git worktree — creates dispatch state (branch, worktree, locked_paths, status) and manages lifecycle from queued to merged, including path conflict detection and merge readiness. task-packet을 Codex worker에게 배정할 때 dispatch 상태를 생성·관리한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/codex-worktree-dispatch/SKILL.md",
+      "relative_path_from_root": "codex-worktree-dispatch/SKILL.md",
+      "top_level_directory": "codex-worktree-dispatch",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "contract-to-concept-mapper",
+      "description": "Use this skill when execution-space artifacts such as checklists, tasks, schemas, CLI contracts, or signatures must be lifted back into concept-space summaries, boundary maps, and semantic descriptions. 실행 계약 공간을 개념 공간으로 다시 올려서 해석한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/contract-to-concept-mapper/backups/2026-03-20-02-38/SKILL.md",
+      "relative_path_from_root": "contract-to-concept-mapper/backups/2026-03-20-02-38/SKILL.md",
+      "top_level_directory": "contract-to-concept-mapper",
+      "variant_kind": "backup"
+    },
+    {
+      "name": "contract-to-concept-mapper",
+      "description": "Use this skill when execution-space artifacts such as checklists, tasks, schemas, CLI contracts, or signatures must be lifted back into concept-space summaries, boundary maps, and semantic descriptions. 실행 계약 공간을 개념 공간으로 다시 올려서 해석한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/contract-to-concept-mapper/SKILL.md",
+      "relative_path_from_root": "contract-to-concept-mapper/SKILL.md",
+      "top_level_directory": "contract-to-concept-mapper",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "dependency-graph-analyzer",
+      "description": "Use this skill when extracting module dependency graphs, import graphs, cycle risks, hub modules, package-level dependency problems, and graph-ready artifacts for architecture review or subagent parallel analysis. 의존성 그래프, import graph, cycle, hub module, 병렬 분석용 graph artifact를 만들 때 사용한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/dependency-graph-analyzer/legacy/2026-03-18-21-22-pre-depsolve-main/SKILL.md",
+      "relative_path_from_root": "dependency-graph-analyzer/legacy/2026-03-18-21-22-pre-depsolve-main/SKILL.md",
+      "top_level_directory": "dependency-graph-analyzer",
+      "variant_kind": "legacy"
+    },
+    {
+      "name": "dependency-slice-planner",
+      "description": "Use this skill when repository structure and dependency-graph evidence must be turned into parallel-safe slices, write-safe boundaries, and handoff artifacts for downstream agents. 저장소 구조와 의존성 그래프 근거를 병렬 작업용 slice와 handoff artifact로 내릴 때 사용한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/dependency-slice-planner/SKILL.md",
+      "relative_path_from_root": "dependency-slice-planner/SKILL.md",
+      "top_level_directory": "dependency-slice-planner",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "doc-code-sync-checker",
+      "description": "Use this skill when reference documents define rules, fields, transitions, or constraints that must exist in code — extracts documented rules, compares them with validate logic, and reports document-code drift. 문서에 적힌 규칙과 코드 구현의 정합성을 검사하고 drift를 보고한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/doc-code-sync-checker/SKILL.md",
+      "relative_path_from_root": "doc-code-sync-checker/SKILL.md",
+      "top_level_directory": "doc-code-sync-checker",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "doc-code-sync-checker",
+      "description": "Use this skill when reference documents define rules, fields, transitions, or constraints that must exist in code — extracts documented rules, compares them with validate logic, and reports document-code drift. 문서에 적힌 규칙과 코드 구현의 정합성을 검사하고 drift를 보고한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/doc-code-sync-checker/legacy/2026-03-16-18-18-pre-progressive-context-restructure/SKILL.md",
+      "relative_path_from_root": "doc-code-sync-checker/legacy/2026-03-16-18-18-pre-progressive-context-restructure/SKILL.md",
+      "top_level_directory": "doc-code-sync-checker",
+      "variant_kind": "legacy"
+    },
+    {
+      "name": "doc-code-sync-checker",
+      "description": "Use this skill when reference documents define rules, fields, transitions, or constraints that must exist in code — extracts documented rules, compares them with validate logic, and reports document-code drift. 문서에 적힌 규칙과 코드 구현의 정합성을 검사하고 drift를 보고한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/doc-code-sync-checker/legacy/2026-03-16-20-03-pre-vertical-slice-definition/SKILL.md",
+      "relative_path_from_root": "doc-code-sync-checker/legacy/2026-03-16-20-03-pre-vertical-slice-definition/SKILL.md",
+      "top_level_directory": "doc-code-sync-checker",
+      "variant_kind": "legacy"
+    },
+    {
+      "name": "edge-case-generator",
+      "description": "Use this skill when preparing Phase 5-2 test inputs for a skill's validate function — analyzes script source to extract validation rules, then generates boundary/invalid/adversarial JSON test cases automatically. 스킬의 validate 함수를 분석하여 경계값·무효값·공격적 테스트 입력을 자동 생성한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/edge-case-generator/SKILL.md",
+      "relative_path_from_root": "edge-case-generator/SKILL.md",
+      "top_level_directory": "edge-case-generator",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "evidence-to-knowledge-promoter",
+      "description": "Use this skill when promoting smoke results, audit findings, and baseline diffs into reusable knowledge-base insights or deciding how evidence should become hybrid/canonical KB content. 실험 결과와 audit 산출물을 reusable insight KB로 승격할 때 사용한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/evidence-to-knowledge-promoter/backups/2026-03-20-09-29/SKILL.md",
+      "relative_path_from_root": "evidence-to-knowledge-promoter/backups/2026-03-20-09-29/SKILL.md",
+      "top_level_directory": "evidence-to-knowledge-promoter",
+      "variant_kind": "backup"
+    },
+    {
+      "name": "evidence-to-knowledge-promoter",
+      "description": "Use this skill when promoting smoke results, audit findings, and baseline diffs into reusable knowledge-base insights or deciding how evidence should become hybrid/canonical KB content. 실험 결과와 audit 산출물을 reusable insight KB로 승격할 때 사용한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/evidence-to-knowledge-promoter/backups/2026-03-20-09-33/SKILL.md",
+      "relative_path_from_root": "evidence-to-knowledge-promoter/backups/2026-03-20-09-33/SKILL.md",
+      "top_level_directory": "evidence-to-knowledge-promoter",
+      "variant_kind": "backup"
+    },
+    {
+      "name": "evidence-to-knowledge-promoter",
+      "description": "Use this skill when promoting smoke results, audit findings, and baseline diffs into reusable knowledge-base insights or deciding how evidence should become hybrid/canonical KB content. 실험 결과와 audit 산출물을 reusable insight KB로 승격할 때 사용한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/evidence-to-knowledge-promoter/SKILL.md",
+      "relative_path_from_root": "evidence-to-knowledge-promoter/SKILL.md",
+      "top_level_directory": "evidence-to-knowledge-promoter",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "evidence-trace-auditor",
+      "description": "Use this skill when runtime logs, test outputs, JSON artifacts, and other evidence must be gathered and audited against expected contracts. 관측·증거 공간을 수집하고 감사한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/evidence-trace-auditor/SKILL.md",
+      "relative_path_from_root": "evidence-trace-auditor/SKILL.md",
+      "top_level_directory": "evidence-trace-auditor",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "execution-contract-mapper",
+      "description": "Use this skill when concept-space outputs must be converted into stable execution contracts such as checklists, JSON schema, CLI contracts, function signatures, or rule schemas. 실행 계약 공간을 정리하고 맵핑한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/execution-contract-mapper/SKILL.md",
+      "relative_path_from_root": "execution-contract-mapper/SKILL.md",
+      "top_level_directory": "execution-contract-mapper",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "github-deep-research",
+      "description": "Use this skill when the user wants to find GitHub repositories, code patterns, issues, or PRs — especially when shallow search is not enough and structured validation (repo → module → execution) is needed. GitHub 딥리서치 — gh CLI로 체계적 탐색-검증-교차검증을 수행한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/github-deep-research/SKILL.md",
+      "relative_path_from_root": "github-deep-research/SKILL.md",
+      "top_level_directory": "github-deep-research",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "image-text-cot-review",
+      "description": "Use this skill when outputs from a multimodal evidence refinement loop must be normalized into a human-facing review surface and a machine-truth manifest without collapsing comparison outcome, policy decision, pending state, or default-baseline status. 멀티모달 refinement loop의 결과를 CoT 방식의 외부화된 review artifact로 정리할 때 사용한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/image-text-cot-review/SKILL.md",
+      "relative_path_from_root": "image-text-cot-review/SKILL.md",
+      "top_level_directory": "image-text-cot-review",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "kb-checklist-pipeline",
+      "description": "Use this skill when turning researched knowledge into a canonical knowledge base, a consistency checklist, and an implementation checklist — routes work by output type, keeps document-only outputs lightweight, and forces TDD before script or other non-md implementation outputs.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/kb-checklist-pipeline/SKILL.md",
+      "relative_path_from_root": "kb-checklist-pipeline/SKILL.md",
+      "top_level_directory": "kb-checklist-pipeline",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "langfuse-codex-prompt",
+      "description": "Use this skill when you need to fetch Langfuse prompt templates for Codex CLI execution, record traces, or hook up agent evaluation scores via Langfuse SDK. Langfuse 프롬프트 fetch/실행/trace 기록, 또는 agent evaluation score 연동이 필요할 때 사용한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/langfuse-codex-prompt/SKILL.md",
+      "relative_path_from_root": "langfuse-codex-prompt/SKILL.md",
+      "top_level_directory": "langfuse-codex-prompt",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "mermaid-authoring-strategy",
+      "description": "Use this skill when an agent needs to produce, debug, or convert Mermaid diagrams with Claude-level judgment. Codex가 Claude처럼 Mermaid를 단계적으로 생성·디버깅·도구 선택하는 전략 skill.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/mermaid-authoring-strategy/SKILL.md",
+      "relative_path_from_root": "mermaid-authoring-strategy/SKILL.md",
+      "top_level_directory": "mermaid-authoring-strategy",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "multimodal-evidence-refinement-loop",
+      "description": "Use this skill when a multimodal agent must iteratively reinject image evidence, prior text judgment, and baseline context to improve understanding before closing state or deriving review artifacts. 이미지 증거를 텍스트 판단과 baseline과 함께 반복 재주입하며 이해도를 높이는 상위 owner skill.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/multimodal-evidence-refinement-loop/SKILL.md",
+      "relative_path_from_root": "multimodal-evidence-refinement-loop/SKILL.md",
+      "top_level_directory": "multimodal-evidence-refinement-loop",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "python-static-diagnostic-fixer",
+      "description": "Use this skill when Python files show editor diagnostics such as Pylance, Pyright, or linter warnings and you must fix static issues without masking runtime behavior. Python 정적 진단을 런타임과 분리해 안전하게 정리한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/python-static-diagnostic-fixer/SKILL.md",
+      "relative_path_from_root": "python-static-diagnostic-fixer/SKILL.md",
+      "top_level_directory": "python-static-diagnostic-fixer",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "semantic-slice-mapper",
+      "description": "Use this skill when concept-space artifacts such as natural language, Mermaid, LaTeX, or pseudocode need to be normalized into semantic slices and boundary maps before contracts or code are written. 개념 공간을 semantic slice relation으로 정리한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/semantic-slice-mapper/SKILL.md",
+      "relative_path_from_root": "semantic-slice-mapper/SKILL.md",
+      "top_level_directory": "semantic-slice-mapper",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "workspace-artifact-production-process",
+      "description": "Use this skill when producing reusable workspace artifacts such as markdown docs, scripts, checklists, knowledge bases, references, smoke outputs, and bounded code through a standardized process. 문서, 스크립트, 체크리스트, KB, 레퍼런스, smoke 산출물, 제한된 코드까지 포함하는 workspace artifact 생산 절차에 사용한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/skill-creation-process/SKILL.md",
+      "relative_path_from_root": "skill-creation-process/SKILL.md",
+      "top_level_directory": "skill-creation-process",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "skill-creation-process",
+      "description": "Use this skill when creating a new Agent Skill from scratch or verifying an existing skill's structure against the standardized process. 새 Agent Skill을 제작하거나 기존 skill의 구조 정합성을 검증할 때 사용한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/skill-creation-process/legacy/2026-03-16-pre-reference-first/SKILL.md",
+      "relative_path_from_root": "skill-creation-process/legacy/2026-03-16-pre-reference-first/SKILL.md",
+      "top_level_directory": "skill-creation-process",
+      "variant_kind": "legacy"
+    },
+    {
+      "name": "skill-workflow-bridge-eval",
+      "description": "Use this skill when evaluating upstream skill output and deciding the next workflow step — classifies output type, extracts/grades natural language claims, generates bridge_eval + retry_spec + handoff_packet, and traces decisions. upstream 출력을 평가하고 다음 워크플로우 단계를 결정한다 (pass/retry/reroute/stop).",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/skill-workflow-bridge-eval/SKILL.md",
+      "relative_path_from_root": "skill-workflow-bridge-eval/SKILL.md",
+      "top_level_directory": "skill-workflow-bridge-eval",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "slice-experiment-lab",
+      "description": "Use this skill when a contract-oriented implementation slice must be closed with smoke evidence, quick_validate status, contract/valid/invalid artifacts, and a next-slice decision for follow-up work.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/slice-experiment-lab/backups/2026-03-20-02-14/SKILL.md",
+      "relative_path_from_root": "slice-experiment-lab/backups/2026-03-20-02-14/SKILL.md",
+      "top_level_directory": "slice-experiment-lab",
+      "variant_kind": "backup"
+    },
+    {
+      "name": "slice-experiment-lab",
+      "description": "Use this skill when a contract-oriented implementation slice must be closed with smoke evidence, quick_validate status, contract/valid/invalid artifacts, and a reusable readiness evaluation.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/slice-experiment-lab/SKILL.md",
+      "relative_path_from_root": "slice-experiment-lab/SKILL.md",
+      "top_level_directory": "slice-experiment-lab",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "tmux-controller",
+      "description": "Use this skill when the user wants to run, stop, restart, or debug apps in tmux sessions — including log capture, multi-service monitoring, and interactive debugging loops with process isolation. AI가 tmux 세션을 제어하여 앱 실행/중지/재시작, 로그 캡처, 디버깅을 수행한다.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/tmux-controller/SKILL.md",
+      "relative_path_from_root": "tmux-controller/SKILL.md",
+      "top_level_directory": "tmux-controller",
+      "variant_kind": "canonical"
+    },
+    {
+      "name": "worktree-parallel",
+      "description": "Use this skill when the user wants to run multiple AI agents in parallel using git worktrees — with Architect/Builder role separation, bridge handoff, dependency-aware task ordering, and merge coordination. git worktree 기반 병렬 에이전트 — 역할 분리 + handoff + merge 조율.",
+      "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project/worktree-parallel/SKILL.md",
+      "relative_path_from_root": "worktree-parallel/SKILL.md",
+      "top_level_directory": "worktree-parallel",
+      "variant_kind": "canonical"
+    }
+  ],
+  "external_skill_catalogs": [
+    {
+      "catalog_name": "my-image-parser-skills",
+      "source_workspace": "my-image-parser",
+      "source_root": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills",
+      "summary": {
+        "skill_md_files_total": 15,
+        "canonical_skill_md_files": 15,
+        "backup_skill_md_files": 0,
+        "legacy_skill_md_files": 0,
+        "top_level_skill_directories_total": 15,
+        "top_level_directories_with_canonical_skill": 15,
+        "top_level_directories_without_canonical_skill": []
+      },
+      "top_level_skill_directories": [
+        {
+          "directory": "component-split-ocr-review",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/component-split-ocr-review",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/component-split-ocr-review/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        },
+        {
+          "directory": "image-commit-manager",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/image-commit-manager",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/image-commit-manager/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        },
+        {
+          "directory": "image-job-dispatcher",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/image-job-dispatcher",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/image-job-dispatcher/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        },
+        {
+          "directory": "image-result-auditor",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/image-result-auditor",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/image-result-auditor/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        },
+        {
+          "directory": "image-worker",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/image-worker",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/image-worker/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        },
+        {
+          "directory": "macos-ocr-evidence",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/macos-ocr-evidence",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/macos-ocr-evidence/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        },
+        {
+          "directory": "object-isolation-correction",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/object-isolation-correction",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/object-isolation-correction/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        },
+        {
+          "directory": "obsidian-caption-review-builder",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/obsidian-caption-review-builder",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/obsidian-caption-review-builder/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        },
+        {
+          "directory": "openai-image-caption-validation",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/openai-image-caption-validation",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/openai-image-caption-validation/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        },
+        {
+          "directory": "parser-sidecar-to-canonical-schema-promotion",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/parser-sidecar-to-canonical-schema-promotion",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/parser-sidecar-to-canonical-schema-promotion/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        },
+        {
+          "directory": "pptx-slide-screenshot-capture",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/pptx-slide-screenshot-capture",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/pptx-slide-screenshot-capture/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        },
+        {
+          "directory": "table-branch-activation-slice",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/table-branch-activation-slice",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/table-branch-activation-slice/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        },
+        {
+          "directory": "transparent-component-triage",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/transparent-component-triage",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/transparent-component-triage/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        },
+        {
+          "directory": "vendored-mcp-onboarding",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/vendored-mcp-onboarding",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/vendored-mcp-onboarding/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        },
+        {
+          "directory": "vscode-fabriqa-foam-workflow",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/vscode-fabriqa-foam-workflow",
+          "status": "canonical_present",
+          "canonical_skill_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/vscode-fabriqa-foam-workflow/SKILL.md",
+          "available_variants": [
+            "canonical"
+          ]
+        }
+      ],
+      "skills": [
+        {
+          "name": "component-split-ocr-review",
+          "description": "Export deterministic component-level OCR evidence for one transparent or semi-transparent image by splitting alpha-connected components, writing a component table, and running OCR on each component. Use when bounded component evidence must be exported before any downstream refinement or caption rerun.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/component-split-ocr-review/SKILL.md",
+          "relative_path_from_root": "component-split-ocr-review/SKILL.md",
+          "top_level_directory": "component-split-ocr-review",
+          "variant_kind": "canonical"
+        },
+        {
+          "name": "image-commit-manager",
+          "description": "Apply only approved rename and metadata changes for image jobs. Use when audited and human-approved records are ready to be committed through filesystem and ExifTool MCPs.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/image-commit-manager/SKILL.md",
+          "relative_path_from_root": "image-commit-manager/SKILL.md",
+          "top_level_directory": "image-commit-manager",
+          "variant_kind": "canonical"
+        },
+        {
+          "name": "image-job-dispatcher",
+          "description": "Dispatch one-image-per-worker jobs for the presentation image pipeline. Use when you need to register image jobs, fan out isolated Codex subagents, and keep MCP state as the source of truth.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/image-job-dispatcher/SKILL.md",
+          "relative_path_from_root": "image-job-dispatcher/SKILL.md",
+          "top_level_directory": "image-job-dispatcher",
+          "variant_kind": "canonical"
+        },
+        {
+          "name": "image-result-auditor",
+          "description": "Audit completed image jobs and export frozen comparison bundles from evidence-backed records. Use when you need approval candidates, retry candidates, comparison summaries, or auto-eval outputs without mutating upstream artifacts.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/image-result-auditor/SKILL.md",
+          "relative_path_from_root": "image-result-auditor/SKILL.md",
+          "top_level_directory": "image-result-auditor",
+          "variant_kind": "canonical"
+        },
+        {
+          "name": "image-worker",
+          "description": "Process exactly one image in isolation. Use when a single image needs caption generation, status updates, and candidate rename preparation through MCP-backed state.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/image-worker/SKILL.md",
+          "relative_path_from_root": "image-worker/SKILL.md",
+          "top_level_directory": "image-worker",
+          "variant_kind": "canonical"
+        },
+        {
+          "name": "macos-ocr-evidence",
+          "description": "Extract bounded OCR evidence from local image files with macos-ocr-mcp, using macOCR only as a fallback reference when MCP coverage is insufficient. Use when downstream refinement or review needs visible-text evidence, not final semantic decisions.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/macos-ocr-evidence/SKILL.md",
+          "relative_path_from_root": "macos-ocr-evidence/SKILL.md",
+          "top_level_directory": "macos-ocr-evidence",
+          "variant_kind": "canonical"
+        },
+        {
+          "name": "object-isolation-correction",
+          "description": "Wrap object-isolation correction as a repo-specific workflow. Use when a local image already exists, the current isolation result is imperfect, and the next step is to choose between ImageSorcery-first, imagegen-first, or a hybrid correction path with a bounded correction packet and worker run.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/object-isolation-correction/SKILL.md",
+          "relative_path_from_root": "object-isolation-correction/SKILL.md",
+          "top_level_directory": "object-isolation-correction",
+          "variant_kind": "canonical"
+        },
+        {
+          "name": "obsidian-caption-review-builder",
+          "description": "Render an Obsidian-friendly markdown review surface from caption ledgers and local image assets. Use when generated caption records must be exported into a human-readable review view with embedded images, without defining machine-truth semantics or refinement state.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/obsidian-caption-review-builder/SKILL.md",
+          "relative_path_from_root": "obsidian-caption-review-builder/SKILL.md",
+          "top_level_directory": "obsidian-caption-review-builder",
+          "variant_kind": "canonical"
+        },
+        {
+          "name": "openai-image-caption-validation",
+          "description": "Run the local OpenAI caption runner on extracted images or a prepared dataset JSONL to produce bounded caption evidence for downstream refinement or review, usually as a smoke test first and then as a resumable batch, not final machine-truth closure.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/openai-image-caption-validation/SKILL.md",
+          "relative_path_from_root": "openai-image-caption-validation/SKILL.md",
+          "top_level_directory": "openai-image-caption-validation",
+          "variant_kind": "canonical"
+        },
+        {
+          "name": "parser-sidecar-to-canonical-schema-promotion",
+          "description": "Promote a bounded parser raw sidecar artifact into the canonical Table -> Row -> Cell schema. Use when a parser MCP returned markdown plus nested JSON sidecars and the project must normalize that output before any downstream wrapper, worksheet, or RAG consumer reads it.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/parser-sidecar-to-canonical-schema-promotion/SKILL.md",
+          "relative_path_from_root": "parser-sidecar-to-canonical-schema-promotion/SKILL.md",
+          "top_level_directory": "parser-sidecar-to-canonical-schema-promotion",
+          "variant_kind": "canonical"
+        },
+        {
+          "name": "pptx-slide-screenshot-capture",
+          "description": "Capture per-slide screenshots for PPTX cross-validation. Use when a presentation needs slide-level screenshots captured through a simulator-visible viewer surface, then reused as image inputs for caption validation.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/pptx-slide-screenshot-capture/SKILL.md",
+          "relative_path_from_root": "pptx-slide-screenshot-capture/SKILL.md",
+          "top_level_directory": "pptx-slide-screenshot-capture",
+          "variant_kind": "canonical"
+        },
+        {
+          "name": "table-branch-activation-slice",
+          "description": "Close a dormant or candidate table-parser branch through one evidence-first bounded activation slice. Use when the project must prove a parser path with ordered artifacts such as triage, boot smoke, real-image parse, canonical normalization, and downstream wrapper consumption before any wider rollout.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/table-branch-activation-slice/SKILL.md",
+          "relative_path_from_root": "table-branch-activation-slice/SKILL.md",
+          "top_level_directory": "table-branch-activation-slice",
+          "variant_kind": "canonical"
+        },
+        {
+          "name": "transparent-component-triage",
+          "description": "Triage a bounded batch of PPT-extracted images to find the small subset that is mechanically sufficient for alpha-only component splitting. Use when conservative preprocessing is required and only review-gated deterministic candidates should advance beyond the full-image baseline.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/transparent-component-triage/SKILL.md",
+          "relative_path_from_root": "transparent-component-triage/SKILL.md",
+          "top_level_directory": "transparent-component-triage",
+          "variant_kind": "canonical"
+        },
+        {
+          "name": "vendored-mcp-onboarding",
+          "description": "Onboard a new vendored MCP into this workspace without contaminating the main runtime. Use when a third-party MCP must be vendored under vendor/mcp, launched through a thin wrapper, registered in Codex and VS Code config, recorded in inventory, and verified through bounded smoke evidence before being treated as active.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/vendored-mcp-onboarding/SKILL.md",
+          "relative_path_from_root": "vendored-mcp-onboarding/SKILL.md",
+          "top_level_directory": "vendored-mcp-onboarding",
+          "variant_kind": "canonical"
+        },
+        {
+          "name": "vscode-fabriqa-foam-workflow",
+          "description": "Operate an existing markdown review surface in VS Code with fabriqa for same-page image editing and Foam for backlinks and graph navigation, without redefining machine-truth semantics.",
+          "absolute_path": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/my-image-parser/skills/vscode-fabriqa-foam-workflow/SKILL.md",
+          "relative_path_from_root": "vscode-fabriqa-foam-workflow/SKILL.md",
+          "top_level_directory": "vscode-fabriqa-foam-workflow",
+          "variant_kind": "canonical"
+        }
+      ]
+    }
+  ],
+  "extended_summary": {
+    "primary_catalog": {
+      "source_root": "/Users/jaehyuntak/Desktop/Project_____현재_진행중인/claude-gemini-communicator/skills/Skills-Create-Project",
+      "skill_md_files_total": 43
+    },
+    "external_catalogs_count": 1,
+    "combined_skill_md_files_total": 58
+  }
+}

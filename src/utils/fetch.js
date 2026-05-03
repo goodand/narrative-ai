@@ -22,7 +22,10 @@ export async function fetchWithRetry(
     try {
         const response = await fetch(url, options);
 
-        if (!response.ok && retries > 0) {
+        // User Strategy #6: 429, 5xx, 네트워크 에러만 선별적으로 재시도
+        const shouldRetry = (response.status === 429 || response.status >= 500);
+
+        if (!response.ok && shouldRetry && retries > 0) {
             console.warn(`Fetch failed with status ${response.status}, retrying in ${backoff}ms...`);
             await delay(backoff);
             return fetchWithRetry(url, options, retries - 1, backoff * 2);

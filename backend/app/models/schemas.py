@@ -56,12 +56,35 @@ class SynonymsRequest(BaseModel):
     language: str = "Korean"
 
 
+class DeleteRecommendationRequest(BaseModel):
+    """POST /api/v1/delete-recommendation 요청 스키마"""
+    image: str = Field(..., description="Base64 encoded image data")
+    metadata: Optional[Union[ImageMetadata, dict]] = Field(default_factory=dict)
+    filteringCriteria: Optional[list[Any]] = None
+    language: str = "Korean"
+    tone: str = "gentle"
+    maxLength: int = 120
+
+
+class BatchDeleteRecommendationRequest(BaseModel):
+    """POST /api/v1/delete-recommendation/batch 요청 스키마"""
+    images: list[str] = Field(..., min_items=1, max_items=5, description="List of base64 images")
+    metadatas: Optional[list[Union[ImageMetadata, dict]]] = None
+    filteringCriteriaList: Optional[list[list[Any]]] = None
+    language: str = "Korean"
+    tone: str = "gentle"
+    maxLength: int = 120
+
+
+
 # ============== Response Schemas ==============
 
 class NarrativeResponse(BaseModel):
     """POST /api/v1/narrative 응답 스키마"""
     original_caption: str
     keywords: list[str]
+    source: Literal["ai", "fallback"] = "ai"
+    error_detail: Optional[str] = None
 
 
 class SynonymItem(BaseModel):
@@ -73,6 +96,21 @@ class SynonymItem(BaseModel):
 class SynonymsResponse(BaseModel):
     """POST /api/v1/synonyms 응답 스키마"""
     suggestions: list[SynonymItem]
+
+
+class DeleteRecommendationResponse(BaseModel):
+    """POST /api/v1/delete-recommendation 응답 스키마"""
+    reason: str
+    shortReason: str
+    usedCriteria: list[str]
+    source: Literal["ai", "fallback"] = "ai"
+    error_detail: Optional[str] = None
+
+
+class BatchDeleteRecommendationResponse(BaseModel):
+    """POST /api/v1/delete-recommendation/batch 응답 스키마"""
+    recommendations: list[DeleteRecommendationResponse]
+
 
 
 class ErrorResponse(BaseModel):

@@ -4,34 +4,74 @@
  */
 
 import { Modal } from './Modal.js';
-import { Camera } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
+import RecocolPhotos from '../plugins/RecocolPhotos.ts';
 
 export class PermissionModal extends Modal {
     constructor(element) {
         super(element);
-        this.onComplete = null;
+        this.onPermissionResolved = null;
+        this.lastKnownStatus = null;
         this.contentElement = this.element.querySelector('#permission-content');
     }
 
-    /**
-     * Check permission status and open modal only if needed
-     */
-    async checkAndOpen() {
-        try {
-            const status = await Camera.checkPermissions();
-            console.log('Current permission status:', status.photos);
+    _emitPermissionResolution({ authorized, status = null, reason }) {
+        const payload = { authorized, status, reason };
+        if (status) this.lastKnownStatus = status;
+        if (this.onPermissionResolved) this.onPermissionResolved(payload);
+    }
 
-            if (status.photos === 'granted' || status.photos === 'limited') {
-                console.log('Permission already granted, skipping modal');
-                if (this.onComplete) this.onComplete();
-                return;
+    async checkAndOpen() {
+        if (!Capacitor.isNativePlatform()) {
+            console.log('[PERM] Skipping photo permissions on web environment');
+            this._emitPermissionResolution({
+                authorized: true,
+                status: 'authorized',
+                reason: 'web_non_native'
+            });
+            return;
+        }
+
+        let isCompleted = false;
+
+        // Safety timeout: 2.5 seconds to prevent boot hang
+        const timeout = setTimeout(() => {
+            if (!isCompleted) {
+                console.warn('[PERM] Permission check timed out. Opening permission modal.');
+                isCompleted = true;
+                this.open();
             }
-            
-            // If not granted, show the modal
-            this.open();
+        }, 2500);
+
+        try {
+            console.log('[PERM] Checking permissions...');
+            const status = await RecocolPhotos.getPhotoLibraryPermissionStatus();
+            console.log('[PERM] Status:', status.status, 'Authorized:', status.authorized);
+
+            if (!isCompleted || status.authorized) {
+                clearTimeout(timeout);
+                this.lastKnownStatus = status.status || null;
+
+                if (status.authorized) {
+                    isCompleted = true;
+                    this.close();
+                    this._emitPermissionResolution({
+                        authorized: true,
+                        status: status.status || 'authorized',
+                        reason: 'already_authorized'
+                    });
+                    return;
+                }
+                isCompleted = true;
+                this.open();
+            }
         } catch (error) {
-            console.error('Error checking permissions:', error);
-            this.open(); // Fallback
+            console.error('[PERM] Error checking permissions:', error);
+            if (!isCompleted) {
+                clearTimeout(timeout);
+                isCompleted = true;
+                this.open();
+            }
         }
     }
 
@@ -82,10 +122,10 @@ export class PermissionModal extends Modal {
                     </div>
                 </main>
                 <footer class="flex flex-col items-center gap-3 pb-8 shrink-0">
-                    <button id="permission-allow-btn" class="w-full max-w-sm py-4.5 rounded-2xl bg-primary text-dark-bg font-bold text-lg active:scale-[0.98] transition-all">
+                    <button id="permission-allow-btn" class="w-full max-w-sm h-14 rounded-3xl bg-primary text-dark-bg font-bold text-lg active:scale-[0.98] transition-all duration-300 ease-in-out">
                         사진첩 접근 허용하기
                     </button>
-                    <button id="permission-skip-btn" class="py-2 text-white/40 text-sm font-medium hover:text-white/60 transition-colors">
+                    <button id="permission-skip-btn" class="py-2 text-white/40 text-sm font-medium hover:text-white/60 transition-colors duration-200 ease-in-out">
                         나중에 설정하기
                     </button>
                 </footer>
@@ -98,24 +138,36 @@ export class PermissionModal extends Modal {
     async _handlePermissionRequest() {
         try {
             console.log('Requesting native photo library permissions...');
-            const result = await Camera.requestPermissions({ permissions: ['photos'] });
-            console.log('Permission result:', result.photos);
-            
-            // iOS에서는 'granted' 또는 'limited'인 경우 성공으로 간주
-            if (result.photos === 'granted' || result.photos === 'limited') {
+            const result = await RecocolPhotos.requestPhotoLibraryPermission();
+            console.log('Permission result:', result.status);
+            this.lastKnownStatus = result.status || this.lastKnownStatus;
+
+            if (result.authorized) {
                 this.close();
-                if (this.onComplete) this.onComplete();
+                this._emitPermissionResolution({
+                    authorized: true,
+                    status: result.status || 'authorized',
+                    reason: 'user_granted'
+                });
             } else {
                 console.warn('Permission denied by user');
                 // 거부된 경우에도 일단 닫거나 안내 문구를 띄울 수 있음
                 this.close();
-                if (this.onComplete) this.onComplete();
+                this._emitPermissionResolution({
+                    authorized: false,
+                    status: result.status || 'denied',
+                    reason: 'user_denied'
+                });
             }
         } catch (error) {
             console.error('Error requesting permissions:', error);
             // 웹 환경일 경우 오류 발생 가능 -> 그냥 진행
             this.close();
-            if (this.onComplete) this.onComplete();
+            this._emitPermissionResolution({
+                authorized: false,
+                status: this.lastKnownStatus,
+                reason: 'request_error'
+            });
         }
     }
 
@@ -131,7 +183,11 @@ export class PermissionModal extends Modal {
             skipBtn.onclick = () => {
                 console.log('Permission Skipped');
                 this.close();
-                if (this.onComplete) this.onComplete();
+                this._emitPermissionResolution({
+                    authorized: false,
+                    status: this.lastKnownStatus || 'not_requested',
+                    reason: 'user_skipped'
+                });
             };
         }
     }
