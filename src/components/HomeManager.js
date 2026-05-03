@@ -266,15 +266,13 @@ export class HomeManager {
                         </div>
 
                         <div class="flex gap-4 w-full pb-8">
-                            <button id="thanks-btn" class="flex-1 flex flex-col items-center justify-center gap-0.5 h-14 px-6 rounded-3xl border border-white/10 bg-transparent active:scale-95 transition-all">
+                            <button id="thanks-btn" class="flex-1 flex flex-row items-center justify-center gap-2 h-14 px-6 rounded-3xl border border-white/10 bg-transparent active:scale-95 transition-all">
                                 <span class="material-symbols-outlined text-[#B2B0B5] text-xl">delete</span>
-                                <span class="text-[#B2B0B5] font-bold text-[13px] leading-tight">고마웠어</span>
-                                <span class="text-[#B2B0B5]/60 text-[10px] font-medium">(삭제하기)</span>
+                                <span class="text-[#B2B0B5] font-semibold text-base">고마웠어</span>
                             </button>
-                            <button id="precious-btn" class="flex-1 flex flex-col items-center justify-center gap-0.5 h-14 px-6 rounded-3xl bg-primary shadow-[0_8px_24px_rgba(178,165,207,0.3)] active:scale-95 transition-all">
+                            <button id="precious-btn" class="flex-1 flex flex-row items-center justify-center gap-2 h-14 px-6 rounded-3xl bg-primary shadow-[0_8px_24px_rgba(178,165,207,0.3)] active:scale-95 transition-all">
                                 <span class="material-symbols-outlined text-dark-bg text-xl" style="font-variation-settings: 'FILL' 1">auto_awesome</span>
-                                <span class="text-dark-bg font-bold text-[13px] leading-tight">소중해</span>
-                                <span class="text-dark-bg/70 text-[10px] font-medium">(기록하기)</span>
+                                <span class="text-dark-bg font-bold text-base">소중해</span>
                             </button>
                         </div>
                     </div>
