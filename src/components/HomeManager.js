@@ -1,3 +1,4 @@
+
 /**
  * HomeManager - Daily Curation Dashboard
  * 리코코 메인 데일리 큐레이션 화면 (UI View Controller)
@@ -136,7 +137,7 @@ export class HomeManager {
                     <div class="flex-1 flex flex-col items-center justify-center text-center space-y-6 pb-32">
                         <span class="material-symbols-outlined text-6xl text-muted-lavender/30">no_photography</span>
                         <p class="text-muted-lavender text-sm leading-relaxed">${this.error}</p>
-                        <button id="retry-btn" class="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-primary font-bold text-sm">다시 시도하기</button>
+                        <button id="retry-btn" class="px-6 py-3 bg-white/5 border border-white/10 rounded-3xl text-primary font-bold text-sm">다시 시도하기</button>
                     </div>
                 </div>
             `;
@@ -180,7 +181,7 @@ export class HomeManager {
                         <div class="flex flex-col items-center space-y-6">
                             <span class="material-symbols-outlined text-6xl text-muted-lavender/30">no_photography</span>
                             <p class="text-muted-lavender text-sm font-medium">분석된 사진이 없습니다.</p>
-                            <button id="retry-btn" class="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-primary font-bold text-sm">다시 분석하기</button>
+                            <button id="retry-btn" class="px-6 py-2 bg-white/5 border border-white/10 rounded-3xl text-primary font-bold text-sm">다시 분석하기</button>
                         </div>
                     </div>
                 </div>
@@ -265,15 +266,15 @@ export class HomeManager {
                         </div>
 
                         <div class="flex gap-4 w-full pb-8">
-                            <button id="thanks-btn" class="flex-1 flex flex-col items-center justify-center gap-0.5 py-3 px-2 rounded-2xl border border-primary/30 bg-field-bg active:scale-95 transition-all">
-                                <span class="material-symbols-outlined text-primary text-xl">delete</span>
-                                <span class="text-primary font-bold text-[13px] leading-tight">고마웠어</span>
-                                <span class="text-primary/60 text-[10px] font-medium">(삭제하기)</span>
+                            <button id="thanks-btn" class="flex-1 flex flex-col items-center justify-center gap-0.5 h-14 px-6 rounded-3xl border border-white/10 bg-transparent active:scale-95 transition-all">
+                                <span class="material-symbols-outlined text-[#B2B0B5] text-xl">delete</span>
+                                <span class="text-[#B2B0B5] font-bold text-[13px] leading-tight">고마웠어</span>
+                                <span class="text-[#B2B0B5]/60 text-[10px] font-medium">(삭제하기)</span>
                             </button>
-                            <button id="precious-btn" class="flex-1 flex flex-col items-center justify-center gap-0.5 py-3 px-2 rounded-2xl bg-primary shadow-lg shadow-primary/20 active:scale-95 transition-all">
-                                <span class="material-symbols-outlined text-white text-xl" style="font-variation-settings: 'FILL' 1">auto_awesome</span>
-                                <span class="text-white font-bold text-[13px] leading-tight">소중해</span>
-                                <span class="text-white/70 text-[10px] font-medium">(기록하기)</span>
+                            <button id="precious-btn" class="flex-1 flex flex-col items-center justify-center gap-0.5 h-14 px-6 rounded-3xl bg-primary shadow-[0_8px_24px_rgba(178,165,207,0.3)] active:scale-95 transition-all">
+                                <span class="material-symbols-outlined text-dark-bg text-xl" style="font-variation-settings: 'FILL' 1">auto_awesome</span>
+                                <span class="text-dark-bg font-bold text-[13px] leading-tight">소중해</span>
+                                <span class="text-dark-bg/70 text-[10px] font-medium">(기록하기)</span>
                             </button>
                         </div>
                     </div>

@@ -98,7 +98,7 @@ export class MyPageManager {
 
                 <!-- Account Actions (mx-6 제거로 너비 확장) -->
                 <div class="px-6 mt-6 space-y-4">
-                    <div id="withdraw-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-[20px] border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
+                    <div id="withdraw-btn" class="flex items-center gap-4 bg-field-bg px-5 min-h-[64px] rounded-3xl border border-white/5 cursor-pointer active:bg-zinc-800 transition-colors">
                         <div class="w-6 text-red-400 flex items-center justify-center shrink-0">
                             <span class="material-symbols-outlined text-[22px]">person_remove</span>
                         </div>
@@ -215,12 +215,12 @@ export class MyPageManager {
                     <label class="text-sm text-gray-400 font-medium leading-snug" for="withdraw-confirm-checkbox">모든 데이터가 삭제됨을 확인했으며 이에 동의합니다.</label>
                 </div>
             </div>
-            <div class="fixed bottom-0 left-0 right-0 bg-dark-bg/95 backdrop-blur-xl border-t border-white/5 px-6 pt-10 z-50" style="padding-bottom: calc(env(safe-area-inset-bottom) + 61px);">
+            <div class="fixed bottom-0 left-0 right-0 bg-dark-bg/80 backdrop-blur-[20px] border-t border-white/5 px-6 pt-10 z-50" style="padding-bottom: calc(env(safe-area-inset-bottom) + 61px);">
                 <div class="max-w-md mx-auto flex flex-col gap-4">
-                    <button id="withdraw-keep-btn" class="w-full py-4 bg-primary text-dark-bg font-bold rounded-[20px] text-base active:scale-[0.97] transition-all">
+                    <button id="withdraw-keep-btn" class="w-full h-14 bg-primary text-dark-bg font-bold rounded-3xl text-base active:scale-[0.97] transition-all">
                         계정 유지하기
                     </button>
-                    <button id="withdraw-proceed-btn" class="w-full py-4 bg-zinc-800 text-gray-400 font-bold rounded-[20px] text-base active:scale-[0.97] transition-all disabled:opacity-50" disabled>
+                    <button id="withdraw-proceed-btn" class="w-full h-14 bg-transparent border border-white/10 text-[#B2B0B5] font-bold rounded-3xl text-base active:scale-[0.97] transition-all disabled:opacity-50" disabled>
                         탈퇴하기
                     </button>
                 </div>

@@ -206,7 +206,7 @@ export class ReportManager {
                         <p class="text-white/40 text-[13px] mt-1.5 font-medium">${loadingText}</p>
                     </div>
 
-                    <div class="bg-field-bg rounded-[28px] p-6 mb-4 border border-white/5 shadow-2xl">
+                    <div class="bg-field-bg rounded-3xl p-6 mb-4 border border-white/5 shadow-2xl">
                         <div class="flex justify-between items-start mb-8">
                             <div>
                                 <h3 class="text-[12px] font-medium text-white/40 mb-1">지난 7일간 비운 사진</h3>
@@ -215,7 +215,7 @@ export class ReportManager {
                                     <span class="text-xs font-semibold text-primary">장</span>
                                 </div>
                             </div>
-                            <div class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary ${loadingClass}">
+                            <div class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary ${loadingClass}">
                                 ${this.stats.weeklyChange}
                             </div>
                         </div>
@@ -241,7 +241,7 @@ export class ReportManager {
 
                     <div class="grid grid-cols-2 gap-3 mb-4">
                         <div class="bg-field-bg p-5 rounded-[24px] border border-white/5">
-                            <div class="size-9 flex items-center justify-center rounded-xl mb-3 bg-primary/10 text-primary">
+                            <div class="size-9 flex items-center justify-center rounded-3xl mb-3 bg-primary/10 text-primary">
                                 <span class="material-symbols-outlined text-xl">database</span>
                             </div>
                             <h4 class="text-[12px] text-white/40 font-medium">확보한 공간</h4>
@@ -250,7 +250,7 @@ export class ReportManager {
                             </p>
                         </div>
                         <div class="bg-field-bg p-5 rounded-[24px] border border-white/5">
-                            <div class="size-9 flex items-center justify-center rounded-xl mb-3 bg-primary/10 text-primary">
+                            <div class="size-9 flex items-center justify-center rounded-3xl mb-3 bg-primary/10 text-primary">
                                 <span class="material-symbols-outlined text-xl">auto_awesome</span>
                             </div>
                             <h4 class="text-[12px] text-white/40 font-medium">정리한 추억</h4>

@@ -122,7 +122,7 @@ export class PermissionModal extends Modal {
                     </div>
                 </main>
                 <footer class="flex flex-col items-center gap-3 pb-8 shrink-0">
-                    <button id="permission-allow-btn" class="w-full max-w-sm py-4.5 rounded-2xl bg-primary text-dark-bg font-bold text-lg active:scale-[0.98] transition-all">
+                    <button id="permission-allow-btn" class="w-full max-w-sm h-14 rounded-3xl bg-primary text-dark-bg font-bold text-lg active:scale-[0.98] transition-all">
                         사진첩 접근 허용하기
                     </button>
                     <button id="permission-skip-btn" class="py-2 text-white/40 text-sm font-medium hover:text-white/60 transition-colors">
