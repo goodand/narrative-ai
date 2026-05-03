@@ -3,8 +3,10 @@ export default {
   darkMode: "class",
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-    "./new_design/**/*.html"
+    "./src/**/*.{js,ts,jsx,tsx}"
+    // new_design/ removed: gitignored experimental folder; including it in
+    // content scanning makes dist CSS reproducibility-fragile (untracked
+    // local changes affect build output).
   ],
   theme: {
     extend: {

