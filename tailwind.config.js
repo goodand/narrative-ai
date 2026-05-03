@@ -19,10 +19,10 @@ export default {
         "display": ["Pretendard", "Plus Jakarta Sans", "sans-serif"],
         "sans": ["Pretendard", "Plus Jakarta Sans", "sans-serif"]
       },
-      borderRadius: {
-        "lg": "2rem",
-        "xl": "3rem"
-      },
+      // borderRadius override removed: Tailwind v4 build does not honor JS-config
+      // borderRadius extends; use Tailwind default scale + arbitrary values per spec.
+      // spec radius scale: 16 (rounded-2xl) / 24 (rounded-3xl) / 9999 (rounded-full).
+      // sheet-top 32 -> rounded-[32px] arbitrary or @theme {--radius-sheet: 32px} extension.
     },
   },
   plugins: [],
