@@ -243,7 +243,7 @@ export class HomeManager {
                         </div>
                         <div class="carousel-item">
                             <div class="relative aspect-[2/3] w-full">
-                                <div id="img-curr" class="w-full h-full bg-center bg-cover rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 bg-field-bg transition-all duration-300"
+                                <div id="img-curr" class="w-full h-full bg-center bg-cover rounded-[24px] shadow-[0_8px_24px_rgba(0,0,0,0.4)] border border-white/10 bg-field-bg transition-all duration-300 ease-in-out"
                                      style='${currentPhoto?.imageUrl ? `background-image: url("${currentPhoto.imageUrl}");` : ""}'>
                                 </div>
                                 ${currentPhoto?.score > 20 ? '<div class="absolute top-4 right-4 bg-primary/90 text-dark-bg text-[10px] font-black px-2 py-1 rounded-full shadow-lg">HIGH DETOX</div>' : ''}
@@ -266,11 +266,11 @@ export class HomeManager {
                         </div>
 
                         <div class="flex gap-4 w-full pb-8">
-                            <button id="thanks-btn" class="flex-1 flex flex-row items-center justify-center gap-2 h-14 px-6 rounded-3xl border border-white/10 bg-transparent active:scale-95 transition-all">
+                            <button id="thanks-btn" class="flex-1 flex flex-row items-center justify-center gap-2 h-14 px-6 rounded-3xl border border-white/10 bg-transparent active:scale-95 transition-all duration-300 ease-in-out">
                                 <span class="material-symbols-outlined text-[#B2B0B5] text-xl">delete</span>
                                 <span class="text-[#B2B0B5] font-semibold text-base">고마웠어</span>
                             </button>
-                            <button id="precious-btn" class="flex-1 flex flex-row items-center justify-center gap-2 h-14 px-6 rounded-3xl bg-primary shadow-[0_8px_24px_rgba(178,165,207,0.3)] active:scale-95 transition-all">
+                            <button id="precious-btn" class="flex-1 flex flex-row items-center justify-center gap-2 h-14 px-6 rounded-3xl bg-primary shadow-[0_8px_24px_rgba(178,165,207,0.3)] active:scale-95 transition-all duration-300 ease-in-out">
                                 <span class="material-symbols-outlined text-dark-bg text-xl" style="font-variation-settings: 'FILL' 1">auto_awesome</span>
                                 <span class="text-dark-bg font-bold text-base">소중해</span>
                             </button>

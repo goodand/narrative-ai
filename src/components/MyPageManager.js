@@ -59,7 +59,7 @@ export class MyPageManager {
         const profilePulse = this.isHydratingUser ? 'animate-pulse opacity-60' : '';
 
         this.container.innerHTML = `
-            <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-md" style="padding-top: env(safe-area-inset-top);">
+            <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-[20px]" style="padding-top: env(safe-area-inset-top);">
                 <div class="flex items-center px-4 py-4 justify-between max-w-md mx-auto">
                     <div id="mypage-back" class="flex size-10 items-center justify-center cursor-pointer active:scale-90 transition-transform">
                         <span class="material-symbols-outlined text-2xl text-white">arrow_back_ios</span>
@@ -160,7 +160,7 @@ export class MyPageManager {
      */
     _showWithdrawView() {
         this.container.innerHTML = `
-            <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-md" style="padding-top: env(safe-area-inset-top);">
+            <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-[20px]" style="padding-top: env(safe-area-inset-top);">
                 <div class="flex items-center p-4 justify-between max-w-md mx-auto">
                     <div id="withdraw-back" class="flex size-10 items-center justify-center cursor-pointer hover:bg-white/5 rounded-full transition-colors">
                         <span class="material-symbols-outlined text-2xl text-white">arrow_back_ios</span>
