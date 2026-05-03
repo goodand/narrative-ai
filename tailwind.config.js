@@ -10,14 +10,14 @@ export default {
     extend: {
       colors: {
         "primary": "#B2A5CF",
-        "dark-bg": "#121212",
-        "field-bg": "#1E1E1E",
+        "dark-bg": "#0F0E10",
+        "field-bg": "#1C1B1E",
         "muted-lavender": "#A199B4",
         "brand": "#B2A5CF" // Keeping alias for compatibility if needed
       },
       fontFamily: {
-        "display": ["Plus Jakarta Sans", "Noto Sans KR", "sans-serif"],
-        "sans": ["Plus Jakarta Sans", "Noto Sans KR", "sans-serif"]
+        "display": ["Pretendard", "Plus Jakarta Sans", "sans-serif"],
+        "sans": ["Pretendard", "Plus Jakarta Sans", "sans-serif"]
       },
       borderRadius: {
         "lg": "2rem",
