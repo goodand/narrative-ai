@@ -226,7 +226,7 @@ export class MyPageManager {
                 </div>
             </div>
 
-            <div id="withdraw-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center px-8 hidden">
+            <div id="withdraw-modal" class="fixed inset-0 bg-black/70 backdrop-blur-[20px] z-[60] flex items-center justify-center px-8 hidden">
                 <div class="bg-field-bg w-full max-w-xs rounded-[28px] border border-white/5 overflow-hidden shadow-2xl">
                     <div class="p-8 text-center">
                         <h3 class="text-xl font-bold mb-3 tracking-tight text-white">탈퇴를 진행할까요?</h3>

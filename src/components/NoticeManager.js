@@ -37,7 +37,7 @@ export class NoticeManager {
                     </div>
 
                     <!-- Main Settings Card -->
-                    <div class="bg-field-bg rounded-[2rem] p-6 shadow-xl border border-white/5 backdrop-blur-sm relative overflow-hidden group">
+                    <div class="bg-field-bg rounded-[2rem] p-6 shadow-xl border border-white/5 backdrop-blur-[20px] relative overflow-hidden group">
                         <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50 pointer-events-none"></div>
                         <div class="flex flex-col gap-6 relative z-10">
                             <!-- Toggle Row -->
