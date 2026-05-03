@@ -17,7 +17,7 @@ export class NoticeManager {
             <div class="flex flex-col h-full bg-dark-bg text-white overflow-hidden">
                 <!-- Top App Bar -->
                 <header class="flex items-center justify-between px-4 pb-3 shrink-0 relative z-10" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
-                    <button id="notice-back" class="flex items-center justify-center w-10 h-10 rounded-full text-white hover:bg-white/10 transition-colors">
+                    <button id="notice-back" class="flex items-center justify-center w-10 h-10 rounded-full text-white hover:bg-white/10 transition-colors duration-200 ease-in-out">
                         <span class="material-symbols-outlined text-2xl">arrow_back_ios_new</span>
                     </button>
                     <h1 class="text-lg font-semibold tracking-tight absolute left-1/2 -translate-x-1/2">알림 설정</h1>
@@ -52,7 +52,7 @@ export class NoticeManager {
                                 <!-- Toggle Switch -->
                                 <label class="relative inline-flex items-center cursor-pointer">
                                     <input id="notice-toggle" type="checkbox" ${this.isNoticeEnabled ? 'checked' : ''} class="sr-only peer"/>
-                                    <div class="w-14 h-8 bg-zinc-800 border border-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary peer-checked:border-primary"></div>
+                                    <div class="w-14 h-8 bg-zinc-800 border border-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all duration-300 ease-in-out peer-checked:bg-primary peer-checked:border-primary"></div>
                                 </label>
                             </div>
                             <!-- Divider -->

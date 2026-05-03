@@ -19,11 +19,11 @@ export class InputManager {
         this.container.innerHTML = `
             <!-- Image Upload Area -->
             <div class="flex flex-col items-center px-6 mx-6 pt-12 pb-8">
-                <div id="drop-zone" class="relative w-full max-w-[240px] aspect-[2/3] overflow-hidden rounded-[2rem] border-2 border-dashed border-white/20 bg-white/5 hover:bg-white/10 transition-colors group cursor-pointer flex items-center justify-center">
+                <div id="drop-zone" class="relative w-full max-w-[240px] aspect-[2/3] overflow-hidden rounded-[2rem] border-2 border-dashed border-white/20 bg-white/5 hover:bg-white/10 transition-colors duration-200 ease-in-out group cursor-pointer flex items-center justify-center">
                     <input type="file" id="image-input" accept="image/*" class="hidden">
                     
                     <!-- Placeholder / Background -->
-                    <div id="upload-placeholder" class="flex flex-col items-center justify-center opacity-50 group-hover:opacity-100 transition-opacity">
+                    <div id="upload-placeholder" class="flex flex-col items-center justify-center opacity-50 group-hover:opacity-100 transition-opacity duration-200 ease-in-out">
                         <span class="material-symbols-outlined text-4xl text-white/30">image</span>
                     </div>
 

@@ -146,15 +146,16 @@ main {
     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-/* Modal Backdrop */
+/* Modal Backdrop — spec R8 glass-container metric (rgba(20,19,21,0.8) + blur 20px) */
 #suggestion-modal,
 #settings-modal,
 #edit-confirm-modal,
 #onboarding-modal,
 #auth-modal,
 #permission-modal {
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(8px);
+    background: rgba(20, 19, 21, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
 
 /* Onboarding Specific Styles */

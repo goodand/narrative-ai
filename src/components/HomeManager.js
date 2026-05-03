@@ -221,7 +221,7 @@ export class HomeManager {
                             <span class="text-[10px] font-medium text-primary italic">${profileName}님, 함께 정리해요</span>
                         </div>
                         <div class="relative h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                            <div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all" style="width: ${Math.max(0, (7 - visibleMax) * (100 / 7))}%;"></div>
+                            <div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-300 ease-in-out" style="width: ${Math.max(0, (7 - visibleMax) * (100 / 7))}%;"></div>
                         </div>
                     </div>
                 </div>
