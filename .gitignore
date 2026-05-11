@@ -92,3 +92,22 @@ plugin_backup/
 .maestro/*.png
 
 .user
+
+# Build artifacts
+build-temp/
+control/
+
+# Personal / IDE-local backups (do not commit)
+.history_uncommitted_diff.patch
+
+# Per-session runtime logs (backend)
+backend/current_live_log.txt
+
+# Local Codex / agent reports (not part of project source)
+codex-reports/
+
+# Separate design-system workspace (lives in its own repo)
+recoco-design-system/
+
+# Local audit / verification scratch (separate workflow)
+docs/verification/

@@ -1,6 +1,13 @@
 /**
- * Module Index - Central Export Point
- * 모든 모듈의 중앙 export 지점
+ * Module Index — Central export point for legacy compatibility.
+ *
+ * Slice 6 cleanup:
+ *   - `StateManager` / `store` public export removed (legacy daily reset is
+ *     imported directly by `main.js`; no other consumer depends on it).
+ *   - `SettingsModal` export removed (class deleted in slice 6 M4).
+ *
+ * Headless core export lives separately at `@recoco/core`
+ * (`packages/core/src/index.js`).
  */
 
 // Constants
@@ -11,9 +18,6 @@ export { fetchWithRetry, delay } from './utils/fetch.js';
 export { convertDMSToDecimal, formatGPSCoordinates, decimalToDMS } from './utils/geo.js';
 export { handleError, showToast, ErrorLevel } from './utils/errorHandler.js';
 
-// State
-export { StateManager, store } from './state/StateManager.js';
-
 // Services
 export { GeminiService } from './services/GeminiService.js';
 
@@ -21,7 +25,7 @@ export { GeminiService } from './services/GeminiService.js';
 export { ImageProcessor, imageProcessor } from './processors/ImageProcessor.js';
 
 // Components
-export { Modal, SuggestionModal, SettingsModal, ConfirmModal } from './components/Modal.js';
+export { Modal, SuggestionModal, ConfirmModal } from './components/Modal.js';
 export { OnboardingModal } from './components/OnboardingModal.js';
 export { AuthModal } from './components/AuthModal.js';
 export { PermissionModal } from './components/PermissionModal.js';
