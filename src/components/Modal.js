@@ -117,56 +117,8 @@ export class SuggestionModal extends Modal {
     }
 }
 
-/**
- * SettingsModal - Modal for system settings
- */
-export class SettingsModal extends Modal {
-    constructor(element, inputElement) {
-        super(element);
-        this.inputElement = typeof inputElement === 'string'
-            ? document.getElementById(inputElement)
-            : inputElement;
-    }
-
-    /**
-     * Get the current input value
-     * @returns {string}
-     */
-    getValue() {
-        return this.inputElement?.value.trim() || '';
-    }
-
-    /**
-     * Set the input value
-     * @param {string} value
-     */
-    setValue(value) {
-        if (this.inputElement) {
-            this.inputElement.value = value;
-        }
-    }
-
-    /**
-     * Setup save button with callback
-     * @param {string|HTMLElement} saveButton
-     * @param {Function} onSave
-     */
-    setSaveButton(saveButton, onSave) {
-        const btn = typeof saveButton === 'string'
-            ? document.getElementById(saveButton)
-            : saveButton;
-
-        if (btn) {
-            btn.onclick = () => {
-                const value = this.getValue();
-                if (value) {
-                    onSave(value);
-                }
-                this.close();
-            };
-        }
-    }
-}
+// SettingsModal removed in slice 6 (M4): no callers remained after slice 5e.
+// Re-add via dedicated component file if a future settings route needs it.
 
 /**
  * ConfirmModal - Modal for confirmation dialogs

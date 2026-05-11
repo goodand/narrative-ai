@@ -1,14 +1,18 @@
 /**
- * InputManager - Handles Image Upload and Context Input
- * 이미지 업로드 및 의미/태그 입력 화면 관리
+ * InputManager - Handles Image Upload and Context Input.
+ *
+ * Slice 5c: legacy state import removed. All image and text state flows
+ * through `core.input` (`processFile / setTextFields / setPreviewImage /
+ * reset / getInputData / getViewModel`). DropZone receives `{ core }` and
+ * directly invokes `core.input.processFile()`.
  */
 
 import { DropZone } from './DropZone.js';
-import { store } from '../state/StateManager.js';
 
 export class InputManager {
-    constructor(containerId) {
+    constructor(containerId, { core } = {}) {
         this.container = document.getElementById(containerId);
+        this.core = core || null;
         this.dropZone = null;
         this.render();
     }
@@ -21,7 +25,7 @@ export class InputManager {
             <div class="flex flex-col items-center px-6 mx-6 pt-12 pb-8">
                 <div id="drop-zone" class="relative w-full max-w-[240px] aspect-[2/3] overflow-hidden rounded-[2rem] border-2 border-dashed border-white/20 bg-white/5 hover:bg-white/10 transition-colors duration-200 ease-in-out group cursor-pointer flex items-center justify-center">
                     <input type="file" id="image-input" accept="image/*" class="hidden">
-                    
+
                     <!-- Placeholder / Background -->
                     <div id="upload-placeholder" class="flex flex-col items-center justify-center opacity-50 group-hover:opacity-100 transition-opacity duration-200 ease-in-out">
                         <span class="material-symbols-outlined text-4xl text-white/30">image</span>
@@ -33,7 +37,7 @@ export class InputManager {
                     </div>
                 </div>
                 <p class="mt-4 text-muted-lavender text-[10px] font-bold uppercase tracking-[0.2em]">Selected Moment</p>
-                
+
                 <!-- Hidden Meta Container for JS compatibility -->
                 <div class="hidden" id="meta-container">
                     <div id="meta-date"></div>
@@ -57,28 +61,50 @@ export class InputManager {
         `;
 
         this._initDropZone();
+        this._bindTextInputs();
     }
 
     _initDropZone() {
         this.dropZone = new DropZone({
-            dropZone: 'drop-zone', 
-            input: 'image-input', 
-            preview: 'image-preview', 
-            container: 'preview-container', 
+            core: this.core,
+            dropZone: 'drop-zone',
+            input: 'image-input',
+            preview: 'image-preview',
+            container: 'preview-container',
             placeholder: 'upload-placeholder',
-            metaElements: { date: 'meta-date', gps: 'meta-gps' },
-            onFileLoaded: (data) => {
-                store.setState('base64', data.base64);
-                store.setState('dataUrl', data.dataUrl);
-                store.setState('metadata', data.metadata);
-            }
+            metaElements: { date: 'meta-date', gps: 'meta-gps' }
         });
     }
 
+    _bindTextInputs() {
+        const meaningInput = document.getElementById('meaning-input');
+        const tagsInput = document.getElementById('tags-input');
+
+        if (meaningInput) {
+            meaningInput.oninput = (e) => {
+                if (this.core && this.core.input) {
+                    this.core.input.setTextFields({ meaning: e.target.value });
+                }
+            };
+        }
+
+        if (tagsInput) {
+            tagsInput.oninput = (e) => {
+                if (this.core && this.core.input) {
+                    this.core.input.setTextFields({ tags: e.target.value });
+                }
+            };
+        }
+    }
+
     /**
-     * 입력된 데이터(의미, 태그)를 가져옵니다.
+     * 입력된 데이터(의미, 태그)를 가져옵니다. 호환성용 래퍼.
      */
     getInputData() {
+        if (this.core && this.core.input) {
+            const data = this.core.input.getInputData();
+            return { meaning: data.meaning, tags: data.tags };
+        }
         const meaningInput = document.getElementById('meaning-input');
         const tagsInput = document.getElementById('tags-input');
         return {
@@ -88,27 +114,23 @@ export class InputManager {
     }
 
     /**
-     * 화면 초기화 (입력 필드 비우기 등)
+     * 화면 초기화 (입력 필드 비우기 + 이미지 프리뷰 해제 + core.input 리셋).
      */
     reset() {
         const meaningInput = document.getElementById('meaning-input');
         const tagsInput = document.getElementById('tags-input');
         if (meaningInput) meaningInput.value = '';
         if (tagsInput) tagsInput.value = '';
-        
-        // DropZone 리셋 로직이 필요하다면 여기에 추가 (현재 DropZone은 상태를 직접 관리하지 않음)
-        // 이미지 프리뷰 초기화
+
         const previewImg = document.getElementById('image-preview');
         const previewContainer = document.getElementById('preview-container');
         const uploadPlaceholder = document.getElementById('upload-placeholder');
-        
+
         if (previewImg) previewImg.src = '';
         if (previewContainer) previewContainer.classList.add('hidden');
         if (uploadPlaceholder) uploadPlaceholder.classList.remove('hidden');
 
-        store.setState('base64', null);
-        store.setState('dataUrl', null);
-        store.setState('metadata', null);
+        if (this.core && this.core.input) this.core.input.reset();
     }
 
     /**
@@ -126,10 +148,9 @@ export class InputManager {
             previewContainer?.classList.remove('hidden');
             uploadPlaceholder?.classList.add('hidden');
 
-            const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
-            store.setState('dataUrl', dataUrl);
-            store.setState('base64', base64);
-            store.setState('metadata', metadata);
+            if (this.core && this.core.input) {
+                this.core.input.setPreviewImage({ dataUrl, metadata });
+            }
         }
     }
 }

@@ -1,77 +1,61 @@
 /**
- * PermissionModal - Album access permission request modal
- * 사진첩 접근 권한 요청을 담당하는 모달 (회원가입 후 표시)
+ * PermissionModal - Album access permission request modal.
+ *
+ * Slice 5e (Decisions #1A, #5C): direct platform plugin imports removed. The
+ * modal becomes DOM-only and routes all permission state through
+ * `core.permissions`:
+ *   - `checkAndOpen()`  → `core.permissions.checkPhotoPermission()` (controller
+ *                         owns the 2500ms timeout + web bypass)
+ *   - allow button       → `core.permissions.requestPhotoPermission()`
+ *   - skip button        → `core.permissions.skipPhotoPermission()`
+ *
+ * The controller writes `store.permissions.photo.*`. HomeController's
+ * permission `false→true` subscription owns the daily-curation load trigger
+ * (Decision #5C) — this modal does NOT call HomeManager directly. The modal
+ * watches the store to decide visibility (open/close) on its own.
  */
 
 import { Modal } from './Modal.js';
-import { Capacitor } from '@capacitor/core';
-import RecocolPhotos from '../plugins/RecocolPhotos.ts';
 
 export class PermissionModal extends Modal {
-    constructor(element) {
+    constructor(element, { core } = {}) {
         super(element);
-        this.onPermissionResolved = null;
-        this.lastKnownStatus = null;
+        this.core = core || null;
         this.contentElement = this.element.querySelector('#permission-content');
+        this._unsubscribeStore = null;
+
+        if (this.core && this.core.store) {
+            this._unsubscribeStore = this.core.store.subscribe((next) => {
+                this._reactToVm(next);
+            });
+        }
     }
 
-    _emitPermissionResolution({ authorized, status = null, reason }) {
-        const payload = { authorized, status, reason };
-        if (status) this.lastKnownStatus = status;
-        if (this.onPermissionResolved) this.onPermissionResolved(payload);
+    destroy() {
+        if (typeof this._unsubscribeStore === 'function') {
+            this._unsubscribeStore();
+            this._unsubscribeStore = null;
+        }
     }
 
     async checkAndOpen() {
-        if (!Capacitor.isNativePlatform()) {
-            console.log('[PERM] Skipping photo permissions on web environment');
-            this._emitPermissionResolution({
-                authorized: true,
-                status: 'authorized',
-                reason: 'web_non_native'
-            });
+        if (!this.core || !this.core.permissions) return;
+        await this.core.permissions.checkPhotoPermission();
+        const vm = this.core.permissions.getViewModel().photo;
+        if (vm.authorized) {
+            this.close();
             return;
         }
+        if (vm.shouldPrompt || vm.reason === 'timeout_prompt' || vm.reason === 'check_error' || vm.reason === 'needs_prompt') {
+            this.open();
+        }
+    }
 
-        let isCompleted = false;
-
-        // Safety timeout: 2.5 seconds to prevent boot hang
-        const timeout = setTimeout(() => {
-            if (!isCompleted) {
-                console.warn('[PERM] Permission check timed out. Opening permission modal.');
-                isCompleted = true;
-                this.open();
-            }
-        }, 2500);
-
-        try {
-            console.log('[PERM] Checking permissions...');
-            const status = await RecocolPhotos.getPhotoLibraryPermissionStatus();
-            console.log('[PERM] Status:', status.status, 'Authorized:', status.authorized);
-
-            if (!isCompleted || status.authorized) {
-                clearTimeout(timeout);
-                this.lastKnownStatus = status.status || null;
-
-                if (status.authorized) {
-                    isCompleted = true;
-                    this.close();
-                    this._emitPermissionResolution({
-                        authorized: true,
-                        status: status.status || 'authorized',
-                        reason: 'already_authorized'
-                    });
-                    return;
-                }
-                isCompleted = true;
-                this.open();
-            }
-        } catch (error) {
-            console.error('[PERM] Error checking permissions:', error);
-            if (!isCompleted) {
-                clearTimeout(timeout);
-                isCompleted = true;
-                this.open();
-            }
+    _reactToVm(state) {
+        const photo = state && state.permissions && state.permissions.photo;
+        if (!photo) return;
+        if (photo.authorized) {
+            this.close();
         }
     }
 
@@ -136,38 +120,13 @@ export class PermissionModal extends Modal {
     }
 
     async _handlePermissionRequest() {
-        try {
-            console.log('Requesting native photo library permissions...');
-            const result = await RecocolPhotos.requestPhotoLibraryPermission();
-            console.log('Permission result:', result.status);
-            this.lastKnownStatus = result.status || this.lastKnownStatus;
-
-            if (result.authorized) {
-                this.close();
-                this._emitPermissionResolution({
-                    authorized: true,
-                    status: result.status || 'authorized',
-                    reason: 'user_granted'
-                });
-            } else {
-                console.warn('Permission denied by user');
-                // 거부된 경우에도 일단 닫거나 안내 문구를 띄울 수 있음
-                this.close();
-                this._emitPermissionResolution({
-                    authorized: false,
-                    status: result.status || 'denied',
-                    reason: 'user_denied'
-                });
-            }
-        } catch (error) {
-            console.error('Error requesting permissions:', error);
-            // 웹 환경일 경우 오류 발생 가능 -> 그냥 진행
+        if (!this.core || !this.core.permissions) return;
+        await this.core.permissions.requestPhotoPermission();
+        const vm = this.core.permissions.getViewModel().photo;
+        if (vm.authorized) {
             this.close();
-            this._emitPermissionResolution({
-                authorized: false,
-                status: this.lastKnownStatus,
-                reason: 'request_error'
-            });
+        } else {
+            this.close();
         }
     }
 
@@ -181,13 +140,10 @@ export class PermissionModal extends Modal {
 
         if (skipBtn) {
             skipBtn.onclick = () => {
-                console.log('Permission Skipped');
+                if (this.core && this.core.permissions) {
+                    this.core.permissions.skipPhotoPermission();
+                }
                 this.close();
-                this._emitPermissionResolution({
-                    authorized: false,
-                    status: this.lastKnownStatus || 'not_requested',
-                    reason: 'user_skipped'
-                });
             };
         }
     }

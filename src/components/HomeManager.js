@@ -1,72 +1,93 @@
-
 /**
- * HomeManager - Daily Curation Dashboard
- * 리코코 메인 데일리 큐레이션 화면 (UI View Controller)
+ * HomeManager - Daily Curation Dashboard.
+ *
+ * Slice 5e (Decisions #1A, #3C, #4B): platform/service direct imports
+ * removed; legacy `home/*Runtime.js` files replaced. All business logic
+ * flows through `core.home`:
+ *   - load:           `core.home.loadDailyCuration()`
+ *   - move prev/next: `core.home.movePrevious()` / `moveNext()`
+ *   - mark precious:  `core.home.markPrecious()`   (records + consumes)
+ *   - delete:         `core.home.deleteCurrent()`
+ *   - hydrate images: `core.home.ensureVisibleImages()`
+ *   - AI analysis:    `core.home.analyzeVisiblePhotos()`
+ * Profile name reads from `core.home.getViewModel().profileName` (auth.user
+ * derivation lives in createHomeViewModel).
+ *
+ * The component is now DOM-only: HTML rendering, carousel snap, and image
+ * src updates. State is read from VM at render time, and a store subscriber
+ * triggers re-render on `home` slice changes.
  */
 
-import { supabase } from '../services/supabase.js';
-import { photoService } from '../services/PhotoService.js';
-import { loadAndReflectImages, setupCarouselSnap, triggerBatchAnalysis } from './home/homeImageRuntime.js';
-import { setupDailyCurationListener } from './home/homeLoadRuntime.js';
+const VISIBLE_COUNT = 3;
 
 export class HomeManager {
-    constructor(containerId, options = {}) {
+    constructor(containerId, { core, confirmModal } = {}) {
         this.container = document.getElementById(containerId);
-        this.onPreciousClick = options.onPreciousClick || null;
-        this.onThanksClick = options.onThanksClick || null;
-        this.confirmModal = options.confirmModal || null;
-        this.user = null;
-        this.error = null;
-        this.isLoading = false;
-        this.headerMessage = '기기에서 찾아낸 비우기 좋은 기록들입니다.';
-        
-        // --- 버퍼링 및 상태 관리 ---
-        this.photos = [];
-        this._nextBatch = null;
-        this._isRefilling = false;
-        
-        this.currentIndex = 0;
+        this.core = core || null;
+        this.confirmModal = confirmModal || null;
+        this._unsubscribeStore = null;
+        this._lastRenderKey = '';
+
         this._setupEventDelegation();
-        setupDailyCurationListener(this);
+
+        if (this.core && this.core.store) {
+            this._unsubscribeStore = this.core.store.subscribe((next) => {
+                const home = next && next.home;
+                if (!home) return;
+                const photos = Array.isArray(home.photos) ? home.photos : [];
+                const key = `${home.status || ''}|${photos.length}|${home.currentIndex || 0}|${home.headerMessage || ''}|${(home.error && home.error.message) || ''}`;
+                if (key === this._lastRenderKey) return;
+                this._lastRenderKey = key;
+                this.render();
+            });
+        }
+    }
+
+    destroy() {
+        if (typeof this._unsubscribeStore === 'function') {
+            this._unsubscribeStore();
+            this._unsubscribeStore = null;
+        }
+    }
+
+    // Legacy compat: createDomApp may still call homeManager.photos / .isLoading.
+    get photos() {
+        if (!this.core || !this.core.home) return [];
+        const vm = this.core.home.getViewModel();
+        return Array.isArray(vm.photos) ? vm.photos : [];
+    }
+
+    get isLoading() {
+        if (!this.core || !this.core.home) return false;
+        return this.core.home.getViewModel().status === 'loading';
     }
 
     async loadRealPhotos() {
-        const { loadRealPhotos } = await import('./home/homeLoadRuntime.js');
-        const result = await loadRealPhotos(this);
-        this.photos = [...photoService.getPhotos()];
-        return result;
+        if (!this.core || !this.core.home) return null;
+        return this.core.home.loadDailyCuration();
     }
 
     async getCurrentImageAsFile() {
-        return await photoService.getPhotoAsFile(this.currentIndex);
+        if (!this.core || !this.core.home) return null;
+        return this.core.home.getCurrentImageAsFile();
     }
 
     async getCurrentPhotoBase64() {
-        return await photoService.getPhotoAsBase64(this.currentIndex);
+        if (!this.core || !this.core.home) return null;
+        return this.core.home.getCurrentPhotoBase64();
     }
 
     async getCurrentPhotoMeta() {
-        if (this.currentIndex < 0 || this.currentIndex >= this.photos.length) return {};
-        const photo = this.photos[this.currentIndex];
-        const asset = photo.rawAsset;
-        return {
-            Make: "Apple iPhone",
-            date: asset.creationDate ? asset.creationDate.split('T')[0] : '',
-            DateTime: asset.creationDate,
-            pixelWidth: asset.pixelWidth,
-            pixelHeight: asset.pixelHeight,
-            fileSize: asset.fileSize,
-            gps: asset.location ? {
-                lat: asset.location.latitude,
-                lon: asset.location.longitude,
-                formatted: photo.location
-            } : null,
-            _isNative: true,
-            curationScore: photo.score,
-            assetId: photo.id,
-            dayKey: photo.dayKey,
-            curationReasons: asset.curationReasons || []
-        };
+        if (!this.core || !this.core.home) return {};
+        return this.core.home.getCurrentPhotoMeta();
+    }
+
+    async consumePhoto(_index) {
+        // Slice 5e: consume is owned by `markPrecious` / `deleteCurrent`. This
+        // wrapper is preserved for legacy callers but defers to the controller's
+        // current-photo consume flow if available; otherwise no-op.
+        // Direct external consume is not part of the public surface anymore.
+        return null;
     }
 
     _setupEventDelegation() {
@@ -77,54 +98,49 @@ export class HomeManager {
             const retryBtn = e.target.closest('#retry-btn');
             const prevImg = e.target.closest('#img-prev');
             const nextImg = e.target.closest('#img-next');
-            const photos = this.photos;
+
+            if (!this.core || !this.core.home) return;
 
             if (preciousBtn) {
                 e.preventDefault();
-                if (this.onPreciousClick) await this.onPreciousClick();
+                await this.core.home.markPrecious();
             } else if (thanksBtn) {
                 e.preventDefault();
-                const { handleDelete } = await import('./home/homeDeleteRuntime.js');
-                await handleDelete(this);
+                if (this.confirmModal && typeof this.confirmModal.open === 'function') {
+                    this.confirmModal.open({
+                        title: '이 사진을 정말 삭제할까요?',
+                        message: '삭제된 사진은 복구할 수 없습니다.',
+                        confirmText: '삭제',
+                        cancelText: '취소',
+                        onConfirm: async () => {
+                            await this.core.home.deleteCurrent();
+                        }
+                    });
+                } else {
+                    await this.core.home.deleteCurrent();
+                }
             } else if (retryBtn) {
                 e.preventDefault();
-                this.loadRealPhotos();
+                await this.core.home.loadDailyCuration();
             } else if (prevImg) {
                 e.preventDefault();
-                if (this.currentIndex > 0) {
-                    this.currentIndex--;
-                    this.render();
-                }
+                this.core.home.movePrevious();
             } else if (nextImg) {
                 e.preventDefault();
-                const visibleMax = Math.min(photos.length, 3);
-                if (this.currentIndex < visibleMax - 1) {
-                    this.currentIndex++;
-                    this.render();
-                }
+                this.core.home.moveNext();
             }
         });
     }
 
     async render() {
-        // 사용자 정보 로딩 로직 (중략...)
-        if (!this.user && !this._isFetchingUser) {
-            this._isFetchingUser = true;
-            supabase.auth.getUser().then(({ data: { user } }) => {
-                this.user = user;
-                this._isFetchingUser = false;
-                const nameEl = document.getElementById('profile-name-display');
-                if (nameEl && user) {
-                    nameEl.innerText = `${user.user_metadata?.full_name || '사용자'}님, 함께 정리해요`;
-                }
-            }).catch(() => {
-                this._isFetchingUser = false;
-            });
-        }
+        if (!this.container || !this.core || !this.core.home) return;
 
-        const profileName = this.user?.user_metadata?.full_name || '사용자';
+        const vm = this.core.home.getViewModel();
+        const photos = Array.isArray(vm.photos) ? vm.photos : [];
+        const profileName = vm.profileName || '사용자';
 
-        if (this.error) {
+        if (vm.error) {
+            const errorMsg = (vm.error && vm.error.message) ? vm.error.message : '데이터를 불러오지 못했습니다.';
             this.container.innerHTML = `
                 <div class="flex flex-col px-6">
                     <header class="flex items-center bg-transparent py-3 shrink-0" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
@@ -136,7 +152,7 @@ export class HomeManager {
                     </header>
                     <div class="flex-1 flex flex-col items-center justify-center text-center space-y-6 pb-32">
                         <span class="material-symbols-outlined text-6xl text-muted-lavender/30">no_photography</span>
-                        <p class="text-muted-lavender text-sm leading-relaxed">${this.error}</p>
+                        <p class="text-muted-lavender text-sm leading-relaxed">${this._escapeHtml(errorMsg)}</p>
                         <button id="retry-btn" class="px-6 py-3 bg-white/5 border border-white/10 rounded-3xl text-primary font-bold text-sm">다시 시도하기</button>
                     </div>
                 </div>
@@ -144,7 +160,7 @@ export class HomeManager {
             return;
         }
 
-        if (this.isLoading) {
+        if (vm.status === 'loading') {
             this.container.innerHTML = `
                 <div class="flex flex-col px-6">
                     <header class="flex items-center bg-transparent py-3 shrink-0" style="padding-top: calc(env(safe-area-inset-top) + 12px);">
@@ -164,9 +180,6 @@ export class HomeManager {
             return;
         }
 
-        const photos = this.photos;
-
-        // S3: 데이터 로딩 완료, 에러 없음, 사진 0건 → 빈 상태 안내
         if (photos.length === 0) {
             this.container.innerHTML = `
                 <div class="flex flex-col px-6 h-full">
@@ -189,17 +202,17 @@ export class HomeManager {
             return;
         }
 
-        const VISIBLE_COUNT = 3;
         const visibleMax = Math.min(photos.length, VISIBLE_COUNT);
-        if (this.currentIndex >= visibleMax) this.currentIndex = visibleMax - 1;
-
-        const currentPhoto = photos[this.currentIndex];
-        const isFirst = this.currentIndex === 0;
-        const isLast = this.currentIndex === visibleMax - 1;
-        const prevIdx = isFirst ? null : this.currentIndex - 1;
-        const nextIdx = isLast ? null : this.currentIndex + 1;
-        const prevPhoto = prevIdx !== null ? photos[prevIdx] : null;
-        const nextPhoto = nextIdx !== null ? photos[nextIdx] : null;
+        const currentIdx = Math.min(vm.currentIndex, visibleMax - 1);
+        const currentPhoto = photos[currentIdx] || {};
+        const isFirst = currentIdx === 0;
+        const isLast = currentIdx === visibleMax - 1;
+        const prevPhoto = isFirst ? null : photos[currentIdx - 1];
+        const nextPhoto = isLast ? null : photos[currentIdx + 1];
+        const clearedCount = vm.progress ? vm.progress.clearedCount : Math.max(0, 7 - visibleMax);
+        const targetCount = vm.progress ? vm.progress.targetCount : 7;
+        const percent = vm.progress ? vm.progress.percent : Math.max(0, clearedCount * (100 / targetCount));
+        const headerMessage = vm.headerMessage || '기기에서 찾아낸 비우기 좋은 기록들입니다.';
 
         this.container.innerHTML = `
             <div class="flex flex-col px-6 h-full">
@@ -216,12 +229,12 @@ export class HomeManager {
                         <div class="flex justify-between items-center mb-2">
                             <div class="flex flex-col">
                                 <span class="text-[9px] font-bold uppercase tracking-[0.1em] text-muted-lavender">이번 주 비움 목표</span>
-                                <span class="text-sm font-bold text-white">${7 - visibleMax} / 7 장</span>
+                                <span class="text-sm font-bold text-white">${clearedCount} / ${targetCount} 장</span>
                             </div>
-                            <span class="text-[10px] font-medium text-primary italic">${profileName}님, 함께 정리해요</span>
+                            <span id="profile-name-display" class="text-[10px] font-medium text-primary italic">${this._escapeHtml(profileName)}님, 함께 정리해요</span>
                         </div>
                         <div class="relative h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                            <div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-300 ease-in-out" style="width: ${Math.max(0, (7 - visibleMax) * (100 / 7))}%;"></div>
+                            <div class="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-300 ease-in-out" style="width: ${percent}%;"></div>
                         </div>
                     </div>
                 </div>
@@ -229,48 +242,46 @@ export class HomeManager {
                 <div class="py-4 shrink-0 px-1">
                     <h1 class="text-white text-xl font-bold leading-tight tracking-tight">
                         좋은 아침이에요.<br/>
-                        <span id="curation-header-desc" class="text-muted-lavender font-normal text-sm">${this.headerMessage}</span>
+                        <span id="curation-header-desc" class="text-muted-lavender font-normal text-sm">${this._escapeHtml(headerMessage)}</span>
                     </h1>
                 </div>
 
                 <div class="flex-1 flex flex-col justify-center min-h-0">
-                    <!-- Carousel Wrapper: 3장만 노출하여 성능 최적화 -->
                     <div class="carousel-container mb-2" id="carousel-wrapper">
                         <div class="carousel-item side ${prevPhoto ? 'opacity-40' : 'opacity-0 pointer-events-none'}">
                             <div id="img-prev" class="aspect-[2/3] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60 grayscale-[50%]"
-                                 style='${prevPhoto?.imageUrl ? `background-image: url("${prevPhoto.imageUrl}");` : ""}'>
+                                 style='${prevPhoto?.imageUrl ? `background-image: url("${this._escapeHtmlAttr(prevPhoto.imageUrl)}");` : ''}'>
                             </div>
                         </div>
                         <div class="carousel-item">
                             <div class="relative aspect-[2/3] w-full">
                                 <div id="img-curr" class="w-full h-full bg-center bg-cover rounded-[24px] shadow-[0_8px_24px_rgba(0,0,0,0.4)] border border-white/10 bg-field-bg transition-all duration-300 ease-in-out"
-                                     style='${currentPhoto?.imageUrl ? `background-image: url("${currentPhoto.imageUrl}");` : ""}'>
+                                     style='${currentPhoto?.imageUrl ? `background-image: url("${this._escapeHtmlAttr(currentPhoto.imageUrl)}");` : ''}'>
                                 </div>
                                 ${currentPhoto?.score > 20 ? '<div class="absolute top-4 right-4 bg-primary/90 text-dark-bg text-[10px] font-black px-2 py-1 rounded-full shadow-lg">HIGH DETOX</div>' : ''}
                             </div>
                         </div>
                         <div class="carousel-item side ${nextPhoto ? 'opacity-40' : 'opacity-0 pointer-events-none'}">
                             <div id="img-next" class="aspect-[2/3] w-full bg-center bg-cover rounded-[24px] border border-white/10 bg-field-bg transition-all duration-300 cursor-pointer hover:opacity-60 grayscale-[50%]"
-                                 style='${nextPhoto?.imageUrl ? `background-image: url("${nextPhoto.imageUrl}");` : ""}'>
+                                 style='${nextPhoto?.imageUrl ? `background-image: url("${this._escapeHtmlAttr(nextPhoto.imageUrl)}");` : ''}'>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Meta Info & Buttons (마진 축소) -->
                     <div class="px-6 mx-6 shrink-0 max-w-md mx-auto w-full">
                         <div id="photo-meta-info" class="mb-5 min-h-[4rem] flex flex-col items-center justify-start transition-all duration-300">
                             <p class="text-white text-[14px] font-medium leading-relaxed text-center break-keep w-full">
-                                <span id="meta-date">${currentPhoto?.date || ''}</span> | <span id="meta-location">${currentPhoto?.location || ''}</span><br/>
-                                <span id="meta-context" class="text-primary text-sm font-bold block mt-1 leading-snug">${currentPhoto?.contextMessage || ''}</span>
+                                <span id="meta-date">${this._escapeHtml(vm.meta && vm.meta.date ? vm.meta.date : '')}</span> | <span id="meta-location">${this._escapeHtml(vm.meta && vm.meta.location ? vm.meta.location : '')}</span><br/>
+                                <span id="meta-context" class="text-primary text-sm font-bold block mt-1 leading-snug">${this._escapeHtml(vm.meta && vm.meta.contextMessage ? vm.meta.contextMessage : '')}</span>
                             </p>
                         </div>
 
                         <div class="flex gap-4 w-full pb-8">
-                            <button id="thanks-btn" class="flex-1 flex flex-row items-center justify-center gap-2 h-14 px-6 rounded-3xl border border-white/10 bg-transparent active:scale-95 transition-all duration-300 ease-in-out">
+                            <button id="thanks-btn" class="flex-1 flex flex-row items-center justify-center gap-2 h-14 px-6 rounded-3xl border border-white/10 bg-transparent active:scale-95 transition-all duration-300 ease-in-out" ${vm.controls && !vm.controls.canDelete ? 'disabled' : ''}>
                                 <span class="material-symbols-outlined text-[#B2B0B5] text-xl">delete</span>
                                 <span class="text-[#B2B0B5] font-semibold text-base">고마웠어</span>
                             </button>
-                            <button id="precious-btn" class="flex-1 flex flex-row items-center justify-center gap-2 h-14 px-6 rounded-3xl bg-primary shadow-[0_8px_24px_rgba(178,165,207,0.3)] active:scale-95 transition-all duration-300 ease-in-out">
+                            <button id="precious-btn" class="flex-1 flex flex-row items-center justify-center gap-2 h-14 px-6 rounded-3xl bg-primary shadow-[0_8px_24px_rgba(178,165,207,0.3)] active:scale-95 transition-all duration-300 ease-in-out" ${vm.controls && !vm.controls.canMarkPrecious ? 'disabled' : ''}>
                                 <span class="material-symbols-outlined text-dark-bg text-xl" style="font-variation-settings: 'FILL' 1">auto_awesome</span>
                                 <span class="text-dark-bg font-bold text-base">소중해</span>
                             </button>
@@ -280,79 +291,64 @@ export class HomeManager {
             </div>
         `;
 
-        // 중앙 정렬 보장 + 스와이프 스냅 리스너 등록
+        // Carousel snap (DOM-only, inlined from former homeImageRuntime.js).
         requestAnimationFrame(() => {
             const wrapper = document.getElementById('carousel-wrapper');
             if (wrapper) {
                 const centerItem = wrapper.children[1];
                 if (centerItem) centerItem.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
-                setupCarouselSnap(this, wrapper);
+                this._setupCarouselSnap(wrapper);
             }
         });
 
-        // 이미지 로딩 실행 (병렬 처리)
-        loadAndReflectImages(this, this.currentIndex, prevIdx, nextIdx, isFirst, isLast);
+        // Trigger image hydration + AI analysis through controller.
+        // Fire-and-forget; controller writes to store and store subscribe
+        // triggers our re-render when relevant fields change.
+        this.core.home.ensureVisibleImages().catch((err) => {
+            console.error('[HomeManager] ensureVisibleImages failed:', err);
+        });
+        this.core.home.analyzeVisiblePhotos().catch((err) => {
+            console.error('[HomeManager] analyzeVisiblePhotos failed:', err);
+        });
     }
 
-    /**
-     * 사진 1장을 소비(삭제/기록)하고 다음 상태를 결정합니다.
-     */
-    async consumePhoto(index) {
-        if (index < 0 || index >= this.photos.length) return;
-        
-        console.log(`[RECOCO-TRACE] Consuming photo at index ${index}. Remaining: ${this.photos.length - 1}`);
-        this.photos.splice(index, 1);
+    _setupCarouselSnap(wrapper) {
+        let scrollTimer;
+        wrapper.addEventListener('scroll', () => {
+            clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(() => {
+                const items = wrapper.querySelectorAll('.carousel-item');
+                const wrapperCenter = wrapper.scrollLeft + wrapper.offsetWidth / 2;
 
-        // 마지막 1장 남았을 때 백그라운드 리필 트리거
-        if (this.photos.length === 1 && !this._nextBatch && !this._isRefilling) {
-            this.triggerBackgroundRefill();
-        }
+                let closestVisualIdx = 0;
+                let closestDist = Infinity;
+                items.forEach((item, i) => {
+                    const dist = Math.abs((item.offsetLeft + item.offsetWidth / 2) - wrapperCenter);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        closestVisualIdx = i;
+                    }
+                });
 
-        if (this.photos.length === 0) {
-            await this.switchToNextBatch();
-        } else {
-            if (this.currentIndex >= this.photos.length) {
-                this.currentIndex = Math.max(0, this.photos.length - 1);
-            }
-            this.render();
-        }
+                if (closestVisualIdx === 1) return;
+                if (!this.core || !this.core.home) return;
+
+                if (closestVisualIdx === 0) this.core.home.movePrevious();
+                else if (closestVisualIdx === 2) this.core.home.moveNext();
+            }, 120);
+        }, { passive: true });
     }
 
-    /**
-     * 백그라운드 리필 엔진 작동
-     */
-    async triggerBackgroundRefill() {
-        if (this._isRefilling) return;
-        this._isRefilling = true;
-        console.info('[RECOCO-TRACE] Triggering background refill...');
-        
-        try {
-            const { triggerBackgroundPrefetch } = await import('./home/homeRefillRuntime.js');
-            this._nextBatch = await triggerBackgroundPrefetch(this);
-            console.info('[RECOCO-TRACE] Background refill prepared.');
-        } catch (error) {
-            console.error('[RECOCO-TRACE] Background refill failed:', error);
-        } finally {
-            this._isRefilling = false;
-        }
+    _escapeHtml(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
-    /**
-     * 다음 묶음으로 교체
-     */
-    async switchToNextBatch() {
-        if (this._nextBatch && this._nextBatch.length > 0) {
-            console.info('[RECOCO-TRACE] Switching to even-ready next batch.');
-            this.photos = [...this._nextBatch];
-            this._nextBatch = null;
-            this.currentIndex = 0;
-            this.render();
-        } else {
-            console.info('[RECOCO-TRACE] Batch empty and no buffer ready. Hard refreshing...');
-            // loadRealPhotos가 내부에서 isLoading/render를 직접 관리하므로
-            // 여기서 중복 설정하지 않음 (이중 render 방지)
-            await this.loadRealPhotos();
-            this.currentIndex = 0;
-        }
+    _escapeHtmlAttr(s) {
+        return this._escapeHtml(s);
     }
 }

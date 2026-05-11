@@ -1,62 +1,78 @@
 /**
- * MyPageManager - Handles profile, settings and account management
- * 마이페이지 UI 및 관련 기능을 담당하는 클래스
+ * MyPageManager - Handles profile, settings and account management.
+ *
+ * Slice 5b (Decision #1A, #4B): direct platform/service imports removed.
+ *   - Profile/logout flows route through `core.account` + `core.auth` VMs.
+ *   - Withdrawal (delete-account) flows through `core.account.deleteAccount()`,
+ *     which already orchestrates: backend POST → global signOut → storagePort
+ *     clearLocal/clearSession → status='deleted'. The component only collects
+ *     reason + confirmation and triggers the controller.
+ *   - Farewell view rendered when `account.status === 'deleted'` is observed.
  */
 
-import { supabase } from '../services/supabase.js';
-import { API_CONFIG } from '../constants/config.js';
-import { handleError } from '../utils/errorHandler.js';
-import { requestPermission, scheduleDailyNotification, cancelAll } from '../services/NotificationService.js';
+import { presentToast, ErrorLevel } from '../ui/dom/toastPresenter.js';
 
 export class MyPageManager {
-    constructor(containerId, options = {}) {
+    constructor(containerId, { core, onLogout } = {}) {
         this.container = document.getElementById(containerId);
-        this.onLogout = options.onLogout || null;
-        this.user = null;
-        this.getCurrentUser = options.getCurrentUser || (() => null);
-        this.isHydratingUser = false;
-        this._requestSeq = 0;
+        this.core = core || null;
+        this.onLogout = onLogout || null;
+        this._farewellShown = false;
+        this._unsubscribeStore = null;
+
+        if (this.core && this.core.store) {
+            this._unsubscribeStore = this.core.store.subscribe((next) => {
+                const status = next && next.account && next.account.status;
+                if (status === 'deleted' && !this._farewellShown) {
+                    this._farewellShown = true;
+                    this._showFarewellView();
+                }
+            });
+        }
     }
 
-    /**
-     * Render the My Page view
-     */
+    destroy() {
+        if (typeof this._unsubscribeStore === 'function') {
+            this._unsubscribeStore();
+            this._unsubscribeStore = null;
+        }
+    }
+
     render() {
+        if (this._farewellShown) return;
         this._renderShell();
         this._hydrateUser();
     }
 
     async _hydrateUser() {
-        const requestSeq = ++this._requestSeq;
-        this.isHydratingUser = true;
-        this._renderShell();
+        if (!this.core || !this.core.account) return;
+        await this.core.account.hydrateProfile();
+        if (!this._farewellShown) this._renderShell();
+    }
 
-        try {
-            const cachedUser = this.getCurrentUser() || this.user;
-            if (cachedUser) {
-                this.user = cachedUser;
-                return;
-            }
+    _readUser() {
+        if (!this.core) return null;
+        const accountVm = this.core.account ? this.core.account.getViewModel() : null;
+        if (accountVm && accountVm.profile) return accountVm.profile;
+        const authVm = this.core.auth ? this.core.auth.getViewModel() : null;
+        return (authVm && authVm.user) || null;
+    }
 
-            const { data: { user } } = await supabase.auth.getUser();
-            this.user = user;
-        } catch (error) {
-            console.error('[MYPAGE] Failed to load user:', error);
-        } finally {
-            if (requestSeq !== this._requestSeq) return;
-            this.isHydratingUser = false;
-            this._renderShell();
-        }
+    _isHydrating() {
+        if (!this.core || !this.core.account) return false;
+        const vm = this.core.account.getViewModel();
+        return vm.status === 'hydrating';
     }
 
     _renderShell() {
         if (!this.container) return;
 
-        const user = this.user;
-        const profileName = user?.user_metadata?.full_name || (this.isHydratingUser ? '불러오는 중' : '사용자');
-        const profileEmail = user?.email || (this.isHydratingUser ? '계정 정보를 확인하고 있어요' : '로그인 정보를 확인할 수 없습니다');
+        const user = this._readUser();
+        const hydrating = this._isHydrating();
+        const profileName = user?.user_metadata?.full_name || (hydrating ? '불러오는 중' : '사용자');
+        const profileEmail = user?.email || (hydrating ? '계정 정보를 확인하고 있어요' : '로그인 정보를 확인할 수 없습니다');
         const profileImg = user?.user_metadata?.avatar_url || 'https://lh3.googleusercontent.com/a/default-user';
-        const profilePulse = this.isHydratingUser ? 'animate-pulse opacity-60' : '';
+        const profilePulse = hydrating ? 'animate-pulse opacity-60' : '';
 
         this.container.innerHTML = `
             <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-[20px]" style="padding-top: env(safe-area-inset-top);">
@@ -108,8 +124,8 @@ export class MyPageManager {
                         </div>
                     </div>
                 </div>
-                
-                <!-- Footer / Logout (디자인 가이드 반영) -->
+
+                <!-- Footer / Logout -->
                 <div class="mt-12 px-6 text-center">
                     <p class="text-xs text-gray-500 font-semibold tracking-wide">recoco v2.4.0</p>
                     <button id="logout-btn" class="mt-4 text-sm text-gray-500 font-medium underline underline-offset-4 decoration-zinc-800 active:text-white transition-colors duration-200 ease-in-out">로그아웃</button>
@@ -128,25 +144,26 @@ export class MyPageManager {
 
         if (backBtn) {
             backBtn.onclick = () => {
-                window.dispatchEvent(new CustomEvent('nav-change', { detail: 'home' }));
+                if (this.core && this.core.navigation) this.core.navigation.navigate('home');
             };
         }
 
         if (noticeBtn) {
             noticeBtn.onclick = () => {
-                window.dispatchEvent(new CustomEvent('nav-change', { detail: 'notice' }));
+                if (this.core && this.core.navigation) this.core.navigation.navigate('notice');
             };
         }
 
         if (logoutBtn) {
             logoutBtn.onclick = async () => {
-                try {
-                    const { error } = await supabase.auth.signOut();
-                    if (error) throw error;
-                    if (this.onLogout) this.onLogout();
-                } catch (err) {
-                    handleError(err, 'Auth', { userMessage: '로그아웃 중 오류가 발생했습니다.' });
+                if (!this.core || !this.core.account) return;
+                await this.core.account.logout();
+                const vm = this.core.account.getViewModel();
+                if (vm.status === 'error') {
+                    presentToast('로그아웃 중 오류가 발생했습니다.', ErrorLevel.ERROR);
+                    return;
                 }
+                if (this.onLogout) this.onLogout();
             };
         }
 
@@ -155,9 +172,6 @@ export class MyPageManager {
         }
     }
 
-    /**
-     * Show withdrawal confirmation view
-     */
     _showWithdrawView() {
         this.container.innerHTML = `
             <div class="sticky top-0 z-10 bg-dark-bg/80 backdrop-blur-[20px]" style="padding-top: env(safe-area-inset-top);">
@@ -257,9 +271,19 @@ export class MyPageManager {
         const modal = document.getElementById('withdraw-modal');
         const modalCancel = document.getElementById('withdraw-modal-cancel');
         const modalConfirm = document.getElementById('withdraw-modal-confirm');
+        const reasonInputs = this.container.querySelectorAll('input[name="reason"]');
 
         if (backBtn) backBtn.onclick = () => this.render();
         if (keepBtn) keepBtn.onclick = () => this.render();
+
+        // Withdrawal reason → controller
+        reasonInputs.forEach((input) => {
+            input.onchange = () => {
+                if (input.checked && this.core && this.core.account) {
+                    this.core.account.setWithdrawalReason(input.value);
+                }
+            };
+        });
 
         if (confirmCheckbox && proceedBtn) {
             confirmCheckbox.onchange = () => {
@@ -270,6 +294,9 @@ export class MyPageManager {
                 } else {
                     proceedBtn.classList.add('text-gray-400');
                     proceedBtn.classList.remove('text-red-400');
+                }
+                if (this.core && this.core.account) {
+                    this.core.account.setWithdrawalConfirmed(confirmCheckbox.checked);
                 }
             };
         }
@@ -291,45 +318,37 @@ export class MyPageManager {
 
     async _performWithdrawal() {
         const modalConfirm = document.getElementById('withdraw-modal-confirm');
-        const reasonInput = document.querySelector('input[name="reason"]:checked');
-        const reason = reasonInput ? reasonInput.value : 'not_specified';
 
-        try {
-            if (modalConfirm) {
-                modalConfirm.textContent = '처리 중...';
-                modalConfirm.disabled = true;
-            }
+        if (modalConfirm) {
+            modalConfirm.textContent = '처리 중...';
+            modalConfirm.disabled = true;
+        }
 
-            let userId = this.user?.id;
-            if (!userId) {
-                const { data: { user } } = await supabase.auth.getUser();
-                userId = user?.id;
-            }
-
-            if (userId) {
-                const baseUrl = (API_CONFIG.BASE_URL || '').replace(/\/$/, '');
-                await fetch(`${baseUrl}/api/v1/delete-account`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId, reason })
-                }).catch(e => console.warn('[WITHDRAW] Server error:', e));
-            }
-
-            await supabase.auth.signOut({ scope: 'global' }).catch(() => {});
-            localStorage.clear();
-            sessionStorage.clear();
-            
-            this._showFarewellView();
-        } catch (err) {
-            handleError(err, 'Withdraw');
+        if (!this.core || !this.core.account) {
+            presentToast('탈퇴 처리 중 오류가 발생했습니다.', ErrorLevel.ERROR);
             if (modalConfirm) {
                 modalConfirm.textContent = '탈퇴하기';
                 modalConfirm.disabled = false;
             }
+            return;
         }
+
+        await this.core.account.deleteAccount();
+
+        const vm = this.core.account.getViewModel();
+        if (vm.status === 'error') {
+            presentToast('탈퇴 처리 중 오류가 발생했습니다.', ErrorLevel.ERROR);
+            if (modalConfirm) {
+                modalConfirm.textContent = '탈퇴하기';
+                modalConfirm.disabled = false;
+            }
+            return;
+        }
+        // status === 'deleted' triggers _showFarewellView via store subscription.
     }
 
     _showFarewellView() {
+        if (!this.container) return;
         this.container.innerHTML = `
             <div class="flex flex-col h-full bg-dark-bg">
                 <div class="flex-1 flex flex-col items-center justify-center px-8 text-center max-w-md mx-auto">

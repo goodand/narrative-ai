@@ -1,18 +1,30 @@
 /**
- * NoticeManager - Handles Notification Settings UI and Scheduling
+ * NoticeManager - Handles Notification Settings UI and Scheduling.
+ *
+ * Slice 5a (Decision #6B): platform/service direct imports removed. The
+ * component reads its initial state from `core.notifications.getViewModel()`
+ * and routes toggle changes through `core.notifications.setEnabled(enabled)`.
+ * Permission-denied state is surfaced via the controller view model and
+ * presented through toastPresenter.
  */
 
-import { requestPermission, scheduleDailyNotification, cancelAll } from '../services/NotificationService.js';
-import { showToast, ErrorLevel } from '../utils/errorHandler.js';
+import { presentToast, ErrorLevel } from '../ui/dom/toastPresenter.js';
 
 export class NoticeManager {
-    constructor(containerId) {
+    constructor(containerId, { core } = {}) {
         this.container = document.getElementById(containerId);
-        this.storageKey = 'notificationEnabled'; // Align with existing storage key if any
-        this.isNoticeEnabled = localStorage.getItem(this.storageKey) === 'true';
+        this.core = core || null;
+        this.isNoticeEnabled = this._readEnabled();
+    }
+
+    _readEnabled() {
+        if (!this.core || !this.core.notifications) return false;
+        const vm = this.core.notifications.getViewModel();
+        return Boolean(vm && vm.enabled);
     }
 
     async render() {
+        this.isNoticeEnabled = this._readEnabled();
         this.container.innerHTML = `
             <div class="flex flex-col h-full bg-dark-bg text-white overflow-hidden">
                 <!-- Top App Bar -->
@@ -88,35 +100,40 @@ export class NoticeManager {
 
         if (backBtn) {
             backBtn.onclick = () => {
-                window.dispatchEvent(new CustomEvent('nav-change', { detail: 'mypage' }));
+                if (this.core && this.core.navigation) {
+                    this.core.navigation.navigate('mypage');
+                }
             };
         }
 
         if (toggle) {
             toggle.onchange = async (e) => {
                 const enabled = e.target.checked;
-                
-                if (enabled) {
-                    const granted = await requestPermission();
-                    if (!granted) {
-                        showToast('알림 권한이 필요합니다. 설정에서 권한을 허용해주세요.', ErrorLevel.WARN);
-                        toggle.checked = false;
-                        return;
-                    }
-                    await scheduleDailyNotification();
-                } else {
-                    await cancelAll();
+
+                if (!this.core || !this.core.notifications) {
+                    console.error('[NOTICE] core.notifications not available');
+                    toggle.checked = !enabled;
+                    return;
                 }
 
-                this.isNoticeEnabled = enabled;
-                localStorage.setItem(this.storageKey, String(enabled));
+                await this.core.notifications.setEnabled(enabled);
+
+                const vm = this.core.notifications.getViewModel();
+                const finalEnabled = Boolean(vm.enabled);
+
+                if (enabled && vm.status === 'permission_denied') {
+                    presentToast('알림 권한이 필요합니다. 설정에서 권한을 허용해주세요.', ErrorLevel.WARN);
+                }
+
+                this.isNoticeEnabled = finalEnabled;
+                toggle.checked = finalEnabled;
 
                 // UI Update
                 if (statusText) {
-                    statusText.className = `text-sm font-medium ${enabled ? 'text-primary' : 'text-gray-500'} flex items-center gap-1.5`;
+                    statusText.className = `text-sm font-medium ${finalEnabled ? 'text-primary' : 'text-gray-500'} flex items-center gap-1.5`;
                     statusText.innerHTML = `
-                        <span class="w-1.5 h-1.5 rounded-full ${enabled ? 'bg-primary animate-pulse' : 'bg-gray-500'}"></span>
-                        ${enabled ? '현재 알림이 활성화되어 있습니다' : '알림이 꺼져 있습니다'}
+                        <span class="w-1.5 h-1.5 rounded-full ${finalEnabled ? 'bg-primary animate-pulse' : 'bg-gray-500'}"></span>
+                        ${finalEnabled ? '현재 알림이 활성화되어 있습니다' : '알림이 꺼져 있습니다'}
                     `;
                 }
             };
