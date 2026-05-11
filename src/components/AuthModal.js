@@ -4,14 +4,11 @@
  */
 
 import { Modal } from './Modal.js';
-import { supabase } from '../services/supabase.js';
-import { Browser } from '@capacitor/browser';
-import { showToast, ErrorLevel } from '../utils/errorHandler.js';
 
 export class AuthModal extends Modal {
-    constructor(element) {
+    constructor(element, { core } = {}) {
         super(element);
-        this.onLoginSuccess = null;
+        this.core = core || null;
         this.contentElement = this.element.querySelector('#auth-content');
     }
 
@@ -27,37 +24,20 @@ export class AuthModal extends Modal {
     }
 
     async _handleGoogleLogin() {
-        try {
-            console.log('[AUTH] Google 로그인 시작...');
-            const isCapacitor = window.Capacitor !== undefined;
-
-            // Xcode 설정(Info.plist)과 일치하는 정확한 주소: com.narrativeai.appv
-            const redirectUrl = isCapacitor
-                ? 'com.narrativeai.appv://login-callback'
-                : window.location.origin;
-            
-            console.log('[AUTH] Final Redirect URL:', redirectUrl);
-
-            const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: redirectUrl,
-                    skipBrowserRedirect: isCapacitor
-                }
-            });
-
-            if (error) throw error;
-
-            if (isCapacitor && data?.url) {
-                await Browser.open({ 
-                    url: data.url,
-                    presentationStyle: 'fullscreen'
-                });
-            }
-        } catch (error) {
-            console.error('[AUTH] 상세 에러:', error);
-            showToast(`로그인 오류: ${error.message}`, ErrorLevel.ERROR);
+        if (!this.core || !this.core.auth) {
+            console.error('[AUTH] core.auth not available');
+            return;
         }
+        const vm = this.core.auth.getViewModel();
+        if (!vm.canStartOAuth) {
+            console.log('[AUTH] OAuth not available in current state:', vm.status);
+            return;
+        }
+        console.log('[AUTH] Google 로그인 시작...');
+        await this.core.auth.startGoogleOAuth();
+        // Auth state changes (signed_in / error) flow through core.store; the
+        // createDomApp auth reactor closes this modal on signed_in and the
+        // toastPresenter subscription surfaces auth errors.
     }
 
     _bindEvents() {
@@ -92,7 +72,7 @@ export class AuthModal extends Modal {
                     </p>
                 </main>
                 <footer class="w-full flex flex-col items-center pb-8">
-                    <button id="google-auth-btn" class="w-full bg-white text-black py-4 px-6 rounded-[24px] flex items-center justify-center gap-3 active:scale-[0.98] transition-all mb-6 shadow-lg shadow-white/5">
+                    <button id="google-auth-btn" class="w-full bg-white text-black py-4 px-6 rounded-[24px] flex items-center justify-center gap-3 active:scale-[0.98] transition-all duration-300 ease-in-out mb-6 shadow-lg shadow-white/5">
                         <svg height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
                             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
@@ -103,13 +83,13 @@ export class AuthModal extends Modal {
                     </button>
                     
                     <div class="mb-3">
-                        <button id="auth-signup-btn" class="text-muted-lavender text-sm font-medium hover:text-white transition-colors">
+                        <button id="auth-signup-btn" class="text-muted-lavender text-sm font-medium hover:text-white transition-colors duration-200 ease-in-out">
                             처음이신가요? <span class="underline underline-offset-4 decoration-primary/40 font-bold text-primary">회원가입하기</span>
                         </button>
                     </div>
 
                     <p class="text-[11px] text-muted-lavender/40 text-center leading-relaxed mt-1">
-                        가입 시 <a href="/terms_of_service.html" target="_blank" class="underline decoration-muted-lavender/30 hover:text-white transition-colors">이용약관</a> 및 <a href="/privacy_policy.html" target="_blank" class="underline decoration-muted-lavender/30 hover:text-white transition-colors">개인정보처리방침</a>에 동의하게 됩니다.
+                        가입 시 <a href="/terms_of_service.html" target="_blank" class="underline decoration-muted-lavender/30 hover:text-white transition-colors duration-200 ease-in-out">이용약관</a> 및 <a href="/privacy_policy.html" target="_blank" class="underline decoration-muted-lavender/30 hover:text-white transition-colors duration-200 ease-in-out">개인정보처리방침</a>에 동의하게 됩니다.
                     </p>
                 </footer>
             </div>
