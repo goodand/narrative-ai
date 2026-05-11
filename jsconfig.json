@@ -5,7 +5,12 @@
     "target": "ESNext",
     "checkJs": false,
     "allowJs": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@recoco/core": ["packages/core/src/index.js"],
+      "@recoco/core/*": ["packages/core/src/*"]
+    }
   },
   "exclude": ["node_modules"]
 }
