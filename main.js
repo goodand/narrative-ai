@@ -1,105 +1,28 @@
 /**
  * RECOCO - Narrative AI Application
- * Entry point that orchestrates all modules
+ * Thin bootstrap (slice 4): construct ports + core + DOM app, then init.
+ *
+ * See:
+ *   - docs/refactor/headless-core-agent-instructions.md §6 conversion table
+ *   - docs/refactor/slice-4-integration-mapping.md §12 decision log
+ *
+ * Decisions in effect:
+ *   #1 A3 — pure additive integration (auth/notifications via core).
+ *   #5 A  — legacy `store.checkAndResetDaily()` retained here.
+ *   slice-6 H2 — `window.__bootErrors` is owned exclusively by this file;
+ *                `createDomApp` writes into an injected `bootErrors` object.
  */
 
 import './style.css';
+import { store as legacyStore } from './src/state/StateManager.js';
+import { createAppPorts } from './src/adapters/createAppPorts.js';
+import { createRecocoCore } from '@recoco/core';
+import { createDomApp } from './src/ui/dom/createDomApp.js';
 
-// Constants
-import { UI_MESSAGES, DEFAULT_SYSTEM_PROMPT } from './src/constants/config.js';
+const bootErrors = {};
+window.__bootErrors = bootErrors;
 
-// Error Handling
-import { handleError, showToast, ErrorLevel } from './src/utils/errorHandler.js';
-
-// State Management
-import { StateManager, store } from './src/state/StateManager.js';
-
-// Services
-import { GeminiService } from './src/services/GeminiService.js';
-import { supabase } from './src/services/supabase.js';
-import { Router } from './src/services/Router.js';
-import { photoService } from './src/services/PhotoService.js';
-
-// Capacitor Plugins
-import { App } from '@capacitor/app';
-import { Browser } from '@capacitor/browser';
-import { scheduleDailyNotification, setupActionListener } from './src/services/NotificationService.js';
-
-// Components
-import { InputManager } from './src/components/InputManager.js';
-import { SelectionGroup } from './src/components/SelectionGroup.js';
-import { ResultViewer } from './src/components/ResultViewer.js';
-import { SuggestionModal, SettingsModal, ConfirmModal } from './src/components/Modal.js';
-import { OnboardingModal } from './src/components/OnboardingModal.js';
-import { AuthModal } from './src/components/AuthModal.js';
-import { PermissionModal } from './src/components/PermissionModal.js';
-import { HomeManager } from './src/components/HomeManager.js';
-import { MyPageManager } from './src/components/MyPageManager.js';
-import { ReportManager } from './src/components/ReportManager.js';
-import { NoticeManager } from './src/components/NoticeManager.js';
-
-// Initialize Core Services
-const geminiService = new GeminiService();
-
-/**
- * Handle Deep Links (OAuth Callback)
- */
-const handleUrl = async (urlStr) => {
-    console.log('[DEEPLINK] Incoming URL:', urlStr);
-    if (!urlStr) return;
-
-    // 딥링크 수신 직후 네이티브 레이어가 준비될 시간을 잠시 줌 (iOS 안정성 확보)
-    await new Promise(resolve => setTimeout(resolve, 150));
-
-    // 딥링크가 들어오면 우선 브라우저를 닫음 (성공 여부 상관없이 UX 우선 처리)
-    try { await Browser.close(); } catch (e) {}
-
-    try {
-        let accessToken = null;
-        let refreshToken = null;
-        let code = null;
-
-        // URL에서 토큰 및 코드 파싱
-        const parts = urlStr.split(/[#?&]/);
-        parts.forEach(part => {
-            if (part.startsWith('access_token=')) accessToken = part.split('=')[1];
-            if (part.startsWith('refresh_token=')) refreshToken = part.split('=')[1];
-            if (part.startsWith('code=')) code = part.split('=')[1];
-        });
-
-        if (accessToken && refreshToken) {
-            const { error } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken
-            });
-            if (error) throw error;
-            console.log('[DEEPLINK] Session set successfully');
-        } else if (code) {
-            const { error } = await supabase.auth.exchangeCodeForSession(code);
-            if (error) throw error;
-            console.log('[DEEPLINK] Code exchange successful');
-        }
-    } catch (err) {
-        handleError(err, 'Auth', { silent: true });
-    }
-};
-
-App.addListener('appUrlOpen', (data) => {
-    handleUrl(data.url);
-});
-
-// Re-register notifications when app returns to foreground (iOS reboot recovery)
-App.addListener('appStateChange', ({ isActive }) => {
-    if (isActive && localStorage.getItem('notificationEnabled') === 'true') {
-        scheduleDailyNotification();
-    }
-});
-
-// DOM Elements
-const els = {
-    genBtn: document.getElementById('generate-btn'),
-    btnText: document.getElementById('btn-text'),
-    loader: document.getElementById('btn-loader'),
+const rootEls = {
     navHome: document.getElementById('nav-home'),
     navReport: document.getElementById('nav-report'),
     navMypage: document.getElementById('nav-mypage'),
@@ -115,255 +38,20 @@ const els = {
     noticeView: document.getElementById('notice-view')
 };
 
-// Initialize Router
-const router = new Router(els);
-
-// --- Component Initializations ---
-const inputManager = new InputManager('input-view');
-
-// SelectionGroup instances for sns and temp are no longer needed as they are removed from UI
-// keeping them if they are used elsewhere, but ideally cleaning up if exclusively for input view
-
-const suggestionModal = new SuggestionModal('suggestion-modal', 'suggestion-list');
-
-// 유의어 선택 핸들러
-function handleSuggestionSelect(suggestion, originalWord) {
-    const currentResult = store.getState('currentResult');
-    if (!currentResult) return;
-
-    const newCaption = currentResult.original_caption.replace(originalWord, suggestion);
-    currentResult.original_caption = newCaption;
-
-    const keyword = currentResult.keywords.find(k => k.word === originalWord);
-    if (keyword) {
-        keyword.word = suggestion;
-    }
-
-    store.setResult(currentResult);
-    resultViewer.renderCaption(currentResult);
-}
-
-const resultViewer = new ResultViewer({
-    resultArea: 'result-view',
-    interactiveCaption: 'caption-interactive',
-    editCaption: 'caption-edit',
-    editBtn: 'edit-btn',
-    saveBtn: 'save-btn',
-    copyBtn: 'copy-btn',
-    shareBtn: 'share-btn',
-    resultImage: 'result-image',
-    onKeywordClick: (wordData) => {
-        suggestionModal.renderSuggestions(wordData, handleSuggestionSelect);
-    },
-    onSave: (newText) => {
-        const currentResult = store.getState('currentResult');
-        if (currentResult) {
-            currentResult.original_caption = newText;
-            store.setResult(currentResult);
-        }
-    },
-    onShare: async (captionText) => {
-        try {
-            const { shareWithImage, shareCaption } = await import('./src/services/ShareService.js');
-            const imageBase64 = store.getState('base64');
-            if (imageBase64) {
-                await shareWithImage({ imageBase64, caption: captionText });
-            } else {
-                await shareCaption(captionText);
-            }
-        } catch (err) {
-            handleError(err, 'Share');
-        }
-    }
-});
-const settingsModal = new SettingsModal('settings-modal', 'system-prompt-input');
-const editConfirmModal = new ConfirmModal('edit-confirm-modal');
-
-const permissionModal = new PermissionModal('permission-modal');
-const authModal = new AuthModal('auth-modal');
-const onboardingModal = new OnboardingModal('onboarding-modal', {
-    onComplete: () => authModal.open('signup')
-});
-
-const homeManager = new HomeManager('home-view', {
-    confirmModal: editConfirmModal,
-    onPreciousClick: async () => {
-        // 선택된 사진을 input-view에 표시 (QW-0: base64 직접 전달, File/FileReader 왕복 제거)
-        const [base64, meta] = await Promise.all([
-            homeManager.getCurrentPhotoBase64(),
-            homeManager.getCurrentPhotoMeta()
-        ]);
-
-        if (!base64) {
-            showToast(UI_MESSAGES.ERROR_NO_IMAGE, ErrorLevel.WARN);
-            return;
-        }
-
-        inputManager.setPreviewImage(`data:image/jpeg;base64,${base64}`, meta);
-        router.navigate('input');
-    }
-});
-const reportManager = new ReportManager('report-view');
-const mypageManager = new MyPageManager('mypage-view', { onLogout: () => window.location.reload() });
-const noticeManager = new NoticeManager('notice-view');
-
-// Register Managers to Router
-router.registerManager('home', homeManager);
-router.registerManager('report', reportManager);
-router.registerManager('mypage', mypageManager);
-router.registerManager('notice', noticeManager);
-router.registerManager('input', inputManager);
-
-// 뒤로가기 버튼 이벤트 연결
-if (els.backBtn) {
-    els.backBtn.onclick = () => router.goBack();
-}
-
-els.navHome.onclick = () => router.navigate('home');
-els.navReport.onclick = () => router.navigate('report');
-els.navMypage.onclick = () => router.navigate('mypage');
-
-// MyPageManager의 뒤로가기 이벤트 처리
-window.addEventListener('nav-change', (e) => {
-    if (e.detail) router.navigate(e.detail);
-});
-
-/**
- * Handle Auth State Changes
- */
-supabase.auth.onAuthStateChange((event, session) => {
-    console.log(`[AUTH] Event: ${event}`);
-    if (event === 'SIGNED_IN') {
-        authModal.close();
-        onboardingModal.element.classList.add('hidden');
-        permissionModal.onComplete = () => {
-            router.navigate('home');
-            if (localStorage.getItem('notificationEnabled') === 'true') {
-                scheduleDailyNotification();
-            }
-        };
-        permissionModal.checkAndOpen();
-    } else if (event === 'SIGNED_OUT') {
-        onboardingModal.open();
-    }
-});
-
-/**
- * Generate Button Click Handler
- */
-els.genBtn.onclick = async () => {
-    const imageData = store.getState('base64') || store.getState('dataUrl');
-    if (!imageData) {
-        showToast(UI_MESSAGES.ERROR_NO_IMAGE, ErrorLevel.WARN);
-        return;
-    }
-
-    setLoading(true);
-
-    const inputData = inputManager.getInputData();
-    const context = {
-        sns: 'Instagram', // Default
-        mood: 'emotional', // Default
-        temp: 'Lukewarm', // Default
-        language: 'Korean', // Default
-        meaning: inputData.meaning, // Updated
-        tags: inputData.tags, // Updated
-        activity: '',
-        bodyState: '',
-        relationship: '',
-        metadata: store.getState('metadata'),
-        systemPrompt: store.getState('systemPrompt')
-    };
-
-    try {
-        const storyResult = await geminiService.generateStory(imageData, context);
-        els.btnText.innerText = UI_MESSAGES.FINDING_SYNONYMS;
-
-        const keywordsWithSuggestions = await geminiService.getSynonyms(
-            storyResult.keywords,
-            context.language
-        );
-
-        const metadata = store.getState('metadata');
-        const displayImage = store.getState('dataUrl');
-
-        const result = {
-            original_caption: storyResult.original_caption,
-            keywords: keywordsWithSuggestions,
-            image: displayImage,
-            metadata: metadata
-        };
-        store.setResult(result);
-
-        if (metadata?._isNative && metadata?.assetId && metadata?.dayKey) {
-            photoService.recordCurationAction({
-                assetId: metadata.assetId,
-                action: 'recorded',
-                dayKey: metadata.dayKey
-            }).then(() => {
-                return photoService.refreshDailyCurationAfterMutation({
-                    limit: 3,
-                    thumbSize: 300,
-                    transport: 'base64'
-                });
-            }).catch((refreshError) => {
-                console.warn('Main: daily refresh after record failed', refreshError);
-                showToast('홈 추천 갱신이 지연되고 있습니다. 홈에서 다시 시도해 주세요.', ErrorLevel.WARN);
-            });
-        }
-
-        router.navigate('result');
-        // Router handles visibility, but Input View specific hiding might be needed if Router doesn't cover it
-        // Router.navigate hides all views including inputView, so this is handled.
-        
-        els.header.classList.remove('hidden');
-        els.headerTitle.innerText = '리코코 기록 결과';
-
-        const resultDate = document.getElementById('result-date');
-        const resultLoc = document.getElementById('result-location');
-        if (resultDate && metadata?.date) resultDate.innerText = metadata.date;
-        if (resultLoc && metadata?.gps) resultLoc.innerText = metadata.gps.formatted;
-
-        resultViewer.show();
-        resultViewer.renderCaption(result);
-        resultViewer.scrollIntoView();
-
-    } catch (error) {
-        handleError(error, 'AI');
-    } finally {
-        setLoading(false);
-    }
-};
-
-function setLoading(isLoading) {
-    els.genBtn.disabled = isLoading;
-    els.loader?.classList.toggle('hidden', !isLoading);
-    els.btnText.innerText = isLoading ? UI_MESSAGES.LOADING : UI_MESSAGES.GENERATE_BUTTON;
-}
-
-/**
- * App Initialization
- */
 async function initApp() {
-    store.checkAndResetDaily();
-    setupActionListener(router);
+    console.log('[BOOT] Starting initApp...');
+    try {
+        legacyStore.checkAndResetDaily();
 
-    const launchUrl = await App.getLaunchUrl();
-    if (launchUrl?.url) await handleUrl(launchUrl.url);
+        const ports = createAppPorts();
+        const core = createRecocoCore(ports, { webRedirectOrigin: window.location.origin });
+        createDomApp({ core, rootEls, bootErrors });
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-        onboardingModal.open();
-    } else {
-        onboardingModal.element.classList.add('hidden');
-        authModal.close();
-        permissionModal.onComplete = () => {
-            router.navigate('home');
-            if (localStorage.getItem('notificationEnabled') === 'true') {
-                scheduleDailyNotification();
-            }
-        };
-        permissionModal.checkAndOpen();
+        await core.notifications.init(core.navigation);
+        await core.auth.init();
+    } catch (err) {
+        console.error('[BOOT] Critical initApp failure:', err);
+        bootErrors.initApp = err && err.message ? err.message : String(err);
     }
 }
 

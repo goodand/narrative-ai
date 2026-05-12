@@ -1,37 +1,61 @@
 /**
- * PermissionModal - Album access permission request modal
- * 사진첩 접근 권한 요청을 담당하는 모달 (회원가입 후 표시)
+ * PermissionModal - Album access permission request modal.
+ *
+ * Slice 5e (Decisions #1A, #5C): direct platform plugin imports removed. The
+ * modal becomes DOM-only and routes all permission state through
+ * `core.permissions`:
+ *   - `checkAndOpen()`  → `core.permissions.checkPhotoPermission()` (controller
+ *                         owns the 2500ms timeout + web bypass)
+ *   - allow button       → `core.permissions.requestPhotoPermission()`
+ *   - skip button        → `core.permissions.skipPhotoPermission()`
+ *
+ * The controller writes `store.permissions.photo.*`. HomeController's
+ * permission `false→true` subscription owns the daily-curation load trigger
+ * (Decision #5C) — this modal does NOT call HomeManager directly. The modal
+ * watches the store to decide visibility (open/close) on its own.
  */
 
 import { Modal } from './Modal.js';
-import { Camera } from '@capacitor/camera';
 
 export class PermissionModal extends Modal {
-    constructor(element) {
+    constructor(element, { core } = {}) {
         super(element);
-        this.onComplete = null;
+        this.core = core || null;
         this.contentElement = this.element.querySelector('#permission-content');
+        this._unsubscribeStore = null;
+
+        if (this.core && this.core.store) {
+            this._unsubscribeStore = this.core.store.subscribe((next) => {
+                this._reactToVm(next);
+            });
+        }
     }
 
-    /**
-     * Check permission status and open modal only if needed
-     */
-    async checkAndOpen() {
-        try {
-            const status = await Camera.checkPermissions();
-            console.log('Current permission status:', status.photos);
+    destroy() {
+        if (typeof this._unsubscribeStore === 'function') {
+            this._unsubscribeStore();
+            this._unsubscribeStore = null;
+        }
+    }
 
-            if (status.photos === 'granted' || status.photos === 'limited') {
-                console.log('Permission already granted, skipping modal');
-                if (this.onComplete) this.onComplete();
-                return;
-            }
-            
-            // If not granted, show the modal
+    async checkAndOpen() {
+        if (!this.core || !this.core.permissions) return;
+        await this.core.permissions.checkPhotoPermission();
+        const vm = this.core.permissions.getViewModel().photo;
+        if (vm.authorized) {
+            this.close();
+            return;
+        }
+        if (vm.shouldPrompt || vm.reason === 'timeout_prompt' || vm.reason === 'check_error' || vm.reason === 'needs_prompt') {
             this.open();
-        } catch (error) {
-            console.error('Error checking permissions:', error);
-            this.open(); // Fallback
+        }
+    }
+
+    _reactToVm(state) {
+        const photo = state && state.permissions && state.permissions.photo;
+        if (!photo) return;
+        if (photo.authorized) {
+            this.close();
         }
     }
 
@@ -82,10 +106,10 @@ export class PermissionModal extends Modal {
                     </div>
                 </main>
                 <footer class="flex flex-col items-center gap-3 pb-8 shrink-0">
-                    <button id="permission-allow-btn" class="w-full max-w-sm py-4.5 rounded-2xl bg-primary text-dark-bg font-bold text-lg active:scale-[0.98] transition-all">
+                    <button id="permission-allow-btn" class="w-full max-w-sm h-14 rounded-3xl bg-primary text-dark-bg font-bold text-lg active:scale-[0.98] transition-all duration-300 ease-in-out">
                         사진첩 접근 허용하기
                     </button>
-                    <button id="permission-skip-btn" class="py-2 text-white/40 text-sm font-medium hover:text-white/60 transition-colors">
+                    <button id="permission-skip-btn" class="py-2 text-white/40 text-sm font-medium hover:text-white/60 transition-colors duration-200 ease-in-out">
                         나중에 설정하기
                     </button>
                 </footer>
@@ -96,26 +120,13 @@ export class PermissionModal extends Modal {
     }
 
     async _handlePermissionRequest() {
-        try {
-            console.log('Requesting native photo library permissions...');
-            const result = await Camera.requestPermissions({ permissions: ['photos'] });
-            console.log('Permission result:', result.photos);
-            
-            // iOS에서는 'granted' 또는 'limited'인 경우 성공으로 간주
-            if (result.photos === 'granted' || result.photos === 'limited') {
-                this.close();
-                if (this.onComplete) this.onComplete();
-            } else {
-                console.warn('Permission denied by user');
-                // 거부된 경우에도 일단 닫거나 안내 문구를 띄울 수 있음
-                this.close();
-                if (this.onComplete) this.onComplete();
-            }
-        } catch (error) {
-            console.error('Error requesting permissions:', error);
-            // 웹 환경일 경우 오류 발생 가능 -> 그냥 진행
+        if (!this.core || !this.core.permissions) return;
+        await this.core.permissions.requestPhotoPermission();
+        const vm = this.core.permissions.getViewModel().photo;
+        if (vm.authorized) {
             this.close();
-            if (this.onComplete) this.onComplete();
+        } else {
+            this.close();
         }
     }
 
@@ -129,9 +140,10 @@ export class PermissionModal extends Modal {
 
         if (skipBtn) {
             skipBtn.onclick = () => {
-                console.log('Permission Skipped');
+                if (this.core && this.core.permissions) {
+                    this.core.permissions.skipPhotoPermission();
+                }
                 this.close();
-                if (this.onComplete) this.onComplete();
             };
         }
     }

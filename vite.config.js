@@ -18,6 +18,11 @@ export default defineConfig(({ mode }) => {
     define: {
       'process.env': {}
     },
+    resolve: {
+      alias: {
+        '@recoco/core': resolve(rootDir, 'packages/core/src/index.js')
+      }
+    },
     build: {
       outDir: 'dist',
       sourcemap: true,

@@ -4,14 +4,11 @@
  */
 
 import { Modal } from './Modal.js';
-import { supabase } from '../services/supabase.js';
-import { Browser } from '@capacitor/browser';
-import { showToast, ErrorLevel } from '../utils/errorHandler.js';
 
 export class AuthModal extends Modal {
-    constructor(element) {
+    constructor(element, { core } = {}) {
         super(element);
-        this.onLoginSuccess = null;
+        this.core = core || null;
         this.contentElement = this.element.querySelector('#auth-content');
     }
 
@@ -27,37 +24,20 @@ export class AuthModal extends Modal {
     }
 
     async _handleGoogleLogin() {
-        try {
-            console.log('[AUTH] Google 로그인 시작...');
-            const isCapacitor = window.Capacitor !== undefined;
-
-            // Xcode 설정(Info.plist)과 일치하는 정확한 주소: com.narrativeai.appv
-            const redirectUrl = isCapacitor
-                ? 'com.narrativeai.appv://login-callback'
-                : window.location.origin;
-            
-            console.log('[AUTH] Final Redirect URL:', redirectUrl);
-
-            const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: redirectUrl,
-                    skipBrowserRedirect: isCapacitor
-                }
-            });
-
-            if (error) throw error;
-
-            if (isCapacitor && data?.url) {
-                await Browser.open({ 
-                    url: data.url,
-                    presentationStyle: 'fullscreen'
-                });
-            }
-        } catch (error) {
-            console.error('[AUTH] 상세 에러:', error);
-            showToast(`로그인 오류: ${error.message}`, ErrorLevel.ERROR);
+        if (!this.core || !this.core.auth) {
+            console.error('[AUTH] core.auth not available');
+            return;
         }
+        const vm = this.core.auth.getViewModel();
+        if (!vm.canStartOAuth) {
+            console.log('[AUTH] OAuth not available in current state:', vm.status);
+            return;
+        }
+        console.log('[AUTH] Google 로그인 시작...');
+        await this.core.auth.startGoogleOAuth();
+        // Auth state changes (signed_in / error) flow through core.store; the
+        // createDomApp auth reactor closes this modal on signed_in and the
+        // toastPresenter subscription surfaces auth errors.
     }
 
     _bindEvents() {

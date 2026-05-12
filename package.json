@@ -4,6 +4,9 @@
   "type": "module",
   "description": "RECOCO - 사진 메타데이터와 이미지 내용을 바탕으로 삭제할 이미지를 추천하는 디지털 디톡스 앱",
   "main": "main.js",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
