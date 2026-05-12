@@ -111,3 +111,9 @@ recoco-design-system/
 
 # Local audit / verification scratch (separate workflow)
 docs/verification/
+
+# Backend rotating runtime logs (per post-merge cleanup review)
+backend/backend_log*.txt
+
+# iOS native credentials (per post-merge cleanup review)
+ios/App/App/credentials.plist
