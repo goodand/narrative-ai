@@ -1,63 +1,26 @@
 # RECOCO
 
-RECOCO는 사진 메타데이터와 이미지 내용을 바탕으로 `삭제할 이미지를 추천`해 주는 디지털 디톡스 앱입니다. 현재 코드베이스는 `Vite + Vanilla JS + Capacitor iOS + FastAPI` 조합으로 운영되며, 사진 캐러셀을 얼마나 빠르게 띄우고 삭제 흐름을 얼마나 매끄럽게 이어 가는지가 핵심 제품 가치입니다.
+<p align="center">
+  <img src="assets/readme/recoco-wordmark.svg" alt="RECOCO wordmark" width="180" />
+</p>
 
-현재 이 저장소의 우선 목표는 `private GitHub push + CI readiness`입니다. 이 README는 그 목적에 맞는 실행/검증 안내를 먼저 두고, 기존 문서가 담고 있던 제품 의도와 설계 히스토리는 아래에 별도 섹션으로 보존합니다.
+RECOCO is a digital detox app that recommends photos to delete or preserve based on photo metadata and image content.
 
-## 현재 프로젝트 의도
+사진을 지우는 일을 파일 정리가 아니라 작은 작별로 바꾸는 앱.
 
-- 사진 메타데이터와 이미지 내용을 바탕으로 삭제 추천 후보를 빠르게 계산한다.
-- 홈 캐러셀을 빠르게 띄워 사용자가 바로 삭제 결정을 내릴 수 있게 한다.
-- 삭제 후 다음 카드, 통계, 리포트 반영까지의 흐름을 짧게 유지한다.
-- 기록/스토리 생성은 보조 흐름으로 유지하되, 디지털 디톡스 경험을 해치지 않게 둔다.
-- API 키와 AI 호출은 백엔드 경유 구조를 우선한다.
+The current `main` branch is built around a headless core architecture: business logic lives in `@recoco/core`, platform and service calls are isolated behind ports, and the existing UI is hosted by DOM-only components.
 
-## 핵심 사용자 흐름
+## Quick Start
 
-1. 앱 진입
-2. 홈 캐러셀 표시
-3. 추천된 사진에 대해 `고마웠어`로 삭제 또는 `소중해`로 보류/기록
-4. 삭제/기록 후 홈과 리포트 상태 갱신
-
-이 방향 때문에 현재 최적화의 중심은 `AI 생성 속도`보다 `launch_to_carousel`, `thumbnail 전달`, `delete 후 다음 카드 노출`, `report 반영`에 있습니다.
-
-## 저장소 구조
-
-- `src/`, `main.js`
-  프론트엔드 애플리케이션 코드
-- `ios/App/`
-  Capacitor iOS 프로젝트와 native photo plugin
-- `backend/`
-  FastAPI 백엔드와 백엔드 전용 설정
-- `.maestro/`, `scripts/maestro/`
-  iOS smoke 자동화 도구
-- `.github/workflows/`
-  private GitHub CI workflow
-
-## 환경 변수
-
-루트 기준 템플릿:
+Frontend in 5 minutes:
 
 ```bash
+npm ci
 cp .env.example .env
-```
-
-- 프론트엔드는 루트 `.env`를 읽습니다.
-- Vite build/runtime은 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, 선택적으로 `VITE_API_BASE_URL`을 사용합니다.
-- 개발용 프록시 포트는 `VITE_BACKEND_PORT`로 조정할 수 있습니다.
-- 백엔드는 process env를 직접 읽거나, `backend/`에서 실행할 때 `backend/.env`를 읽습니다.
-- 백엔드 세부 설명은 [backend/README.md](backend/README.md)를 참고하세요.
-
-## 로컬 실행
-
-프론트엔드:
-
-```bash
-npm install
 npm run dev
 ```
 
-백엔드:
+Backend in a separate terminal:
 
 ```bash
 cd backend
@@ -67,24 +30,266 @@ uv pip install -e .
 uvicorn app.main:app --reload --port 8000
 ```
 
-웹 자산 변경 후 iOS 프로젝트 반영:
+Then open the Vite dev server shown in the terminal.
+
+## What RECOCO Does
+
+RECOCO helps users reduce photo clutter without turning cleanup into a spreadsheet.
+
+- It analyzes candidate photos with metadata and image context.
+- It presents a fast daily curation carousel.
+- It lets users decide with two primary actions: `고마웠어` for delete and `소중해` for keep/record.
+- It reflects curation actions into home state, report stats, and account history.
+- It keeps AI-generated stories as a supporting flow, not the main product bottleneck.
+
+The product priority is not just AI generation quality. The critical path is `launch_to_carousel`, thumbnail delivery, delete-to-next-card latency, and report update consistency.
+
+## Product Vision
+
+RECOCO treats photo cleanup as a small act of closure, not file disposal.
+
+The terms `고마웠어` and `소중해` are intentional:
+
+- `고마웠어` frames deletion as gratitude for a moment that no longer needs to occupy space.
+- `소중해` frames preservation as a deliberate choice to keep a memory close.
+
+This language keeps the product closer to digital detox and emotional editing than a generic storage cleaner.
+
+## Core User Flow
+
+1. Open the app.
+2. Authenticate with Google if needed.
+3. Grant photo access on iOS.
+4. Review the daily photo carousel.
+5. Choose `고마웠어` to delete or `소중해` to preserve/record.
+6. Continue to the next card.
+7. Check report and account state after curation.
+
+The UI should make deletion decisions feel quick, reversible in intent, and emotionally lightweight.
+
+## Architecture
+
+RECOCO is organized as a host-agnostic core plus thin platform adapters.
+
+```text
+main.js
+  -> src/adapters/createAppPorts.js
+  -> packages/core/src/createRecocoCore.js
+  -> src/ui/dom/createDomApp.js
+  -> src/components/*
+```
+
+### `@recoco/core`
+
+`packages/core/` contains the headless business logic package.
+
+- Reactive store
+- Navigation controller
+- Auth controller
+- Permissions controller
+- Notifications controller
+- Account controller
+- Home controller
+- Input controller
+- Result controller
+- Report controller
+- Pure helpers for report aggregation, caption formatting, curation reasoning, and error normalization
+
+Core code must not import DOM APIs, Supabase clients, Capacitor plugins, browser storage, or app services directly. Those dependencies are supplied through ports.
+
+### Platform ports
+
+`src/adapters/` is the platform/service composition layer.
+
+It wraps:
+
+- Supabase auth and stats access
+- Capacitor App, Browser, Clipboard, Local Notifications
+- native `RecocolPhotos` bridge
+- `PhotoService`
+- `GeminiService`
+- `ShareService`
+- `ImageProcessor`
+- browser storage
+- system clock
+- account API fetch
+
+`src/adapters/createAppPorts.js` is the app-side composition root that builds the 13 ports consumed by core.
+
+### DOM adapter
+
+`src/ui/dom/` contains browser DOM integration.
+
+- `createDomApp.js`: component composition, manager lifecycle, store reactors, teardown
+- `domEvents.js`: bottom tabs, back button, custom navigation events
+- `domRouterAdapter.js`: view visibility, header/bottom-bar state, scroll reset, render triggers
+- `toastPresenter.js`: normalized core errors to UI toasts
+
+### Components
+
+`src/components/` contains DOM-only views. Components receive `core` or controller access through construction and should not import Supabase, Capacitor, native plugins, legacy state managers, or service modules directly.
+
+## Repository Layout
+
+```text
+.
+├── main.js                         # Thin bootstrap: ports -> core -> DOM app
+├── packages/core/                  # @recoco/core headless package
+├── src/
+│   ├── adapters/                   # Platform/service port adapters
+│   ├── components/                 # DOM-only UI components
+│   ├── plugins/RecocolPhotos.ts    # Capacitor native photo bridge
+│   ├── services/                   # Legacy services wrapped by adapters
+│   ├── state/                      # Legacy StateManager retained for daily reset
+│   └── ui/dom/                     # DOM app/router/events/toast adapters
+├── backend/                        # FastAPI backend proxy
+├── ios/App/                        # Capacitor iOS project
+├── .github/workflows/              # CI and iOS simulator build workflows
+├── docs/                           # Release, testing, refactor, and readiness docs
+└── scripts/maestro/                # iOS smoke automation helpers
+```
+
+## Prerequisites
+
+- Node.js 22
+- npm
+- Python 3.11
+- `uv` for backend local development
+- Xcode for iOS work
+- Capacitor CLI via `npx cap`
+- Maestro for optional iOS smoke automation
+
+## Environment Variables
+
+Copy the root template and fill in real values:
+
+```bash
+cp .env.example .env
+```
+
+Frontend / Vite variables:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_API_BASE_URL`
+- `VITE_BACKEND_PORT`
+
+Backend / AI variables:
+
+- `GEMINI_API_KEY`
+- optional Gemini fallback keys
+- `GOOGLE_CLOUD_API_KEY`
+- `SERVICE_ROLE_KEY`
+- optional `PORT`
+
+The frontend reads the root `.env`. The backend reads process env, or `backend/.env` when run from `backend/`.
+
+For backend-specific details, see [backend/README.md](backend/README.md).
+
+## Local Development
+
+Install frontend dependencies:
+
+```bash
+npm ci
+```
+
+Run the Vite dev server:
+
+```bash
+npm run dev
+```
+
+Run a production build:
+
+```bash
+npm run build
+```
+
+Preview the built app:
+
+```bash
+npm run preview
+```
+
+Current npm scripts:
+
+```bash
+npm run dev
+npm run build
+npm test
+npm run preview
+npm run maestro:install
+npm run maestro:install:ios
+npm run maestro:test:ios
+npm run maestro:record:ios
+```
+
+`npm test` currently maps to `npm run build`.
+
+## Backend API
+
+Run the backend locally:
+
+```bash
+cd backend
+uv venv
+source .venv/bin/activate
+uv pip install -e .
+uvicorn app.main:app --reload --port 8000
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+API docs when the backend is running:
+
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+Main backend endpoints:
+
+- `GET /`
+- `GET /health`
+- `POST /api/v1/narrative`
+- `POST /api/v1/synonyms`
+
+## iOS / Capacitor
+
+Build web assets and sync the iOS project:
 
 ```bash
 npm run build
 npx cap sync ios
 ```
 
-## 로컬 검증
+Open the iOS project:
 
-프론트엔드 build smoke:
+```bash
+npx cap open ios
+```
+
+The Capacitor app uses:
+
+- app id: `com.narrativeai.appv`
+- app name: `NarrativeAI`
+- web directory: `dist`
+- iOS URL scheme: `com.narrativeai.appv`
+
+The native photo bridge is `src/plugins/RecocolPhotos.ts`.
+
+## Validation
+
+Frontend build smoke:
 
 ```bash
 npm test
 ```
 
-현재 `npm test`는 `npm run build`에 매핑됩니다.
-
-백엔드 health smoke:
+Backend health smoke:
 
 ```bash
 python -m pip install -e ./backend
@@ -92,74 +297,89 @@ python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000
 curl http://127.0.0.1:8000/health
 ```
 
-제품 방향 기준으로 우선 검증할 항목:
-
-- 홈 캐러셀 첫 표시 속도
-- 썸네일/캐러셀 이미지 로드 안정성
-- `고마웠어` 삭제 후 다음 카드 전환
-- 삭제 후 통계와 리포트 반영
-- same-day refresh와 daily curation 재계산
-
-## Maestro
-
-설치:
+Boundary scans used during the headless-core refactor:
 
 ```bash
-npm run maestro:install
-npm run maestro:install:ios
+rg -n "document|window|localStorage|sessionStorage|navigator|fetch\\(|supabase|@capacitor|RecocolPhotos" packages/core/src -g '!contracts/ports.js'
+rg -n "supabase|@capacitor|RecocolPhotos|PhotoService|GeminiService|NotificationService|StatsService|StateManager|ImageProcessor" src/components
+rg -n "supabase|@capacitor|RecocolPhotos|PhotoService|GeminiService|NotificationService|StatsService|ImageProcessor|ShareService" src/ui/dom
 ```
 
-온보딩 smoke:
+CI workflows:
 
-```bash
-npm run maestro:test:ios
-```
+- [ci.yml](.github/workflows/ci.yml): frontend build + backend `/health` smoke
+- [build-ios.yml](.github/workflows/build-ios.yml): iOS simulator app build artifact
 
-로컬 recording:
+## Manual Smoke Checklist
 
-```bash
-npm run maestro:record:ios
-```
+Before treating a release candidate as ready, manually check:
 
-상세 사용법은 [docs/testing/maestro.md](docs/testing/maestro.md)에 있습니다.
+- Cold boot with no session opens the onboarding/auth path.
+- Google OAuth works on web redirect.
+- Google OAuth works on native deep link / `appUrlOpen`.
+- Signed-in boot navigates to home.
+- Permission allow loads daily curation exactly once.
+- `소중해` records the curation action exactly once.
+- `고마웠어` delete confirmation deletes and records exactly once.
+- Withdrawal deletes account state, signs out, and clears storage exactly once.
+- Notice toggle ON/OFF schedules/cancels notification exactly once.
+- Input to result flow supports copy, share, and keyword replacement.
+- Report view renders weekly and total stats.
 
-## GitHub Actions
+## Visual Preview
 
-현재 private-repo 기준 workflow:
+Curated screenshots will be added after privacy review. Until then, this README uses the brand logo only.
 
-- [ci.yml](.github/workflows/ci.yml)
-  frontend build + backend `/health` smoke
-- [build-ios.yml](.github/workflows/build-ios.yml)
-  iOS simulator app build artifact
+Raw local captures are intentionally ignored by git and should not be bulk-published to GitHub. Some local Maestro and test screenshots include profile photos, email addresses, location metadata, personal names, or test photos.
 
-이 저장소는 CI만으로 출시 준비 완료를 주장하지 않습니다. 특히 `캐러셀 첫 표시`, `delete/report`, `recorded/refresh` 같은 런타임 핵심 흐름은 별도 release gate로 남겨 둡니다.
+README visual policy:
 
-## 체크리스트
+- Use 1-3 curated images only.
+- Prefer screenshots without profile photos, email addresses, precise location coordinates, or personal names.
+- Promote only reviewed assets into `assets/readme/`.
+- Keep raw `build/`, `assets/test-assets/`, and `.maestro/*.png` captures ignored.
+
+Recommended tracked assets after privacy review:
+
+- `assets/readme/home-carousel.png`
+- `assets/readme/curation-actions.gif`
+- `assets/readme/result-caption.png`
+
+## Documentation Map
+
+Product and release docs:
 
 - [docs/release-checklist.md](docs/release-checklist.md)
 - [docs/github-readiness-checklist.md](docs/github-readiness-checklist.md)
 - [docs/testing/maestro.md](docs/testing/maestro.md)
 
-## 설계 히스토리와 문서 의도
+Headless-core refactor docs:
 
-기존 README는 단순 실행 안내만이 아니라 아래 성격의 문서를 함께 담고 있었습니다.
+- [docs/refactor/headless-core-agent-instructions.md](docs/refactor/headless-core-agent-instructions.md)
+- [docs/refactor/headless-core-final-review.md](docs/refactor/headless-core-final-review.md)
+- [docs/refactor/headless-core-push-readiness.md](docs/refactor/headless-core-push-readiness.md)
+- [docs/refactor/headless-core-post-push-review.md](docs/refactor/headless-core-post-push-review.md)
+- [docs/refactor/headless-core-clean-pr-review.md](docs/refactor/headless-core-clean-pr-review.md)
+- [docs/refactor/headless-core-final-merge-check.md](docs/refactor/headless-core-final-merge-check.md)
+- [docs/refactor/slice-5-component-mapping.md](docs/refactor/slice-5-component-mapping.md)
 
-- RECOCO 리브랜딩과 BI/톤앤매너 정리
-- 감정의 온도 UI 추가 의도
-- 메타데이터 처리 UI/라이브러리 교체 배경
-- 이미지 최적화, 에러 처리, 프롬프트 구조 개선 메모
-- 보안과 배포에 대한 초기 방향성
+The slice mapping documents under `docs/refactor/` preserve implementation decisions and line-cited audits for the headless-core migration.
 
-현재는 그 위에 제품 방향이 한 번 더 정리됐습니다.
+## Current Project Status
 
-- 메인 제품 정체성: `삭제할 이미지를 추천하는` 디지털 디톡스 앱
-- 성능 우선순위: `캐러셀 표시 속도`와 `삭제 액션 연속성`
-- AI 기록 생성: 메인 플로우를 보조하는 서브 플로우
+[![CI](https://github.com/goodand/narrative-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/goodand/narrative-ai/actions/workflows/ci.yml)
+[![Build iOS Simulator App](https://github.com/goodand/narrative-ai/actions/workflows/build-ios.yml/badge.svg)](https://github.com/goodand/narrative-ai/actions/workflows/build-ios.yml)
+![License: ISC](https://img.shields.io/badge/license-ISC-blue.svg)
 
-즉, 원래 README의 의도는 `프로젝트 소개 + 운영 가이드 + 설계 인터뷰 메모`를 한 파일에 함께 두는 것이었습니다. 현재는 private GitHub CI 준비가 우선이므로 상단은 운영 안내로 정리했지만, 이 문서가 단순한 설치 문서만은 아니었다는 점은 유지합니다.
+- `main` contains the headless-core refactor merged from the clean PR path.
+- The app is still a Vite + Vanilla JS frontend with Capacitor iOS and FastAPI backend.
+- `@recoco/core` is private workspace package source, not a published npm package.
+- CI build and backend smoke run on pull requests and pushes to `main`.
+- iOS simulator build runs on pushes to `main` and manual dispatch.
+- Runtime release confidence still depends on manual smoke for auth, permissions, photo curation, destructive actions, notifications, and report flows.
 
-## 운영 메모
+The next README-level improvements should be visual: add screenshots or a short GIF of the home carousel and result flow once current UI capture assets are ready.
 
-- private GitHub CI 준비와 런타임 코어 앱 변경은 가능하면 분리해서 커밋합니다.
-- CI, 문서, 환경 변수 정리는 좁은 배치로 먼저 정리하는 편이 안전합니다.
-- 캐러셀/삭제 성능 최적화는 이 앱의 메인 가치에 직접 연결되므로, 회귀가 나면 우선순위를 가장 높게 둡니다.
+## License
+
+This project is licensed under the ISC License.
